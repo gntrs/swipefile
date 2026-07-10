@@ -158,6 +158,17 @@ lives in `tailwind.config.js`.
 Issues and PRs welcome - see [CONTRIBUTING.md](CONTRIBUTING.md).
 If Swipefile saves you a SaaS subscription, a ⭐ helps others find it.
 
+## Take it. Seriously.
+
+MIT means exactly what it sounds like: fork it, rebrand it, reskin it,
+**charge money for it** - people pay $100/mo for less. You don't owe me
+anything, you don't have to ask, and no strings ever get attached. Whatever
+you build on top is your win.
+
+And this repo isn't done. I run Swipefile for my own brand every day, so
+whatever I cook for myself gets dropped here too. That's the game we're all
+playing. Star it to catch the next drop. 🧑‍🍳
+
 ## License
 
 [MIT](LICENSE)
