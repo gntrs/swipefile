@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* iOS: 100% of body tracks the URL bar; dvh is the real visible height. */
+#root {
+  height: 100dvh;
+}
+
+html {
+  /* Near-black canvas so overscroll matches the page, no flashes on iOS. */
+  background: #0a0a0a;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* App-like feel on phones: the BODY never scrolls or bounces in any
+   direction - all scrolling happens inside dedicated containers (Layout's
+   <main>, Availability's grid, chip rows). iOS standalone PWAs ignore
+   overflow-x alone on body, so the lock must be total. */
+html,
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
+}
+
+body {
+  margin: 0;
+  /* Flat near-black canvas - no gradient; depth comes from the cards' own
+     lit top edge and shadows, not a page wash. */
+  background: #0a0a0a;
+  color: #f4f4f5;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.006em;
+}
+
+/* Inter's tighter, more editorial headings. Numbers stay tabular for tidy
+   columns of stats. */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+/* Long URLs and unbroken strings must wrap, not stretch the layout. */
+#root {
+  overflow-wrap: anywhere;
+}
+
+/* iOS Safari auto-zooms any focused field under 16px. Fields around the app
+   use 14px utilities (higher specificity), so this needs !important. On
+   desktop nothing changes: pointer:coarse only matches touch devices. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
+/* Text selection in a soft white wash, not the OS blue. */
+::selection {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* One consistent, quiet focus ring on every form control, so the whole app
+   feels considered without each page hand-rolling it. Utilities still win on
+   border-color; nothing else sets box-shadow on focus, so this layers in. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16);
+}
+
+/* Respect users who ask for less motion: no rise/shimmer, no transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Swipeable chip rows (filters) on phones: one line, no scrollbar. The
+   overscroll containment stops a chip swipe from chain-panning the whole
+   page sideways (the phone "wiggle"). */
+.scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* Thin, neutral scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #333333 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 999px;
+}

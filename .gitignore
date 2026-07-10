@@ -1,0 +1,14 @@
+node_modules
+dist
+.env
+.env.local
+.vercel
+*.log
+.DS_Store
+.claude-data
+
+# Party-mode clips are user-supplied; never commit media
+public/memes/*.mp4
+public/memes/*.mp3
+public/memes/*.webm
+public/memes/*.mov

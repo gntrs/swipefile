@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Claude's chat avatar: cream sunburst on coral, matching the dashboard mark style. -->
+  <circle cx="50" cy="50" r="50" fill="#FF8C5A"/>
+  <g fill="#FBF7F0">
+    <rect x="46" y="12" width="8" height="76" rx="4"/>
+    <rect x="46" y="12" width="8" height="76" rx="4" transform="rotate(45 50 50)"/>
+    <rect x="46" y="12" width="8" height="76" rx="4" transform="rotate(90 50 50)"/>
+    <rect x="46" y="12" width="8" height="76" rx="4" transform="rotate(135 50 50)"/>
+  </g>
+</svg>

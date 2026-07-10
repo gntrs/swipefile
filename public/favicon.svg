@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Swipefile mark: white S stroke + dot on near-black, drawn as shapes (no font). -->
+  <rect width="512" height="512" rx="112" fill="#0A0A0A"/>
+  <path d="M330 168 C322 138 258 128 218 144 C178 160 172 204 216 226 C260 248 318 254 326 296 C334 340 268 362 210 344"
+        fill="none" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round"/>
+  <circle cx="352" cy="368" r="30" fill="#FFFFFF"/>
+</svg>

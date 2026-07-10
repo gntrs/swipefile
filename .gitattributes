@@ -1,0 +1,6 @@
+# Shell scripts run on a Linux/macOS cron box - a CRLF checkout there breaks bash.
+*.sh text eol=lf
+
+# Media assets: never touch line endings.
+*.mp4 binary
+*.mp3 binary
