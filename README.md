@@ -24,20 +24,20 @@ Ad-intelligence SaaS charges $50-100 per seat per month for what is, let's be
 honest, a database with a nice UI. Swipefile is the same damn database with
 the same nice UI, except it's yours and it costs nothing:
 
-- 🗂️ **Ad library** - one shared, searchable home for every ad you and your
+- **Ad library** - one shared, searchable home for every ad you and your
   team save. Winner / testing / loser / unsure verdicts, tags, team notes,
   who-added-what.
-- 🕵️ **Rivals' proven plays** - competitor ads ranked by how long they've
-  been running. Nobody pays to run a losing ad for a month; the long-runners
-  are your niche's battle-tested angles.
-- 🪝 **Hook bank** - every hook from every saved ad in one filterable list.
+- **Rivals' proven plays** - competitor ads ranked by how long they've been
+  running. Nobody pays to run a losing ad for a month; the long-runners are
+  your niche's battle-tested angles.
+- **Hook bank** - every hook from every saved ad in one filterable list.
   Filter to proven-only, click to copy, go write.
-- 📈 **Your real numbers** - optional: revenue from Stripe (with confetti on
+- **Your real numbers** - optional: revenue from Stripe (with confetti on
   every live sale), your ads' spend/CTR/CPC from the Meta API, site funnel
   from PostHog.
-- 🤖 **AI analysis** - optional: export the library and ask Claude Code
+- **AI analysis** - optional: export the library and ask Claude Code
   "what do my winners have in common?" over your own data.
-- 📱 **Dark, fast, phone-ready** - monochrome UI, installable PWA, bottom
+- **Dark, fast, phone-ready** - monochrome UI, installable PWA, bottom
   tab bar on phones, team chat, goals, creator outreach CRM.
 
 <!-- screenshots: add 2-3 dark-mode shots here, e.g.
@@ -111,14 +111,14 @@ instructions per integration in [docs/SETUP.md](docs/SETUP.md#part-4-optional-in
 
 | Power-up | Needs | What you get |
 | --- | --- | --- |
-| 💶 Revenue card | `STRIPE_API_KEY` | lifetime revenue, MRR, confetti per live sale |
-| 📊 Own-ads import | `META_ACCESS_TOKEN` + account id | real spend/CTR/CPC per ad, auto-refreshed |
-| 🕵️ Competitor import | `FOREPLAY_API_KEY` | auto-fill the library from a swipe file |
-| 🔁 Ad Library pulls | Meta Ad Library token | competitor ads straight from the source |
-| 📉 Site funnel | `POSTHOG_API_KEY` + project id | visitors -> signup -> paid card |
-| 🧠 AI analysis | [Claude Code](https://claude.com/claude-code) CLI | "what's working?" answered from your data |
-| 🔎 Creator finder | `BRAVE_API_KEY` | scout niche creators for outreach |
-| 🎉 Party mode | your own clips in `public/memes/` | fullscreen meme when a sale lands ([how](public/memes/README.md)) |
+| Revenue card | `STRIPE_API_KEY` | lifetime revenue, MRR, confetti per live sale |
+| Own-ads import | `META_ACCESS_TOKEN` + account id | real spend/CTR/CPC per ad, auto-refreshed |
+| Competitor import | `FOREPLAY_API_KEY` | auto-fill the library from a swipe file |
+| Ad Library pulls | Meta Ad Library token | competitor ads straight from the source |
+| Site funnel | `POSTHOG_API_KEY` + project id | visitors -> signup -> paid card |
+| AI analysis | [Claude Code](https://claude.com/claude-code) CLI | "what's working?" answered from your data |
+| Creator finder | `BRAVE_API_KEY` | scout niche creators for outreach |
+| Party mode | your own clips in `public/memes/` | fullscreen meme when a sale lands ([how](public/memes/README.md)) |
 
 Set `VITE_OWN_BRAND` + `OWN_BRAND` to your brand name so the app knows which
 ads are yours and which are the competition's.
@@ -156,7 +156,7 @@ lives in `tailwind.config.js`.
 ## Contributing
 
 Issues and PRs welcome - see [CONTRIBUTING.md](CONTRIBUTING.md).
-If Swipefile saves you a SaaS subscription, a ⭐ helps others find it.
+If Swipefile saves you a SaaS subscription, a star helps others find it.
 
 ## Take it. Seriously.
 
