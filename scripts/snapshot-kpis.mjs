@@ -10,7 +10,7 @@
 //
 // Usage:  node scripts/snapshot-kpis.mjs            # all days in posthog.json
 //         node scripts/snapshot-kpis.mjs --days 7   # only the last N days
-// Needs in .env: VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY (service key, so the
+// Needs in .env: VITE_DB_URL, DB_SERVICE_KEY (service key, so the
 // write bypasses RLS - same as export.mjs). Idempotent, safe on the cron.
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
@@ -25,10 +25,10 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const url = process.env.VITE_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_KEY;
+const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
+const key = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY);
 if (!url || !key) {
-  console.error('Missing VITE_SUPABASE_URL or SUPABASE_SERVICE_KEY in .env');
+  console.error('Missing VITE_DB_URL or DB_SERVICE_KEY in .env');
   process.exit(1);
 }
 const sb = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -47,8 +47,8 @@ const daysLimit = daysArg ? parseInt(daysArg, 10) : null;
 // name so the frontend can relabel/reorder without a data migration.
 const FUNNEL_EVENTS = [
   'landing_cta_clicked',
-  'onboarding_started',
-  'onboarding_completed',
+  'fb_onb_started',
+  'fb_onb_completed',
   'user_registered',
   'payment_initiated',
   'payment_completed',
@@ -95,5 +95,5 @@ const last = byDay.get(days[days.length - 1]);
 console.log(
   `Snapshotted ${rows.length} day(s) ${days[0]} -> ${days[days.length - 1]}. ` +
     `Latest: ${last.traffic.visitors} visitors, ` +
-    `${last.funnel.onboarding_started || 0} onb started, ${last.funnel.payment_completed || 0} paid.`
+    `${last.funnel.fb_onb_started || 0} onb started, ${last.funnel.payment_completed || 0} paid.`
 );

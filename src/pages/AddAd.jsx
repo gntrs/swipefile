@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UploadSimple, CaretLeft } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 
 const PLATFORMS = ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'Other'];
@@ -49,12 +49,12 @@ export default function AddAd() {
         format = file.type.startsWith('video') ? 'video' : 'image';
         const ext = file.name.split('.').pop();
         const path = `${user.id}/${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from('ad-media').upload(path, file);
+        const { error: upErr } = await db.storage.from('ad-media').upload(path, file);
         if (upErr) throw upErr;
         media_path = path;
       }
 
-      const { data, error: insErr } = await supabase
+      const { data, error: insErr } = await db
         .from('ads')
         .insert({
           brand: f.brand.trim() || null,
@@ -119,7 +119,7 @@ export default function AddAd() {
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <span className={label}>Brand / competitor</span>
-            <input className={field} value={f.brand} onChange={set('brand')} placeholder="e.g. Speech Blubs" />
+            <input className={field} value={f.brand} onChange={set('brand')} placeholder="e.g. Acme Labs" />
           </div>
           <div>
             <span className={label}>Platform</span>
@@ -133,7 +133,7 @@ export default function AddAd() {
 
         <div>
           <span className={label}>Hook (the opening line / first 3 seconds)</span>
-          <input className={field} value={f.hook} onChange={set('hook')} placeholder="e.g. Is your child talking less than other kids?" />
+          <input className={field} value={f.hook} onChange={set('hook')} placeholder="e.g. The first line that stops the scroll" />
         </div>
 
         <div>
@@ -154,7 +154,7 @@ export default function AddAd() {
 
         <div>
           <span className={label}>Tags (comma separated)</span>
-          <input className={field} value={f.tags} onChange={set('tags')} placeholder="ugc, testimonial, unboxing" />
+          <input className={field} value={f.tags} onChange={set('tags')} placeholder="ugc, testimonial, brain" />
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
@@ -183,7 +183,7 @@ export default function AddAd() {
         <button
           type="submit"
           disabled={busy}
-          className="justify-self-start px-6 py-3 rounded-2xl bg-coral text-black font-semibold shadow-cta active:scale-[0.98] transition-transform disabled:opacity-60"
+          className="press justify-self-start px-6 py-3 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
         >
           {busy ? 'Saving...' : 'Save ad'}
         </button>

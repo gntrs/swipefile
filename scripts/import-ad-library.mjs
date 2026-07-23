@@ -1,5 +1,5 @@
 // Import competitor ads straight from the Meta Ad Library API (ads_archive,
-// Graph v23.0) into the Supabase `ads` table. This replaces the Foreplay
+// Graph v23.0) into the `ads` table. This replaces the Foreplay
 // Spyder import: same table, same refresh semantics, no subscription.
 //
 // What the API gives us: every ad that reached EU/UK users in the past year
@@ -33,7 +33,7 @@
 //         node scripts/import-ad-library.mjs --dry-run      # print, no writes
 //         node scripts/import-ad-library.mjs --brand "Name" # one competitor
 //         node scripts/import-ad-library.mjs --limit 50     # page size (default 100)
-// Needs in .env:  VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY, META_ACCESS_TOKEN
+// Needs in .env:  VITE_DB_URL, DB_SERVICE_KEY, META_ACCESS_TOKEN
 // (or META_ADLIB_TOKEN). All local only, gitignored - same rules as export.mjs.
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
@@ -48,12 +48,13 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const OUR_BRAND = process.env.OWN_BRAND || 'My Brand';
-const url = process.env.VITE_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
+const serviceKey = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY);
 const metaToken = process.env.META_ADLIB_TOKEN || process.env.META_ACCESS_TOKEN;
+// Optional: your own brand name, so it never gets seeded as a "competitor".
+const OWN_BRAND = (process.env.OWN_BRAND || '').trim().toLowerCase();
 if (!url || !serviceKey) {
-  console.error('Missing env. Need VITE_SUPABASE_URL and SUPABASE_SERVICE_KEY in .env.');
+  console.error('Missing env. Need VITE_DB_URL and DB_SERVICE_KEY in .env.');
   process.exit(1);
 }
 
@@ -144,7 +145,7 @@ function mapAd(ad, brand) {
   const platform = platforms.map((p) => PLATFORM_MAP[String(p).toLowerCase()]).find(Boolean) || 'Facebook';
   const body = (ad.ad_creative_bodies || [])[0] || null;
   const title = (ad.ad_creative_link_titles || [])[0] || null;
-  const caption = (ad.ad_creative_link_captions || [])[0] || null; // display URL shown on the ad
+  const caption = (ad.ad_creative_link_captions || [])[0] || null; // display URL, e.g. example.com
   const live = isLive(ad);
   const days = daysRunning(ad);
 
@@ -192,7 +193,7 @@ async function seedCompetitors() {
     .eq('metrics->>source', 'foreplay-spyder');
   if (error) throw new Error(`seed read failed: ${error.message}`);
   const brands = [...new Set((spyderAds || []).map((r) => (r.brand || '').trim()).filter(Boolean))]
-    .filter((b) => b.toLowerCase() !== OUR_BRAND.toLowerCase());
+    .filter((b) => !OWN_BRAND || b.toLowerCase() !== OWN_BRAND);
   if (!brands.length) return;
   const { data: existing, error: exErr } = await sb.from('competitors').select('brand');
   if (exErr) throw new Error(`competitors read failed: ${exErr.message} (did migration 15 run?)`);
@@ -327,7 +328,7 @@ await seedCompetitors();
 if (!metaToken) {
   console.error(
     'No META_ACCESS_TOKEN (or META_ADLIB_TOKEN) in .env - competitors seeded, ads not pulled.\n' +
-      'Add META_ACCESS_TOKEN to .env to run the pull here.'
+      'On this machine, copy META_ACCESS_TOKEN from the WSL clone .env to run the pull here.'
   );
   process.exit(0);
 }
@@ -336,7 +337,7 @@ let q = sb.from('competitors').select('*').eq('active', true).order('brand');
 if (onlyBrand) q = q.ilike('brand', onlyBrand);
 const { data: competitors, error: compErr } = await q;
 if (compErr) {
-  console.error(`competitors read failed: ${compErr.message} (did migration 15 run in the Supabase SQL editor?)`);
+  console.error(`competitors read failed: ${compErr.message} (did migration 15 run in the SQL editor?)`);
   process.exit(1);
 }
 if (!competitors?.length) {

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 
 const AuthContext = createContext({ user: null, loading: true, signOut: () => {} });
 export const useAuth = () => useContext(AuthContext);
@@ -10,12 +10,12 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
+    db.auth.getSession().then(({ data }) => {
       if (!mounted) return;
       setUser(data?.session?.user ?? null);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+    const { data: sub } = db.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
     });
     return () => {
@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const signOut = () => supabase.auth.signOut();
+  const signOut = () => db.auth.signOut();
 
   return (
     <AuthContext.Provider value={{ user, loading, signOut }}>{children}</AuthContext.Provider>

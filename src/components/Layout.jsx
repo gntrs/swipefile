@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Images, Megaphone, PaperPlaneTilt, CalendarBlank, SquaresFour, SignOut, User, Binoculars, Quotes } from '@phosphor-icons/react';
+import { Images, Megaphone, PaperPlaneTilt, CalendarBlank, SquaresFour, SignOut, User, Binoculars, Quotes, NotePencil, ChartLineUp } from '@phosphor-icons/react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { useMediaUrl } from '@/lib/media';
@@ -12,8 +12,10 @@ const nav = [
   { to: '/', label: 'Dashboard', short: 'Home', icon: SquaresFour, end: true },
   { to: '/ads', label: 'Ads', icon: Images },
   { to: '/hooks', label: 'Hook bank', short: 'Hooks', icon: Quotes },
+  { to: '/briefs', label: 'Briefs', icon: NotePencil },
   { to: '/posts', label: 'Organic posts', short: 'Posts', icon: Megaphone },
   { to: '/competitors', label: 'Competitors', short: 'Rivals', icon: Binoculars },
+  { to: '/intel', label: 'Market intel', short: 'Intel', icon: ChartLineUp },
   { to: '/outreach', label: 'Outreach', short: 'Reach', icon: PaperPlaneTilt },
   { to: '/availability', label: 'Availability', short: 'When', icon: CalendarBlank },
 ];
@@ -32,12 +34,14 @@ export default function Layout() {
       {/* Inside-joke fullscreen meme on a new sale (desktop only). */}
       <SaleCelebration />
 
-      {/* Sidebar */}
-      <aside className="hidden sm:flex w-60 flex-col border-r border-line bg-card/60 backdrop-blur px-4 py-5">
+      {/* Sidebar - a translucent structural layer (content scrolls under the
+          blur), not an opaque strip. `glass` lets reduced-transparency and
+          high-contrast users get a solid fallback. */}
+      <aside className="glass hidden sm:flex w-60 flex-col border-r border-line bg-card/60 backdrop-blur-xl backdrop-saturate-150 px-4 py-5">
         {/* Wordmark only - no icon. One coral accent, nothing else. */}
         <div className="px-3 mb-7 pt-1">
           <span className="font-semibold text-[18px] tracking-tight">
-            Swipefile<span className="text-coral">.</span>
+            Tracker<span className="text-coral">.</span>
           </span>
         </div>
 
@@ -48,7 +52,7 @@ export default function Layout() {
               to={to}
               end={end}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-2xl font-medium text-[15px] transition-colors ${
+                `press flex items-center gap-3 px-3 py-2.5 rounded-2xl font-medium text-[15px] transition-colors ${
                   isActive ? 'bg-coral-soft text-coral-dark' : 'text-ink-soft hover:bg-cream'
                 }`
               }
@@ -63,7 +67,7 @@ export default function Layout() {
           <NavLink
             to="/profile"
             className={({ isActive }) =>
-              `flex items-center gap-2.5 px-3 py-2 rounded-2xl transition-colors ${
+              `press flex items-center gap-2.5 px-3 py-2 rounded-2xl transition-colors ${
                 isActive ? 'bg-coral-soft' : 'hover:bg-cream'
               }`
             }
@@ -87,7 +91,7 @@ export default function Layout() {
               await signOut();
               navigate('/login');
             }}
-            className="mt-2 w-full flex items-center gap-2 px-3 py-2 rounded-2xl text-[14px] font-medium text-ink-soft hover:bg-cream transition-colors"
+            className="press mt-2 w-full flex items-center gap-2 px-3 py-2 rounded-2xl text-[14px] font-medium text-ink-soft hover:bg-cream transition-colors"
           >
             <SignOut size={18} weight="bold" /> Sign out
           </button>

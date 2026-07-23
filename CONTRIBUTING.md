@@ -1,32 +1,23 @@
-# Contributing to Swipefile
+# Contributing
 
-Thanks for wanting to make this better. Ground rules are short:
+Thanks for helping make Swipefile better. The process is deliberately light.
 
-## Bugs and ideas
+## Getting set up
 
-Open an issue with what you expected, what happened, and (for UI bugs) a
-screenshot. Console errors from the browser dev tools help a lot.
+Follow the [quick start](README.md#quick-start) in the README, or the full walkthrough in [docs/SETUP.md](docs/SETUP.md). You will need a Postgres database project of your own to develop against.
 
 ## Pull requests
 
-1. Fork, branch from `main`, keep the PR focused on one thing.
-2. `npm run build` must pass before you open it.
-3. Match the style around you: Tailwind utility classes, the existing color
-   tokens (`cream`, `ink`, `card`, `line`, the semantic ramps), comments that
-   explain *why*, not *what*.
-4. UI changes: check both desktop and a phone-width viewport - the app is a
-   PWA and the mobile layout is first-class.
-5. Database changes ship as a new `supabase-migration-<next-number>.sql`,
-   never as edits to old migrations.
+- Keep PRs focused: one feature or fix per PR.
+- Run `npm run build` before opening the PR; it must pass clean.
+- Match the existing style: Tailwind tokens only, dark-mode-first, mobile-first. Check new views on a phone-sized viewport.
+- Schema changes go into `db-setup.sql` and must keep it idempotent so existing users can re-run the file safely.
+- Never include secrets, `.env` files, or personal data in a PR.
 
-## What makes a good first PR
+## Bugs and ideas
 
-- New importer scripts (other ad platforms, other analytics tools)
-- Accessibility passes (focus order, labels, contrast)
-- Making the funnel stages configurable from the UI
-- i18n groundwork
+Open an issue with steps to reproduce (for bugs) or the problem you are trying to solve (for features). Small, sharp issues get fixed fastest.
 
-## Not accepted
+## Code of conduct
 
-- Copyrighted media in `public/memes/` (the folder is gitignored for a reason)
-- Anything that sends user data to a third party by default
+Be kind, assume good intent, and keep discussions about the code.

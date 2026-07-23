@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { HandWaving } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 
 // First-open setup, shown until a nickname is saved. New members arrive with a
 // temporary password from an admin, so this also makes them set their own.
-// Supabase Auth stores only a bcrypt hash - the password never lands in our
+// The auth service stores only a bcrypt hash - the password never lands in our
 // tables or anywhere else.
 export default function WelcomePopup() {
   const { user } = useAuth();
@@ -29,9 +29,9 @@ export default function WelcomePopup() {
     if (password.length < 8) return setErr('Password needs at least 8 characters.');
     setBusy(true);
     try {
-      const { error: passErr } = await supabase.auth.updateUser({ password });
+      const { error: passErr } = await db.auth.updateUser({ password });
       if (passErr) throw passErr;
-      const { error } = await supabase
+      const { error } = await db
         .from('team')
         .update({ nickname: nickname.trim() })
         .eq('id', user.id);
@@ -44,8 +44,8 @@ export default function WelcomePopup() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-ink/40 flex items-center justify-center p-5">
-      <div className="bg-card rounded-xl3 border border-line shadow-card w-full max-w-[400px] p-6">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-5 animate-fade">
+      <div className="bg-card rounded-xl3 border border-line shadow-card w-full max-w-[400px] p-6 animate-materialize">
         <div className="flex items-center gap-2.5 mb-1.5">
           <HandWaving size={24} weight="bold" className="text-coral" />
           <h2 className="text-[18px] font-semibold tracking-tight">Welcome to the team</h2>
@@ -87,7 +87,7 @@ export default function WelcomePopup() {
           <button
             type="submit"
             disabled={busy}
-            className="mt-5 w-full py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta active:scale-[0.98] transition-transform disabled:opacity-60"
+            className="press mt-5 w-full py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
           >
             {busy ? 'Saving...' : "Let's go"}
           </button>

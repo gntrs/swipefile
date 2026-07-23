@@ -12,7 +12,7 @@
 // Usage:  node scripts/scrape-competitor-posts.mjs             # all active competitors
 //         node scripts/scrape-competitor-posts.mjs --dry-run   # print, no writes
 //         node scripts/scrape-competitor-posts.mjs --brand "Name"
-// Needs in .env: VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY, BRAVE_API_KEY
+// Needs in .env: VITE_DB_URL, DB_SERVICE_KEY, BRAVE_API_KEY
 // (same free tier as scrape-creators.mjs: 1 req/sec, 2000/month; this uses
 // one request per competitor per run - weekly cron, so pennies of budget).
 import { createClient } from '@supabase/supabase-js';
@@ -28,11 +28,11 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const url = process.env.VITE_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_KEY;
+const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
+const key = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY);
 const braveKey = process.env.BRAVE_API_KEY;
 if (!url || !key || !braveKey) {
-  console.error('Missing env. Need VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY and BRAVE_API_KEY in .env.');
+  console.error('Missing env. Need VITE_DB_URL, DB_SERVICE_KEY and BRAVE_API_KEY in .env.');
   process.exit(1);
 }
 const sb = createClient(url, key);
@@ -88,7 +88,7 @@ let q = sb.from('competitors').select('*').eq('active', true).not('ig_handle', '
 if (onlyBrand) q = q.ilike('brand', onlyBrand);
 const { data: competitors, error: compErr } = await q;
 if (compErr) {
-  console.error(`competitors read failed: ${compErr.message} (did migration 15 run in the Supabase SQL editor?)`);
+  console.error(`competitors read failed: ${compErr.message} (did migration 15 run in the SQL editor?)`);
   process.exit(1);
 }
 if (!competitors?.length) {

@@ -87,7 +87,72 @@ textarea:focus-visible {
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16);
 }
 
-/* Respect users who ask for less motion: no rise/shimmer, no transitions. */
+/* Instant press feedback. The whole point of "fluid" is that touch is
+   acknowledged on finger-DOWN, not on release - :active fires immediately.
+   Any tappable surface (card, nav item, sheet trigger) can opt in with the
+   .press class and get the same considered, uniform response. */
+.press {
+  transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.press:active {
+  transform: scale(0.97);
+  transition-duration: 0.06s;
+}
+/* A control that lives inside a pressable card owns its own feedback. When the
+   thumb is on the star (or any .press-solo), the card behind it must stay put,
+   otherwise one tap reads as two things moving at once. */
+.press:has(.press-solo:active) {
+  transform: none;
+}
+.press-solo-face {
+  transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1),
+    background-color 0.2s ease, color 0.2s ease, box-shadow 0.3s ease;
+}
+.press-solo:active .press-solo-face {
+  transform: scale(0.88);
+  transition-duration: 0.06s;
+}
+
+/* Star toggle: a short overshoot on the way in, so committing a star feels
+   like it landed rather than like a checkbox flipping. */
+@keyframes star-pop {
+  0% {
+    transform: scale(1);
+  }
+  34% {
+    transform: scale(1.3);
+  }
+  62% {
+    transform: scale(0.93);
+  }
+  82% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.star-pop {
+  animation: star-pop 0.44s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes star-halo {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.65);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+.star-halo {
+  animation: star-halo 0.52s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Respect users who ask for less motion: no rise/shimmer, no transitions.
+   Feedback doesn't vanish - opacity/color still change, just without the
+   travel and overshoot that can trigger motion sickness. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -95,6 +160,35 @@ textarea:focus-visible {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+  .press:active {
+    transform: none;
+  }
+  .press-solo:active .press-solo-face {
+    transform: none;
+  }
+  .star-halo {
+    display: none;
+  }
+}
+
+/* Users who ask for less transparency get frostier, near-solid chrome:
+   the translucent nav/sidebar/sheets would otherwise trade legibility for
+   depth. Raise the surface opacity and drop the blur. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: #141414 !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* High-contrast mode: give translucent surfaces a defined, contrasting
+   border so their edges are unambiguous. */
+@media (prefers-contrast: more) {
+  .glass {
+    background: #141414 !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
   }
 }
 

@@ -18,7 +18,7 @@
 // running session automatically. Check --mentions at the start of a session,
 // or whenever the user says they tagged you, to see what's waiting.
 //
-// Needs in .env: VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY.
+// Needs in .env: VITE_DB_URL, DB_SERVICE_KEY.
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -30,10 +30,10 @@ if (fs.existsSync(envPath)) {
     if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
   }
 }
-const url = process.env.VITE_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_KEY;
+const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
+const key = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY);
 if (!url || !key) {
-  console.error('Missing env. Need VITE_SUPABASE_URL and SUPABASE_SERVICE_KEY in .env.');
+  console.error('Missing env. Need VITE_DB_URL and DB_SERVICE_KEY in .env.');
   process.exit(1);
 }
 const sb = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -80,7 +80,7 @@ if (args[0] === '--read' || args[0] === '--mentions') {
   if (error) {
     console.error(error.message);
     if (onlyMentions && /column .*mentions/i.test(error.message)) {
-      console.error('Run supabase-migration-11.sql to add the mentions column.');
+      console.error('Run db-setup.sql to add the mentions column.');
     }
     process.exit(1);
   }
@@ -154,7 +154,7 @@ if (body.length > 500) {
 const mentions = await resolveMentions(body);
 let { error } = await sb.from('chat_messages').insert({ body, author_email: CLAUDE_EMAIL, mentions });
 if (error && /could not find the .*mentions.* column/i.test(error.message)) {
-  // supabase-migration-11.sql not run yet - send without @mention data.
+  // db-setup.sql not run yet - send without @mention data.
   ({ error } = await sb.from('chat_messages').insert({ body, author_email: CLAUDE_EMAIL }));
 }
 if (error) {

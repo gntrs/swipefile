@@ -1,5 +1,5 @@
 // Stripe -> dashboard revenue pipeline. No SDK needed (plain fetch, Stripe's
-// REST API), no server: this runs on a cron and writes to Supabase.
+// REST API), no server: this runs on the WSL cron and writes to the database.
 //
 //   node scripts/stripe-pull.mjs [--dry-run]
 //
@@ -17,9 +17,9 @@
 // Setup (one time):
 //   - Stripe dashboard -> Developers -> API keys -> Create RESTRICTED key:
 //     Read on Charges + Subscriptions, nothing else. Starts rk_live_...
-//   - .env: STRIPE_API_KEY=rk_live_...
-//   - Apply supabase-migration-17.sql, then crontab:
-//       */5 * * * * cd /path/to/swipefile && node scripts/stripe-pull.mjs >> .claude-data/stripe-cron.log 2>&1
+//   - .env (here AND in the WSL clone): STRIPE_API_KEY=rk_live_...
+//   - Apply db-setup.sql, then crontab:
+//       */5 * * * * cd $HOME/swipefile && node scripts/stripe-pull.mjs >> .claude-data/stripe-cron.log 2>&1
 //
 // Every 5 min = a sale shows up (and pops confetti) within 5 min of payment.
 
@@ -39,7 +39,7 @@ if (!STRIPE_KEY) {
   process.exit(0);
 }
 
-const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+const supabase = createClient((process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL), (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY), {
   auth: { persistSession: false },
 });
 

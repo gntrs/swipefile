@@ -15,6 +15,7 @@ import Outreach from '@/pages/Outreach';
 import Competitors from '@/pages/Competitors';
 import HookBank from '@/pages/HookBank';
 import Briefs from '@/pages/Briefs';
+import Intel from '@/pages/Intel';
 import Availability from '@/pages/Availability';
 import Profile from '@/pages/Profile';
 
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="competitors" element={<Competitors />} />
         <Route path="hooks" element={<HookBank />} />
         <Route path="briefs" element={<Briefs />} />
+        <Route path="intel" element={<Intel />} />
         <Route path="availability" element={<Availability />} />
         <Route path="profile" element={<Profile />} />
         {/* legacy v1 path */}

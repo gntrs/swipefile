@@ -17,7 +17,7 @@
 //   node scripts/scrape-emails.mjs --limit 50
 //   node scripts/scrape-emails.mjs --handle somecreator   # force one lead
 //
-// Needs in .env: VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY, BRAVE_API_KEY.
+// Needs in .env: VITE_DB_URL, DB_SERVICE_KEY, BRAVE_API_KEY.
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -31,11 +31,11 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const url = process.env.VITE_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_KEY;
+const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
+const key = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY);
 const braveKey = process.env.BRAVE_API_KEY;
 if (!url || !key || !braveKey) {
-  console.error('Missing env. Need VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY and BRAVE_API_KEY in .env.');
+  console.error('Missing env. Need VITE_DB_URL, DB_SERVICE_KEY and BRAVE_API_KEY in .env.');
   process.exit(1);
 }
 const sb = createClient(url, key);
@@ -157,7 +157,7 @@ if (onlyHandle) {
 const { data: leads, error } = await q;
 if (error) {
   if (/email/.test(error.message)) {
-    console.error('creator_leads has no email columns yet - run supabase-migration-14.sql first.');
+    console.error('creator_leads has no email columns yet - run db-setup.sql first.');
     process.exit(1);
   }
   console.error(error.message);

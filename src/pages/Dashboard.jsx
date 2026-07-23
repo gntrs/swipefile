@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Images, Megaphone, Trophy, ChatCircleText } from '@phosphor-icons/react';
-import { supabase, fetchAll } from '@/lib/supabase';
+import { db, fetchAll } from '@/lib/db';
 import StatCard from '@/components/StatCard';
 import { Skeleton, StatSkeleton } from '@/components/Skeleton';
 import TeamChat from '@/components/TeamChat';
@@ -11,6 +11,7 @@ import AdAnalytics from '@/components/AdAnalytics';
 import ProvenPlays from '@/components/ProvenPlays';
 import FunnelCard from '@/components/FunnelCard';
 import RevenueCard from '@/components/RevenueCard';
+import IntelCard from '@/components/IntelCard';
 import Fold from '@/components/Fold';
 import { useTeam } from '@/contexts/TeamContext';
 
@@ -66,7 +67,7 @@ export default function Dashboard() {
       const [a, p, c] = await Promise.all([
         fetchAll((q) => q.order('created_at', { ascending: false }), 'ads'),
         fetchAll((q) => q.order('created_at', { ascending: false }), 'posts'),
-        supabase.from('comments').select('id', { count: 'exact', head: true }),
+        db.from('comments').select('id', { count: 'exact', head: true }),
       ]);
       if (!mounted) return;
       setAds(a);
@@ -164,6 +165,9 @@ export default function Dashboard() {
       <Fold id="funnel" title="Site funnel">
         <FunnelCard />
       </Fold>
+
+      {/* SEO rank + EU ad geography headlines, links through to /intel */}
+      <IntelCard ads={ads} />
 
       {/* Newest analysis brief from Claude (renders only when one exists) */}
       <LatestBrief />

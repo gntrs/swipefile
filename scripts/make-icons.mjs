@@ -1,4 +1,4 @@
-// Regenerate the PWA icons in public/ from the Swipefile mark.
+// Regenerate the PWA icons in public/ from the Tracker. mark.
 // The PNGs are committed, so this only needs to run when the mark changes:
 //   npm i -D sharp --no-save && node scripts/make-icons.mjs
 // (sharp is deliberately not a dependency; it is only needed here.)
@@ -6,21 +6,21 @@ import sharp from 'sharp';
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Same glyph as public/favicon.svg: white S stroke + dot on near-black.
+// Same glyph as public/favicon.svg: cream T + dot on coral, shapes only.
 const GLYPH = `
-  <path d="M330 168 C322 138 258 128 218 144 C178 160 172 204 216 226 C260 248 318 254 326 296 C334 340 268 362 210 344"
-        fill="none" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round"/>
-  <circle cx="352" cy="368" r="30" fill="#FFFFFF"/>`;
+  <rect x="134" y="152" width="196" height="60" rx="30" fill="#FBF7F0"/>
+  <rect x="202" y="152" width="60" height="210" rx="30" fill="#FBF7F0"/>
+  <circle cx="346" cy="330" r="32" fill="#FBF7F0"/>`;
 
 // Full-bleed square: iOS rounds apple-touch-icon corners itself.
 const full = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#0A0A0A"/>${GLYPH}
+  <rect width="512" height="512" fill="#FF8C5A"/>${GLYPH}
 </svg>`;
 
 // Maskable: shrink the glyph into the ~80% safe zone so round masks
 // (Android launchers) never clip it.
 const maskable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#0A0A0A"/>
+  <rect width="512" height="512" fill="#FF8C5A"/>
   <g transform="translate(71.68 71.68) scale(0.72)">${GLYPH}</g>
 </svg>`;
 

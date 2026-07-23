@@ -1,5 +1,5 @@
 // Pull the meaningful PostHog numbers into .claude-data/posthog.json so
-// Claude Code can read them next to the Supabase export (same pattern as
+// Claude Code can read them next to the database export (same pattern as
 // scripts/export.mjs: local only, gitignored, no deps).
 //
 // Usage:  node scripts/posthog-pull.mjs [--days N]   (default 30)
@@ -8,7 +8,7 @@
 //   POSTHOG_API_KEY      personal API key with Query Read scope
 //                        (eu.posthog.com -> avatar -> Settings ->
 //                         Personal API Keys -> create; local only, gitignored)
-//   POSTHOG_PROJECT_ID   your PostHog project id
+//   POSTHOG_PROJECT_ID   required - your PostHog project id (in the project URL)
 //   POSTHOG_HOST         optional, defaults to https://eu.posthog.com
 import fs from 'node:fs';
 import path from 'node:path';
@@ -24,6 +24,10 @@ if (fs.existsSync(envPath)) {
 
 const key = process.env.POSTHOG_API_KEY;
 const project = process.env.POSTHOG_PROJECT_ID;
+if (!project) {
+  console.error('Missing POSTHOG_PROJECT_ID in .env (your PostHog project id, found in the project URL).');
+  process.exit(1);
+}
 const host = (process.env.POSTHOG_HOST || 'https://eu.posthog.com').replace(/\/$/, '');
 if (!key) {
   console.error(

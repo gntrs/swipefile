@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { fetchAll } from '@/lib/supabase';
+import { fetchAll } from '@/lib/db';
 
 // Site funnel + traffic, read from kpi_snapshots (one row per day, written by
 // scripts/snapshot-kpis.mjs from the daily PostHog pull - the browser can't
@@ -13,8 +13,8 @@ const WINDOW = 30;
 // snapshot-kpis.mjs stores, so relabeling here needs no data change.
 const STAGES = [
   { key: 'landing_cta_clicked', label: 'Landing CTA' },
-  { key: 'onboarding_started', label: 'Onboarding started' },
-  { key: 'onboarding_completed', label: 'Onboarding done' },
+  { key: 'fb_onb_started', label: 'Onboarding started' },
+  { key: 'fb_onb_completed', label: 'Onboarding done' },
   { key: 'user_registered', label: 'Registered' },
   { key: 'payment_initiated', label: 'Checkout started' },
   { key: 'payment_completed', label: 'Paid' },
@@ -97,7 +97,7 @@ export default function FunnelCard() {
         <p className="text-ink-soft text-[13px]">Loading...</p>
       ) : rows.length === 0 ? (
         <div className="text-[13px] text-ink-soft bg-cream/60 rounded-2xl px-4 py-3">
-          No snapshots yet. Apply <span className="font-mono text-[12px]">supabase-migration-16.sql</span>,
+          No snapshots yet. Apply <span className="font-mono text-[12px]">db-setup.sql</span>,
           then the daily cron (or <span className="font-mono text-[12px]">node scripts/snapshot-kpis.mjs</span>)
           fills this in.
         </div>

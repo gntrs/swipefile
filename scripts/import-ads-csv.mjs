@@ -1,10 +1,10 @@
-// Import YOUR OWN ad performance from a Meta Ads Manager CSV export into the
-// `ads` table. This is the persistent memory of your ads: each row is matched
-// BY AD NAME (metrics.ad_name), so re-uploading a newer export updates the
-// same ads with fresh numbers instead of duplicating them. Names never seen
-// before become new rows under your own brand (OWN_BRAND below).
+// Import OUR OWN ad performance from a Meta Ads Manager CSV
+// export into the `ads` table. This is the persistent memory of our ads:
+// each row is matched BY AD NAME (metrics.ad_name), so re-uploading a newer
+// export updates the same ads with fresh numbers instead of duplicating them.
+// Names never seen before become new rows under your OWN_BRAND name.
 //
-// Workflow (import-meta-ads.mjs is the API-based alternative):
+// Workflow (until the Meta API replaces it, see CLAUDE.md roadmap):
 //   1. Meta Ads Manager -> Reports -> Export table data -> .csv
 //      (any breakdown works; rows with the same ad name are summed)
 //   2. node scripts/import-ads-csv.mjs path/to/export.csv
@@ -13,7 +13,7 @@
 //
 // Existing ads keep their verdict, tags, media, and notes; only metrics are
 // refreshed. Flags: --dry-run (print, no writes).
-// Needs in .env: VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY.
+// Needs in .env: VITE_DB_URL, DB_SERVICE_KEY, OWN_BRAND (your brand name).
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -27,14 +27,17 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-// Your own brand name as it should appear in the library. Set OWN_BRAND in
-// .env, or edit the fallback here.
-const OUR_BRAND = process.env.OWN_BRAND || 'My Brand';
+// Your own brand name - rows are created/updated under this brand.
+const OUR_BRAND = (process.env.OWN_BRAND || "").trim();
+if (!OUR_BRAND) {
+  console.error("Missing OWN_BRAND in .env (your brand name as used in the ads table).");
+  process.exit(1);
+}
 
-const url = process.env.VITE_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_KEY;
+const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
+const key = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY);
 if (!url || !key) {
-  console.error('Missing env. Need VITE_SUPABASE_URL and SUPABASE_SERVICE_KEY in .env.');
+  console.error('Missing env. Need VITE_DB_URL and DB_SERVICE_KEY in .env.');
   process.exit(1);
 }
 
@@ -146,7 +149,13 @@ for (const r of rows.slice(1)) {
   a.reach += col.reach !== -1 ? num(r[col.reach]) : 0;
   a.lpv += col.lpv !== -1 ? num(r[col.lpv]) : 0;
   a.plays3s += col.plays3s !== -1 ? num(r[col.plays3s]) : 0;
-  if (col.delivery !== -1 && r[col.delivery]) a.delivery = r[col.delivery].trim().toLowerCase();
+  if (col.delivery !== -1 && r[col.delivery]) {
+    // Active is the live truth: if ANY row for this ad name is active (e.g. a
+    // live ad plus an archived duplicate of the same name), the ad is active.
+    // Otherwise the last non-empty delivery wins.
+    const dlv = r[col.delivery].trim().toLowerCase();
+    if (a.delivery !== 'active') a.delivery = dlv;
+  }
   if (col.roas !== -1 && r[col.roas] !== '') {
     a.roasSum += num(r[col.roas]) * (rowSpend || 1);
     a.roasSpend += rowSpend || 1;

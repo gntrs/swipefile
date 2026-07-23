@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CurrencyEur, CursorClick, Target, TrendUp } from '@phosphor-icons/react';
-import { OWN_BRAND, isOwnBrand } from '@/lib/ads';
+import { OWN_BRAND, isOwnBrand } from '@/lib/brand';
 
 // End-of-day numbers view. Two cards, both derived from the ads already loaded
 // on the dashboard (no extra fetch): how OUR ads are performing, and how hard

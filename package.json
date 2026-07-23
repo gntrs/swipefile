@@ -3,10 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "engines": {
-    "node": ">=18"
-  },
-  "description": "Open-source ad swipe file + competitor intelligence dashboard. Save your own and competitor ads, tag winners and losers, track what keeps running, and ask AI what works.",
+  "description": "Open-source ad intelligence dashboard: swipe file, competitor tracking, and an AI analysis layer on a Postgres database.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

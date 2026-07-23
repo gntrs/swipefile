@@ -65,10 +65,34 @@ export default {
         '2xl': '12px',
         '3xl': '16px',
       },
+      // Apple-style motion curves. `swift` is iOS's critically-damped ease
+      // (no overshoot) for taps and reveals; `spring` carries a little
+      // momentum overshoot, reserved for gestures that threw something.
+      transitionTimingFunction: {
+        swift: 'cubic-bezier(0.32, 0.72, 0, 1)',
+        spring: 'cubic-bezier(0.34, 1.4, 0.5, 1)',
+      },
       keyframes: {
+        // A plain opacity fade - for dimming scrims behind a modal, so the
+        // background pushes back while the surface itself materializes.
+        fade: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
         // Cards ease up + fade in on mount - the "polished app" feel.
         rise: {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        // Glass/elevated surfaces don't just fade - they materialize: scale
+        // and blur resolve together so the surface reads as arriving.
+        materialize: {
+          '0%': { opacity: '0', transform: 'scale(0.96)', filter: 'blur(6px)' },
+          '100%': { opacity: '1', transform: 'scale(1)', filter: 'blur(0)' },
+        },
+        // Bottom sheet springs up from the edge it lives on (spatial origin).
+        sheetUp: {
+          '0%': { opacity: '0', transform: 'translateY(16px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         // Loading skeletons: a soft light sweep across the placeholder.
@@ -78,7 +102,10 @@ export default {
         },
       },
       animation: {
+        fade: 'fade 0.25s ease-out both',
         rise: 'rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
+        materialize: 'materialize 0.32s cubic-bezier(0.32, 0.72, 0, 1) both',
+        'sheet-up': 'sheetUp 0.4s cubic-bezier(0.34, 1.4, 0.5, 1) both',
         shimmer: 'shimmer 1.4s ease-in-out infinite',
       },
     },

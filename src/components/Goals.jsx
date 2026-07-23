@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, PencilSimple, Plus, Trash, Warning, X } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { isMissingTable } from '@/lib/db';
@@ -70,7 +70,7 @@ export default function Goals() {
   const [draft, setDraft] = useState({ title: '', horizon: '1w', deadline: '', urgent: false });
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('goals')
       .select('*')
       .order('created_at', { ascending: false });
@@ -92,7 +92,7 @@ export default function Goals() {
   // slow poll only when the realtime channel is not connected.
   useEffect(() => {
     if (missing) return undefined;
-    const channel = supabase
+    const channel = db
       .channel('goals-board')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'goals' }, (payload) => {
         if (!payload.new) return;
@@ -108,7 +108,7 @@ export default function Goals() {
       })
       .subscribe((status) => setLive(status === 'SUBSCRIBED'));
     return () => {
-      supabase.removeChannel(channel);
+      db.removeChannel(channel);
     };
   }, [missing]);
 
@@ -127,7 +127,7 @@ export default function Goals() {
     const row = { title: t, horizon, created_by_email: user.email };
     if (deadline) row.deadline = deadline;
     if (urgent) row.urgent = true;
-    const { data, error } = await supabase.from('goals').insert(row).select().single();
+    const { data, error } = await db.from('goals').insert(row).select().single();
     if (error) {
       if (isMissingTable(error)) setMissing(true);
       else setTitle(t); // give the text back instead of losing it
@@ -140,14 +140,14 @@ export default function Goals() {
 
   const remove = async (goal) => {
     setGoals((cur) => cur.filter((g) => g.id !== goal.id));
-    const { error } = await supabase.from('goals').delete().eq('id', goal.id);
+    const { error } = await db.from('goals').delete().eq('id', goal.id);
     if (error) setGoals((cur) => [goal, ...cur]); // put it back
   };
 
   const toggle = async (goal) => {
     const next = !goal.done;
     setGoals((cur) => cur.map((g) => (g.id === goal.id ? { ...g, done: next } : g)));
-    const { error } = await supabase.from('goals').update({ done: next }).eq('id', goal.id);
+    const { error } = await db.from('goals').update({ done: next }).eq('id', goal.id);
     if (error) {
       // Put it back the way it was.
       setGoals((cur) => cur.map((g) => (g.id === goal.id ? { ...g, done: goal.done } : g)));
@@ -175,7 +175,7 @@ export default function Goals() {
     };
     setEditId(null);
     setGoals((cur) => cur.map((g) => (g.id === goal.id ? { ...g, ...fields } : g)));
-    const { error } = await supabase.from('goals').update(fields).eq('id', goal.id);
+    const { error } = await db.from('goals').update(fields).eq('id', goal.id);
     if (error) {
       // Put the original row back.
       setGoals((cur) => cur.map((g) => (g.id === goal.id ? goal : g)));
@@ -428,7 +428,7 @@ export default function Goals() {
               type="submit"
               disabled={!title.trim()}
               aria-label="Add goal"
-              className="w-10 h-10 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta active:scale-[0.96] transition-transform disabled:opacity-40 disabled:shadow-none"
+              className="press w-10 h-10 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta disabled:opacity-40 disabled:shadow-none"
             >
               <Plus size={17} weight="bold" />
             </button>

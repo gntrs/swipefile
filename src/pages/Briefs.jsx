@@ -1,13 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Check, Copy, FileText } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { Check, Copy, FileText, FilmSlate } from '@phosphor-icons/react';
+import { db } from '@/lib/db';
 import { useTeam } from '@/contexts/TeamContext';
 import { isMissingTable } from '@/lib/db';
 import MigrationCard from '@/components/MigrationCard';
 
-function CopyButton({ text }) {
+function CopyButton({ text, label = 'Copy', icon: Icon = Copy, accent = false }) {
   const [copied, setCopied] = useState(false);
+  const idle = accent
+    ? 'bg-coral/12 text-coral hover:bg-coral/20'
+    : 'bg-cream text-ink-soft hover:text-ink';
   return (
     <button
       type="button"
@@ -16,15 +19,30 @@ function CopyButton({ text }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 1200);
       }}
-      aria-label="Copy brief"
+      aria-label={`${label} brief`}
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold flex-shrink-0 transition-colors ${
-        copied ? 'bg-mint/40 text-emerald-700' : 'bg-cream text-ink-soft hover:text-ink'
+        copied ? 'bg-mint/40 text-emerald-700' : idle
       }`}
     >
-      {copied ? <Check size={14} weight="bold" /> : <Copy size={14} weight="bold" />}
-      {copied ? 'Copied' : 'Copy'}
+      {copied ? <Check size={14} weight="bold" /> : <Icon size={14} weight="bold" />}
+      {copied ? 'Copied' : label}
     </button>
   );
+}
+
+// A brief can carry a ready-to-paste prompt for an AI video editor, fenced off
+// from the prose so it survives the round trip to the tool intact. Everything
+// between the markers is the prompt; the markers themselves are dropped.
+const PROMPT_OPEN = '>>> AI EDITOR PROMPT';
+const PROMPT_CLOSE = '<<< END PROMPT';
+
+export function extractPrompt(body = '') {
+  const start = body.indexOf(PROMPT_OPEN);
+  if (start === -1) return null;
+  const from = start + PROMPT_OPEN.length;
+  const end = body.indexOf(PROMPT_CLOSE, from);
+  const block = (end === -1 ? body.slice(from) : body.slice(from, end)).trim();
+  return block || null;
 }
 
 // Claude's analysis summaries, one card per brief. Written from Claude Code
@@ -43,7 +61,7 @@ export default function Briefs() {
 
   useEffect(() => {
     let mounted = true;
-    supabase
+    db
       .from('briefs')
       .select('*')
       .order('created_at', { ascending: false })
@@ -96,6 +114,7 @@ export default function Briefs() {
         <div className="flex flex-col gap-3">
           {briefs.map((b) => {
             const expanded = open === b.id;
+            const prompt = extractPrompt(b.body);
             return (
               <div
                 key={b.id}
@@ -117,6 +136,9 @@ export default function Briefs() {
                         : displayName(b.added_by_email)}
                     </p>
                   </button>
+                  {prompt && (
+                    <CopyButton text={prompt} label="Prompt" icon={FilmSlate} accent />
+                  )}
                   <CopyButton text={`${b.title}\n\n${b.body}`} />
                 </div>
                 {expanded ? (

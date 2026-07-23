@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PaperPlaneTilt, PencilSimple, Plus, Trash, LinkSimple } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { isMissingTable } from '@/lib/db';
@@ -30,7 +30,7 @@ export default function Outreach() {
   const [f, setF] = useState({ creator: '', platform: 'instagram', link: '' });
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('outreach')
       .select('*')
       .order('created_at', { ascending: false });
@@ -52,7 +52,7 @@ export default function Outreach() {
     const creator = f.creator.trim();
     if (!creator || !user) return;
     setF((cur) => ({ ...cur, creator: '', link: '' }));
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('outreach')
       .insert({
         creator,
@@ -73,13 +73,13 @@ export default function Outreach() {
 
   const setStatus = async (row, status) => {
     setRows((cur) => cur.map((r) => (r.id === row.id ? { ...r, status } : r)));
-    const { error } = await supabase.from('outreach').update({ status }).eq('id', row.id);
+    const { error } = await db.from('outreach').update({ status }).eq('id', row.id);
     if (error) setRows((cur) => cur.map((r) => (r.id === row.id ? { ...r, status: row.status } : r)));
   };
 
   const remove = async (row) => {
     setRows((cur) => cur.filter((r) => r.id !== row.id));
-    const { error } = await supabase.from('outreach').delete().eq('id', row.id);
+    const { error } = await db.from('outreach').delete().eq('id', row.id);
     if (error) setRows((cur) => [row, ...cur]); // put it back
   };
 
@@ -97,7 +97,7 @@ export default function Outreach() {
   if (missing) {
     return (
       <div className="px-5 sm:px-8 py-6 max-w-[900px] mx-auto">
-        <MigrationCard title="Creator outreach" migration="supabase-migration-6.sql" />
+        <MigrationCard title="Creator outreach" migration="db-setup.sql" />
       </div>
     );
   }
@@ -152,7 +152,7 @@ export default function Outreach() {
             type="submit"
             disabled={!f.creator.trim()}
             aria-label="Add outreach"
-            className="w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta active:scale-[0.96] transition-transform disabled:opacity-40 disabled:shadow-none"
+            className="press w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta disabled:opacity-40 disabled:shadow-none"
           >
             <Plus size={18} weight="bold" />
           </button>

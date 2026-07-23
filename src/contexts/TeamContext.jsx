@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Team profiles (nickname + avatar). Loaded once for everyone so any component
@@ -27,7 +27,7 @@ export function TeamProvider({ children }) {
   const [members, setMembers] = useState([]);
 
   const refresh = useCallback(async () => {
-    const { data } = await supabase.from('team').select('*');
+    const { data } = await db.from('team').select('*');
     setMembers(data || []);
   }, []);
 
@@ -39,7 +39,7 @@ export function TeamProvider({ children }) {
     // Ensure my own row exists (first login), then load everyone.
     (async () => {
       try {
-        await supabase.from('team').upsert({ id: user.id, email: user.email }, { onConflict: 'id' });
+        await db.from('team').upsert({ id: user.id, email: user.email }, { onConflict: 'id' });
       } catch {
         /* table may not exist yet (migration 3 not run) - app still works */
       }

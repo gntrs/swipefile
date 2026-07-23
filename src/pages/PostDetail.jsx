@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CaretLeft, Trash, PaperPlaneRight, ArrowSquareOut } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
@@ -23,12 +23,12 @@ export default function PostDetail() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const { data } = await supabase.from('posts').select('*').eq('id', id).single();
+      const { data } = await db.from('posts').select('*').eq('id', id).single();
       if (mounted) {
         setPost(data);
         setLoading(false);
       }
-      const { data: c } = await supabase
+      const { data: c } = await db
         .from('comments')
         .select('*')
         .eq('post_id', id)
@@ -42,12 +42,12 @@ export default function PostDetail() {
 
   const patch = async (fields) => {
     setPost((p) => ({ ...p, ...fields }));
-    await supabase.from('posts').update(fields).eq('id', id);
+    await db.from('posts').update(fields).eq('id', id);
   };
 
   const remove = async () => {
     if (!confirm('Delete this post?')) return;
-    await supabase.from('posts').delete().eq('id', id);
+    await db.from('posts').delete().eq('id', id);
     navigate('/posts');
   };
 
@@ -55,7 +55,7 @@ export default function PostDetail() {
     e.preventDefault();
     const body = newComment.trim();
     if (!body) return;
-    const { data } = await supabase
+    const { data } = await db
       .from('comments')
       .insert({ post_id: id, body, author_email: user.email, author_id: user.id })
       .select()
@@ -179,7 +179,7 @@ export default function PostDetail() {
             placeholder="Add a note for the team..."
             className="flex-1 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
           />
-          <button className="w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center shadow-cta active:scale-95">
+          <button className="press w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center shadow-cta">
             <PaperPlaneRight size={18} weight="fill" />
           </button>
         </form>

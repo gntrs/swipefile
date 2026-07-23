@@ -5,7 +5,7 @@
 //   node scripts/add-brief.mjs --title "Ads autopsy Jul 5" --file brief.txt
 //   echo "body text" | node scripts/add-brief.mjs --title "Quick note"
 //
-// Needs in .env: VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY (same as export.mjs).
+// Needs in .env: VITE_DB_URL, DB_SERVICE_KEY (same as export.mjs).
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,10 +17,10 @@ if (fs.existsSync(envPath)) {
     if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
   }
 }
-const url = process.env.VITE_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_KEY;
+const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
+const key = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY);
 if (!url || !key) {
-  console.error('Missing env. Need VITE_SUPABASE_URL and SUPABASE_SERVICE_KEY in .env.');
+  console.error('Missing env. Need VITE_DB_URL and DB_SERVICE_KEY in .env.');
   process.exit(1);
 }
 
@@ -49,7 +49,7 @@ const { data, error } = await sb
   .single();
 if (error) {
   console.error(`Insert failed: ${error.message}`);
-  console.error(error.code === '42P01' || /briefs/.test(error.message) ? 'Did you run supabase-migration-9.sql?' : '');
+  console.error(error.code === '42P01' || /briefs/.test(error.message) ? 'Did you run db-setup.sql?' : '');
   process.exit(1);
 }
 console.log(`Brief saved: "${title.trim()}" (${data.id}) at ${data.created_at}`);

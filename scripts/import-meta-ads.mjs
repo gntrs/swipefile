@@ -1,9 +1,10 @@
-// Import YOUR OWN ad performance straight from the Meta Marketing API into
-// the `ads` table. This replaces the CSV export flow (import-ads-csv.mjs
-// stays around as the manual fallback): same persistent ad memory, same match
-// key. Each row is matched BY AD NAME (metrics.ad_name), so every run
-// refreshes the same ads with live numbers instead of duplicating them. Names
-// never seen before become new rows under your own brand (OWN_BRAND below).
+// Import OUR OWN ad performance straight from the Meta
+// Marketing API into the `ads` table. This replaces the CSV export flow
+// (import-ads-csv.mjs stays around as the manual fallback): same persistent
+// ad memory, same match key. Each row is matched BY AD NAME
+// (metrics.ad_name), so every run refreshes the same ads with live numbers
+// instead of duplicating them. Names never seen before become new rows under
+// your own brand (env OWN_BRAND).
 //
 // Usage:
 //   node scripts/import-meta-ads.mjs [--dry-run] [--days N]
@@ -13,7 +14,7 @@
 //                --dry-run to eyeball recent movement; a real run with --days
 //                would overwrite lifetime metrics with window metrics.
 //
-// Needs in .env (next to the Supabase keys):
+// Needs in .env (next to the database keys):
 //   META_ACCESS_TOKEN     long-lived token with ads_read. Get one at
 //                         developers.facebook.com: create a Business-type
 //                         app -> add Marketing API -> Business Settings ->
@@ -40,16 +41,18 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-// Your own brand name as it should appear in the library. Set OWN_BRAND in
-// .env, or edit the fallback here.
-const OUR_BRAND = process.env.OWN_BRAND || 'My Brand';
-
-const url = process.env.VITE_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_KEY;
+const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
+const key = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY);
 const token = process.env.META_ACCESS_TOKEN;
 let account = process.env.META_AD_ACCOUNT_ID || '';
 if (!url || !key) {
-  console.error('Missing env. Need VITE_SUPABASE_URL and SUPABASE_SERVICE_KEY in .env.');
+  console.error('Missing env. Need VITE_DB_URL and DB_SERVICE_KEY in .env.');
+  process.exit(1);
+}
+// The brand label your own ads are stored under in the `ads` table.
+const OUR_BRAND = (process.env.OWN_BRAND || '').trim();
+if (!OUR_BRAND) {
+  console.error('Missing OWN_BRAND in .env - the brand name your own ads are stored under.');
   process.exit(1);
 }
 if (!token || !account) {

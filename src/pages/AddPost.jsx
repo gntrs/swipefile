@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CaretLeft, UploadSimple } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 
 const PLATFORMS = ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'Other'];
@@ -56,14 +56,14 @@ export default function AddPost() {
       if (file) {
         const ext = file.name.split('.').pop();
         const path = `${user.id}/post-${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from('ad-media').upload(path, file);
+        const { error: upErr } = await db.storage.from('ad-media').upload(path, file);
         if (upErr) throw upErr;
         media_path = path;
       }
       const cleanMetrics = Object.fromEntries(
         Object.entries(metrics).filter(([, v]) => v !== undefined && !Number.isNaN(v))
       );
-      const { data, error: insErr } = await supabase
+      const { data, error: insErr } = await db
         .from('posts')
         .insert({
           // Only send brand when set, so this still works before migration 8.
@@ -116,7 +116,7 @@ export default function AddPost() {
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <span className={label}>Title / hook</span>
-            <input className={field} value={f.title} onChange={set('title')} placeholder="e.g. FB group story that popped off" />
+            <input className={field} value={f.title} onChange={set('title')} placeholder="e.g. founder story reel" />
           </div>
           <div>
             <span className={label}>Link to the post</span>
@@ -204,7 +204,7 @@ export default function AddPost() {
         <button
           type="submit"
           disabled={busy}
-          className="justify-self-start px-6 py-3 rounded-2xl bg-coral text-black font-semibold shadow-cta active:scale-[0.98] transition-transform disabled:opacity-60"
+          className="press justify-self-start px-6 py-3 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
         >
           {busy ? 'Saving...' : 'Save post'}
         </button>

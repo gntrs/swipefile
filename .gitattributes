@@ -1,4 +1,4 @@
-# Shell scripts run on a Linux/macOS cron box - a CRLF checkout there breaks bash.
+# Shell scripts run on the WSL box - a CRLF checkout there breaks bash.
 *.sh text eol=lf
 
 # Media assets: never touch line endings.

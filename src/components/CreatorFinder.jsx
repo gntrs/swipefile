@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MagnifyingGlass, Plus, X, ArrowSquareOut } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { isMissingTable } from '@/lib/db';
 import MigrationCard from '@/components/MigrationCard';
@@ -23,7 +23,7 @@ const fmtFollowers = (n) => {
 };
 
 // "Find creators" button + scraped Instagram leads grouped by follower tier.
-// The button queues a scrape_jobs row; your cron box (creators-cron.sh) picks
+// The button queues a scrape_jobs row; the WSL cron (creators-cron.sh) picks
 // it up within ~2 minutes, searches the niche via Brave, and fills
 // creator_leads. One tap moves a lead into the outreach log above.
 export default function CreatorFinder({ onOutreachAdded }) {
@@ -36,8 +36,8 @@ export default function CreatorFinder({ onOutreachAdded }) {
 
   const load = useCallback(async () => {
     const [leadsRes, jobRes] = await Promise.all([
-      supabase.from('creator_leads').select('*').eq('status', 'new').order('followers', { ascending: false, nullsFirst: false }),
-      supabase.from('scrape_jobs').select('*').order('created_at', { ascending: false }).limit(1),
+      db.from('creator_leads').select('*').eq('status', 'new').order('followers', { ascending: false, nullsFirst: false }),
+      db.from('scrape_jobs').select('*').order('created_at', { ascending: false }).limit(1),
     ]);
     if (leadsRes.error) {
       if (isMissingTable(leadsRes.error)) setMissing(true);
@@ -67,7 +67,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
     // every creator it finds but reports the match count for this band, and
     // the page is already filtered to it when results land.
     const params = tier === 'unknown' ? {} : { tier };
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('scrape_jobs')
       .insert({ requested_by_email: user.email, params })
       .select()
@@ -83,7 +83,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
     setLeads((cur) => cur.filter((l) => l.id !== lead.id));
     const creator = lead.name && lead.name !== lead.handle ? `${lead.name} (@${lead.handle})` : `@${lead.handle}`;
     const notes = [lead.followers != null ? fmtFollowers(lead.followers) : null, lead.email].filter(Boolean).join(' · ');
-    const { error } = await supabase.from('outreach').insert({
+    const { error } = await db.from('outreach').insert({
       creator,
       platform: 'instagram',
       link: lead.url,
@@ -95,13 +95,13 @@ export default function CreatorFinder({ onOutreachAdded }) {
       setLeads((cur) => [lead, ...cur]); // put it back
       return;
     }
-    await supabase.from('creator_leads').update({ status: 'outreached' }).eq('id', lead.id);
+    await db.from('creator_leads').update({ status: 'outreached' }).eq('id', lead.id);
     onOutreachAdded?.();
   };
 
   const dismiss = async (lead) => {
     setLeads((cur) => cur.filter((l) => l.id !== lead.id));
-    const { error } = await supabase.from('creator_leads').update({ status: 'dismissed' }).eq('id', lead.id);
+    const { error } = await db.from('creator_leads').update({ status: 'dismissed' }).eq('id', lead.id);
     if (error) setLeads((cur) => [lead, ...cur]);
   };
 
@@ -114,7 +114,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
   if (missing) {
     return (
       <div className="mt-8">
-        <MigrationCard title="Creator finder" migration="supabase-migration-13.sql" />
+        <MigrationCard title="Creator finder" migration="db-setup.sql" />
       </div>
     );
   }
@@ -128,7 +128,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
         <button
           onClick={findCreators}
           disabled={active}
-          className="flex items-center gap-1.5 py-2 px-3.5 rounded-2xl bg-coral text-black text-[13px] font-semibold shadow-cta active:scale-[0.96] transition-transform disabled:opacity-40 disabled:shadow-none"
+          className="press flex items-center gap-1.5 py-2 px-3.5 rounded-2xl bg-coral text-black text-[13px] font-semibold shadow-cta disabled:opacity-40 disabled:shadow-none"
         >
           <MagnifyingGlass size={15} weight="bold" />
           {active ? 'Searching...' : tier === 'unknown' ? 'Find creators' : `Find ${TIERS.find((t) => t.key === tier).label}`}
@@ -139,7 +139,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
         {job?.status === 'running' && 'Searching Instagram via web search, results appear below as they land.'}
         {job?.status === 'error' && `Last run failed: ${job.note || 'unknown error'}`}
         {job?.status === 'done' && `Last run: ${job.note || 'done'}`}
-        {!job && 'Pick an audience size, hit the button: searches Instagram for creators in your niche to partner with (queries live in scripts/scrape-creators.mjs).'}
+        {!job && 'Pick an audience size, hit the button: searches Instagram for creators in your niche to partner with.'}
       </p>
 
       <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 mb-4">
@@ -185,7 +185,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
               <button
                 onClick={() => addToOutreach(l)}
                 aria-label={`Add @${l.handle} to outreach`}
-                className="flex items-center gap-1 py-1.5 px-2.5 rounded-xl bg-mint/30 text-emerald-700 text-[12px] font-semibold flex-shrink-0 active:scale-[0.96] transition-transform"
+                className="press flex items-center gap-1 py-1.5 px-2.5 rounded-xl bg-mint/30 text-emerald-700 text-[12px] font-semibold flex-shrink-0"
               >
                 <Plus size={13} weight="bold" /> Outreach
               </button>

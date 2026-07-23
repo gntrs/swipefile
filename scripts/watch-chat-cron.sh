@@ -6,17 +6,17 @@
 #
 # Tier 2 (only if tier 1 flags REPLY_NEEDED, Sonnet): compose and post ONE
 # short chat reply. Can log a goal for real work but never does the work
-# itself - reply-only, actual execution waits for an operator to say go.
+# itself - reply-only, actual execution waits for the team to say go.
 set -euo pipefail
-cd "$(dirname "$0")/.."  # repo root, wherever it lives
+cd "${DASHBOARD_DIR:-$HOME/swipefile}"
 
 exec 9>.claude-data/watcher.lock
 flock -n 9 || exit 0   # skip this tick if the previous run is still going
 
 mkdir -p .claude-data
-CLAUDE="${CLAUDE_BIN:-claude}"  # path to the Claude Code CLI; override with CLAUDE_BIN
+CLAUDE="${CLAUDE_BIN:-claude}"
 
-HAIKU_PROMPT='You are doing a cheap triage pass on a marketing dashboard team chat.
+HAIKU_PROMPT='You are doing a cheap triage pass on the marketing dashboard team chat.
 1. Run: node scripts/chat.mjs --read 20
 2. Run: node scripts/add-goal.mjs --list-open
 3. New goals: for any recent teammate message that needs follow-up action and is not already covered by an open goal (match on meaning, not exact wording), run: node scripts/add-goal.mjs --title "<short action item>" --horizon 1w (add --urgent if time-sensitive, --deadline YYYY-MM-DD if a date is clearly implied).
@@ -25,7 +25,7 @@ HAIKU_PROMPT='You are doing a cheap triage pass on a marketing dashboard team ch
 5. React check: if a teammate message @mentions or @tags claude (e.g. "@claude ...") and it is NOT getting a REPLY_NEEDED (so just a ping, praise, or content with nothing to answer), and it does not already show a reaction in the --read output (the "[emoji count]" suffix), react to it: node scripts/chat.mjs --react <n> <emoji> - pick whatever emoji fits the vibe (🔥 for hype/praise, 👍 for plain acknowledgment, 👀 for "noted/watching"). Only react to the newest such message, do not react to old ones already showing a reaction, and never react twice to the same message.
 Never post to chat yourself. Never mark a goal done. Be terse, minimize tool calls, no extra commentary beyond the REPLY_NEEDED line when applicable.'
 
-SONNET_PROMPT='You are Claude, replying live in a marketing dashboard team chat (internal marketing dashboard, small startup team). Steps:
+SONNET_PROMPT='You are Claude, replying live in the marketing dashboard team chat (internal dashboard, small startup team). Steps:
 1. Run: node scripts/chat.mjs --read 20 to see the conversation.
 2. Figure out what the teammate(s) are asking or saying that needs a response from you.
 3. Post exactly ONE short, casual reply: node scripts/chat.mjs "your reply" (match the established short/casual tone of past Claude messages, no essays, under ~400 chars).

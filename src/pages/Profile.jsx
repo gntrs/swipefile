@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { Camera, User, Confetti } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { useMediaUrl } from '@/lib/media';
-import { triggerCelebration, celebrationEnabled, setCelebrationEnabled, MEMES } from '@/lib/celebration';
+import { triggerCelebration, celebrationEnabled, setCelebrationEnabled } from '@/lib/celebration';
 
 function TeamMember({ member, isMe }) {
   const avatar = useMediaUrl(member.avatar_path);
@@ -57,9 +57,9 @@ export default function Profile() {
       const ext = file.name.split('.').pop();
       // Unique name each upload (no storage UPDATE policy needed).
       const path = `avatars/${user.id}-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from('ad-media').upload(path, file);
+      const { error: upErr } = await db.storage.from('ad-media').upload(path, file);
       if (upErr) throw upErr;
-      const { error } = await supabase.from('team').update({ avatar_path: path }).eq('id', user.id);
+      const { error } = await db.from('team').update({ avatar_path: path }).eq('id', user.id);
       if (error) throw error;
       await refresh();
       setMsg('Photo updated.');
@@ -75,7 +75,7 @@ export default function Profile() {
     setBusy(true);
     setMsg('');
     try {
-      const { error } = await supabase
+      const { error } = await db
         .from('team')
         .update({ nickname: nickname.trim() || null })
         .eq('id', user.id);
@@ -149,7 +149,7 @@ export default function Profile() {
           <button
             type="submit"
             disabled={busy}
-            className="mt-4 px-6 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta active:scale-[0.98] transition-transform disabled:opacity-60"
+            className="press mt-4 px-6 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
           >
             {busy ? 'Saving...' : 'Save'}
           </button>
@@ -157,54 +157,48 @@ export default function Profile() {
         </form>
       </div>
 
-      {/* Party mode: fullscreen meme when a sale lands. Desktop only (it
-          can't run on phones), so the whole card is hidden there. */}
-      <div className="hidden sm:block bg-card rounded-xl3 border border-line shadow-card p-6 mt-4">
+      {/* Party mode: fullscreen celebration clip when a sale lands. Shows on
+          phones too - Test taps count as user gestures, so playback works.
+          Clips are user-supplied: see public/memes/README.md. */}
+      <div className="bg-card rounded-xl3 border border-line shadow-card p-6 mt-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 className="font-semibold text-[15px] flex items-center gap-2">
               <Confetti size={18} weight="bold" className="text-emerald-400" /> Party mode
             </h2>
             <p className="text-[13px] text-ink-soft mt-1">
-              Play a fullscreen meme when a new sale lands. Desktop only, and only while a tab is open.
+              Play a fullscreen celebration clip when a new sale lands, while a tab is open.
+              Drop clips in public/memes and list them in src/lib/celebration.js.
             </p>
           </div>
-          {MEMES.length > 0 && (
-            <button
-              type="button"
-              role="switch"
-              aria-checked={partyOn}
-              onClick={() => {
-                const next = !partyOn;
-                setPartyOn(next);
-                setCelebrationEnabled(next);
-              }}
-              className={`relative w-12 h-7 rounded-full flex-shrink-0 transition-colors ${
-                partyOn ? 'bg-emerald-500' : 'bg-line'
-              }`}
-            >
-              <span
-                className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${
-                  partyOn ? 'translate-x-5' : ''
-                }`}
-              />
-            </button>
-          )}
-        </div>
-        {MEMES.length > 0 ? (
+          {/* Toggle switch */}
           <button
             type="button"
-            onClick={() => triggerCelebration({ force: true })}
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl border border-line text-[13px] font-semibold text-ink hover:bg-white/[0.04] transition-colors"
+            role="switch"
+            aria-checked={partyOn}
+            onClick={() => {
+              const next = !partyOn;
+              setPartyOn(next);
+              setCelebrationEnabled(next);
+            }}
+            className={`relative w-12 h-7 rounded-full flex-shrink-0 transition-colors ${
+              partyOn ? 'bg-emerald-500' : 'bg-line'
+            }`}
           >
-            <Confetti size={15} weight="bold" /> Test it
+            <span
+              className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${
+                partyOn ? 'translate-x-5' : ''
+              }`}
+            />
           </button>
-        ) : (
-          <p className="mt-3 text-[13px] text-ink-soft">
-            No clips yet. Drop a video in <span className="font-mono text-[12px]">public/memes/</span> and
-            register it in <span className="font-mono text-[12px]">src/lib/celebration.js</span> to turn this on.
-          </p>
-        )}
+        </div>
+        <button
+          type="button"
+          onClick={() => triggerCelebration({ force: true })}
+          className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl border border-line text-[13px] font-semibold text-ink hover:bg-white/[0.04] transition-colors"
+        >
+          <Confetti size={15} weight="bold" /> Test it
+        </button>
       </div>
 
       {/* The whole team, everyone's face and name in one place. */}

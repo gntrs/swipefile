@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CaretLeft, CaretRight, Plus, CalendarBlank } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { isMissingTable } from '@/lib/db';
@@ -76,7 +76,7 @@ export default function Availability() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('availability')
       .select('*')
       .gte('day', ymd(days[0]))
@@ -107,10 +107,10 @@ export default function Availability() {
 
   const save = async (values) => {
     if (editor?.block?.id) {
-      const { error } = await supabase.from('availability').update(values).eq('id', editor.block.id);
+      const { error } = await db.from('availability').update(values).eq('id', editor.block.id);
       if (error) throw error;
     } else {
-      const { error } = await supabase
+      const { error } = await db
         .from('availability')
         .insert({ ...values, user_id: user.id, email: user.email });
       if (error) throw error;
@@ -120,7 +120,7 @@ export default function Availability() {
   };
 
   const del = async (block) => {
-    await supabase.from('availability').delete().eq('id', block.id);
+    await db.from('availability').delete().eq('id', block.id);
     setEditor(null);
     load();
   };
@@ -136,7 +136,7 @@ export default function Availability() {
   if (missing) {
     return (
       <div className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
-        <MigrationCard title="Team availability" migration="supabase-migration-7.sql" />
+        <MigrationCard title="Team availability" migration="db-setup.sql" />
       </div>
     );
   }
@@ -190,7 +190,7 @@ export default function Availability() {
         <h1 className="text-[22px] font-semibold tracking-tight">Availability</h1>
         <button
           onClick={() => setEditor({ day: ymd(days[selDay]), start: 540 })}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-coral text-black text-[14px] font-semibold shadow-cta active:scale-[0.97] transition-transform"
+          className="press flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-coral text-black text-[14px] font-semibold shadow-cta"
         >
           <Plus size={16} weight="bold" /> Add
         </button>

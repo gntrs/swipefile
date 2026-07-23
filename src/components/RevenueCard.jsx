@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CurrencyEur, TrendUp, Sparkle, X } from '@phosphor-icons/react';
-import { supabase, fetchAll } from '@/lib/supabase';
+import { db, fetchAll } from '@/lib/db';
 import { confettiBurst } from '@/lib/confetti';
 import { triggerCelebration } from '@/lib/celebration';
 import Pill from '@/components/Pill';
@@ -8,7 +8,7 @@ import Pill from '@/components/Pill';
 // The money counter. YT-subscriber-counter energy: lifetime revenue GENERATED
 // (not what was paid out), MRR, sales today - and confetti the moment a new
 // sale row lands via realtime (scripts/stripe-pull.mjs feeds the sales table
-// from a cron every ~5 min). Numbers animate up; green is reserved for
+// from the WSL cron every ~5 min). Numbers animate up; green is reserved for
 // the good-news accents per the color law.
 
 const CUR = { eur: '€', usd: '$', gbp: '£' };
@@ -68,7 +68,7 @@ export default function RevenueCard() {
 
     (async () => {
       // Latest snapshot that carries a revenue key (today's, normally).
-      const { data: snaps } = await supabase
+      const { data: snaps } = await db
         .from('kpi_snapshots')
         .select('day, metrics')
         .order('day', { ascending: false })
@@ -84,21 +84,21 @@ export default function RevenueCard() {
     })();
 
     // THE moment: a new sale arrives while the dashboard is open.
-    const channel = supabase
+    const channel = db
       .channel('sales-live')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sales' }, (payload) => {
         if (!mounted) return;
         setSales((cur) => [payload.new, ...(cur || [])]);
         setFlash(true);
         confettiBurst();
-        triggerCelebration(); // inside-joke meme, desktop only, if enabled
+        triggerCelebration(); // party-mode clip, no-op if none configured or disabled
         setTimeout(() => mounted && setFlash(false), 2500);
       })
       .subscribe();
 
     return () => {
       mounted = false;
-      supabase.removeChannel(channel);
+      db.removeChannel(channel);
     };
   }, []);
 
@@ -155,8 +155,8 @@ export default function RevenueCard() {
       {empty ? (
         <div className="text-[13px] text-ink-soft bg-cream/60 rounded-2xl px-4 py-3">
           Waiting for Stripe. Add <span className="font-mono text-[12px]">STRIPE_API_KEY</span> to
-          <span className="font-mono text-[12px]">.env</span>, apply{' '}
-          <span className="font-mono text-[12px]">supabase-migration-17.sql</span>, then{' '}
+          the WSL <span className="font-mono text-[12px]">.env</span>, apply{' '}
+          <span className="font-mono text-[12px]">db-setup.sql</span>, then{' '}
           <span className="font-mono text-[12px]">node scripts/stripe-pull.mjs</span> backfills
           every sale.
         </div>

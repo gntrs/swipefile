@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Star } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
 import { setStarred, isStarred } from '@/lib/ads';
 
@@ -54,7 +54,7 @@ export default function Compare() {
       setLoading(false);
       return;
     }
-    supabase
+    db
       .from('ads')
       .select('*')
       .in('id', ids)

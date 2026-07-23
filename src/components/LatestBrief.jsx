@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CaretRight, FileText } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 
 // Newest analysis brief, pinned on the dashboard. Full history at /briefs.
 // Renders nothing until the briefs table exists and has a row.
@@ -10,7 +10,7 @@ export default function LatestBrief() {
 
   useEffect(() => {
     let mounted = true;
-    supabase
+    db
       .from('briefs')
       .select('id, title, body, created_at')
       .order('created_at', { ascending: false })

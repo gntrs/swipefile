@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from './supabase';
+import { db } from './db';
 
 // Media access for a PRIVATE `ad-media` bucket. Files are never publicly
 // reachable; a signed URL is minted per path for the logged-in user (storage
@@ -21,7 +21,7 @@ export function useMediaUrl(path) {
       return;
     }
     let alive = true;
-    supabase.storage
+    db.storage
       .from('ad-media')
       .createSignedUrl(path, TTL_SECONDS)
       .then(({ data }) => {

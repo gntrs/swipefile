@@ -1,13 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X } from '@phosphor-icons/react';
 
-// Optional "party mode" overlay (see src/lib/celebration.js). Mounted once in
-// Layout. Listens for the 'sale-celebrate' event, then plays a meme fullscreen.
-// Two shapes of meme:
+// Sale celebration overlay ("party mode", see src/lib/celebration.js).
+// Mounted once in Layout. Listens for the 'sale-celebrate' event, then plays
+// a celebration clip fullscreen. Two shapes of clip:
 //   - chroma + loops: a green-screen short, keyed to transparency on a canvas,
-//     played a fixed number of times, optionally with an overlay music track.
-//   - clip: a random N-second slice of a longer clip, shown as a plain video
+//     played a fixed number of times (optionally with a music track).
+//   - clip: a random N-second slice of a long video, shown as a plain video
 //     with its own audio.
+// If the clip file is missing or fails to load, the overlay dismisses itself
+// so a broken path never leaves a black screen.
 export default function SaleCelebration() {
   const [meme, setMeme] = useState(null);
   const overlayRef = useRef(null);
@@ -92,8 +94,8 @@ export default function SaleCelebration() {
     const start = async () => {
       // Play the video FIRST, before any await. Awaiting fullscreen or music
       // first burns the Test click's user-activation, which gets an unmuted
-      // clip blocked -> black screen. A chroma meme is driven by a separate
-      // music track so its video is muted; plain clips play unmuted.
+      // clip blocked -> black screen. A clip with a `music` track plays its
+      // video muted; a plain clip carries its own audio (unmuted).
       video.volume = 1;
       video.muted = Boolean(meme.music);
       if (meme.clip) pickClipStart();
@@ -131,7 +133,9 @@ export default function SaleCelebration() {
     };
 
     const onKey = (e) => e.key === 'Escape' && finish();
-    const onError = () => finish(); // missing/broken clip - close, don't hang
+
+    // Missing or undecodable clip file: bail out instead of a black screen.
+    const onError = () => finish();
 
     video.addEventListener('loadedmetadata', pickClipStart);
     video.addEventListener('timeupdate', onTime);

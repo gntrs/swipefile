@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Self-signup is hidden by default: the team is added manually in Supabase
+// Self-signup is hidden by default: the team is added manually in the auth dashboard
 // (Authentication -> Users) and public signup is disabled there. Set
 // VITE_ALLOW_SIGNUP=1 only during first-time setup.
 const ALLOW_SIGNUP = import.meta.env.VITE_ALLOW_SIGNUP === '1';
@@ -28,12 +28,12 @@ export default function Login() {
     setMsg('');
     try {
       if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await db.auth.signUp({ email, password });
         if (error) throw error;
         setMsg('Account created. If email confirmation is on, check your inbox, then sign in.');
         setMode('signin');
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await db.auth.signInWithPassword({ email, password });
         if (error) throw error;
         navigate('/', { replace: true });
       }
@@ -46,9 +46,9 @@ export default function Login() {
 
   return (
     <div className="h-full overflow-y-auto overscroll-contain flex items-center justify-center bg-cream px-5">
-      <div className="w-full max-w-sm bg-card rounded-xl3 border border-line shadow-card p-7">
+      <div className="w-full max-w-sm bg-card rounded-xl3 border border-line shadow-card p-7 animate-materialize">
         <p className="font-semibold text-[15px] tracking-tight mb-7">
-          Swipefile<span className="text-coral">.</span>
+          Tracker<span className="text-coral">.</span>
         </p>
 
         <h1 className="text-[24px] font-semibold tracking-tight mb-1">
@@ -76,7 +76,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={busy}
-            className="w-full py-3 rounded-2xl bg-coral text-black font-semibold shadow-cta active:scale-[0.98] transition-transform disabled:opacity-60"
+            className="press w-full py-3 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
           >
             {busy ? 'Please wait...' : mode === 'signin' ? 'Sign in' : 'Sign up'}
           </button>

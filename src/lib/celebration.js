@@ -1,34 +1,36 @@
-// Optional "party mode": play a fullscreen meme video the moment a sale lands
-// while a dashboard tab is open. Desktop only, and only while a tab is open (a
-// closed browser tab runs no code). Toggle + Test button live on the Profile
-// page. To disable entirely, remove <SaleCelebration/> from Layout.jsx.
+// Sale celebration ("party mode"). Fires a fullscreen celebration clip
+// (+ optional music) the moment a sale lands while a dashboard tab is open.
+// Web pages can't run while closed, so this only plays when a tab is open -
+// that's a browser limit.
+//
+// Ships with an EMPTY clip registry: drop your own clips into public/memes/
+// and list them below (see public/memes/README.md). If a listed file is
+// missing or fails to load, the overlay dismisses itself - the confetti burst
+// that accompanies a sale still fires either way.
 
 const LS_KEY = 'celebrateSales';
 
-// Meme registry. Drop your own clips in public/memes/ and list them here -
-// `triggerCelebration()` picks one at RANDOM each sale (pass `{ memeId }` to
-// force one). Ships with a couple of neutral samples; add whatever you like.
+// Clip registry. `triggerCelebration()` picks one at RANDOM each sale; pass
+// `{ memeId }` to force a specific one.
 //
-// NOTE: you are responsible for the rights to any media you add here. Don't
-// commit clips you don't have the right to redistribute. See public/memes/README.md.
-//
-// Per-meme fields:
-//   weight   relative pick odds (default 1) - higher = shows more often.
-//   chroma   true  = key out a green-screen background (canvas). false = as-is.
-//   loops    play the whole clip N times (good for short green-screen loops).
-//   clip     play a RANDOM N-second slice each time (good for longer clips),
-//            instead of looping. Uses the clip's own audio.
+// Per-clip fields:
+//   weight   relative pick odds (default 1) - higher lands more often.
+//   chroma   true  = key out the green screen (canvas). false = play as-is.
+//   loops    play the whole clip N times (green-screen shorts).
+//   clip     play a RANDOM N-second slice each time (long clips), instead of
+//            looping. Uses the clip's own audio.
 //   music    optional overlay track; if the file is missing the video's own
 //            audio plays. musicStart = seconds into the track.
-// Empty by default - the feature is dormant until you add at least one clip.
-// Example entries (drop the files in public/memes/ and uncomment):
 //
-//   { id: 'clip', label: 'My clip', video: '/memes/clip.mp4', clip: 20 },
-//   { id: 'loop', label: 'Green screen', video: '/memes/loop.mp4',
-//     chroma: true, loops: 2, music: '/memes/track.mp3', musicStart: 0 },
+// Example entries:
+//   { id: 'dance', label: 'Victory dance', video: '/memes/dance.mp4',
+//     weight: 1, chroma: true, loops: 2,
+//     music: '/memes/track.mp3', musicStart: 26 },
+//   { id: 'movie', label: 'Movie moment', video: '/memes/movie.mp4',
+//     weight: 7, chroma: false, clip: 20 },
 export const MEMES = [];
 
-// Weighted random meme (respects each meme's `weight`, default 1).
+// Weighted random pick (respects each clip's `weight`, default 1).
 function pickWeighted() {
   const total = MEMES.reduce((s, m) => s + (m.weight ?? 1), 0);
   let r = Math.random() * total;
@@ -55,15 +57,12 @@ export function setCelebrationEnabled(on) {
   }
 }
 
-// Website only, never phones.
-const isDesktop = () =>
-  typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches;
-
-// Fire the celebration. `force` (the Test button) bypasses the on/off setting
-// but still respects desktop-only. A random meme plays unless `memeId` is
-// given. Returns true if it will play.
+// Fire the celebration. `force` (the Test button) bypasses the on/off
+// setting. Works on desktop AND phone - the Test tap is a user gesture, so
+// mobile browsers allow playback with sound too. A random clip plays unless
+// `memeId` is given. Returns true if it will play; false (a clean no-op)
+// when the registry is empty or the feature is switched off.
 export function triggerCelebration({ force = false, memeId } = {}) {
-  if (!isDesktop()) return false;
   if (!force && !celebrationEnabled()) return false;
   const meme = memeId ? MEMES.find((m) => m.id === memeId) : pickWeighted();
   if (!meme) return false;

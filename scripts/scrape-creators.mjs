@@ -12,7 +12,7 @@
 //                                                   # scrape_jobs row (cron mode;
 //                                                   # exits quietly when none)
 //
-// Needs in .env: VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY, BRAVE_API_KEY
+// Needs in .env: VITE_DB_URL, DB_SERVICE_KEY, BRAVE_API_KEY
 // (free tier at brave.com/search/api is plenty: 1 req/sec, 2000/month).
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
@@ -27,12 +27,12 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const url = process.env.VITE_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_KEY;
+const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
+const key = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY);
 const braveKey = process.env.BRAVE_API_KEY;
 if (!url || !key || !braveKey) {
   console.error(
-    'Missing env. Need VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY and BRAVE_API_KEY in .env.\n' +
+    'Missing env. Need VITE_DB_URL, DB_SERVICE_KEY and BRAVE_API_KEY in .env.\n' +
       'Brave key: brave.com/search/api -> free plan -> copy the subscription token.'
   );
   process.exit(1);
@@ -47,23 +47,27 @@ const customQuery = args.includes('--query') ? args[args.indexOf('--query') + 1]
 // the band only shapes the summary (how many landed where you aimed).
 const customTier = args.includes('--tier') ? args[args.indexOf('--tier') + 1] : null;
 
-// EDIT THESE TO YOUR NICHE. What we search when the job does not override
-// queries - the example below targets home fitness; swap in queries for your
-// own audience. Plain "<topic> instagram" queries yield far more profile
-// results than site:instagram.com ones; handleFrom() below already keeps only
-// Instagram profile URLs, and the niche gate keeps only on-topic accounts.
+// What we search when the job does not override queries. Edit these defaults
+// for your own niche - topics your target creators post about.
+// Plain "<topic> instagram" queries yield far more profile results than
+// site:instagram.com ones; handleFrom() below already keeps only Instagram
+// profile URLs, and the niche gate keeps only on-topic accounts.
 const DEFAULT_QUERIES = [
-  'home workout coach instagram',
-  'fitness for beginners instagram',
-  'personal trainer tips instagram',
-  'healthy meal prep creator instagram',
+  'speech delay mom instagram',
+  'late talker toddler mom instagram',
+  'autism mom creator instagram',
+  'speech therapist SLP kids instagram',
+  'toddler speech activities instagram',
+  'nonverbal autism AAC parent instagram',
+  'early intervention speech therapy instagram',
+  'autism parenting speech tips instagram',
 ];
 
-// Hard niche gate (EDIT to match your queries): whatever the query was, a
-// lead only gets stored if its name/handle/snippet shows a real signal of
-// your world. This is what keeps "success coach" and "instagram expert"
-// accounts out even when a custom query goes wide.
-const NICHE_RE = /(fitness|workout|trainer|gym|meal.?prep|nutrition|weight.?loss|wellness)/i;
+// Hard niche gate: whatever the query was, a lead only gets stored if its
+// name/handle/snippet shows a real signal of our world (speech development,
+// autism, therapy for kids). This is what keeps "success coach" and
+// "instagram expert" accounts out even when a custom query goes wide.
+const NICHE_RE = /(speech|autis|\basd\b|\bslp\b|late.?talker|nonverbal|non.?verbal|\baac\b|apraxia|early.?intervention|language.?delay|language.?development|first.?words|speech.?therap|pediatric.?therap|special.?needs)/i;
 
 // Tier cutoffs (followers). Tune here if the outreach pricing bands move.
 function tierFor(followers) {

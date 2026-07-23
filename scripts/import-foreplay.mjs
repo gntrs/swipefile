@@ -1,4 +1,4 @@
-// Import saved ads from Foreplay (swipe file) into the Supabase `ads` table,
+// Import saved ads from Foreplay (swipe file) into the `ads` table,
 // so the team's ad library auto-fills with everything saved in Foreplay.
 //
 // API: https://public.api.foreplay.co (docs: /docs, spec: /openapi.json)
@@ -15,8 +15,7 @@
 //   killed in under 14 days    -> loser
 //   dead after 14-29 days      -> unsure
 // The script remembers what it set (metrics.auto_verdict) and never overwrites
-// a verdict a human changed by hand. Rows matching your own brand (OWN_BRAND
-// in .env) are skipped - auto-verdicts are for competitor ads only.
+// a verdict a human changed by hand. Rows matching env OWN_BRAND are skipped.
 //
 // Media: the ad's video/image is downloaded from Foreplay's CDN and uploaded
 // to the private `ad-media` bucket under imports/foreplay/<id>.<ext>. If the
@@ -27,7 +26,7 @@
 //         node scripts/import-foreplay.mjs --dry-run        # show what would be inserted
 //         node scripts/import-foreplay.mjs --spyder-only    # only tracked competitor brands
 //         node scripts/import-foreplay.mjs --swipefile-only # only hand-saved ads
-// Needs in .env:  VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY, FOREPLAY_API_KEY
+// Needs in .env:  VITE_DB_URL, DB_SERVICE_KEY, FOREPLAY_API_KEY
 // (all local only, gitignored - same rules as scripts/export.mjs).
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
@@ -42,15 +41,15 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-// Your own brand name (see import-meta-ads.mjs) - those rows keep human verdicts.
-const OUR_BRAND = process.env.OWN_BRAND || 'My Brand';
-
-const url = process.env.VITE_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
+const serviceKey = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY);
 const foreplayKey = process.env.FOREPLAY_API_KEY;
+// Optional: your own brand name. Rows matching it skip the auto-verdict (you
+// do not need a spy verdict on your own ads). Unset = no special-casing.
+const OWN_BRAND = (process.env.OWN_BRAND || '').trim().toLowerCase();
 if (!url || !serviceKey || !foreplayKey) {
   console.error(
-    'Missing env. Need VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY and FOREPLAY_API_KEY in .env.\n' +
+    'Missing env. Need VITE_DB_URL, DB_SERVICE_KEY and FOREPLAY_API_KEY in .env.\n' +
       'Foreplay key: https://app.foreplay.co/api-overview (copy icon).\n' +
       'All three stay local (gitignored). NEVER in frontend code or Vercel.'
   );
@@ -141,7 +140,7 @@ function mapAd(ad) {
   if (Array.isArray(ad.market_target) && ad.market_target.length) metrics.market_target = ad.market_target;
   if (Array.isArray(ad.languages) && ad.languages.length) metrics.languages = ad.languages;
 
-  const verdict = ad.name === OUR_BRAND ? null : autoVerdict(ad.live, days);
+  const verdict = (OWN_BRAND && (ad.name || '').trim().toLowerCase() === OWN_BRAND) ? null : autoVerdict(ad.live, days);
   if (verdict) metrics.auto_verdict = verdict;
 
   return {
@@ -255,7 +254,7 @@ async function importBatch(ads, label, extras = {}) {
     // Verdict is opinion: auto-update only rows a human never touched, i.e.
     // the verdict still equals whatever the script (or import default) set.
     const lastAuto = oldM.auto_verdict || 'unsure';
-    const newAuto = mapped.brand === OUR_BRAND ? null : autoVerdict(ad.live, daysRunning(ad));
+    const newAuto = (OWN_BRAND && (mapped.brand || '').trim().toLowerCase() === OWN_BRAND) ? null : autoVerdict(ad.live, daysRunning(ad));
     if (newAuto && old.verdict === lastAuto) {
       update.verdict = newAuto;
       metrics.auto_verdict = newAuto;

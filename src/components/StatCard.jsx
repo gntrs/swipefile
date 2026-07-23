@@ -53,10 +53,10 @@ export default function StatCard({ icon: Icon, label, value, sub, accent = 'cora
     </>
   );
   const cls =
-    'bg-card rounded-xl3 border border-line shadow-card p-5 flex flex-col transition-all animate-rise';
+    'bg-card rounded-xl3 border border-line shadow-card p-5 flex flex-col transition-all duration-300 ease-swift animate-rise';
   if (to) {
     return (
-      <Link to={to} className={`${cls} hover:shadow-cardhover hover:-translate-y-0.5`}>
+      <Link to={to} className={`${cls} press hover:shadow-cardhover hover:-translate-y-0.5`}>
         {inner}
       </Link>
     );

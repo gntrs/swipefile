@@ -3,7 +3,7 @@
 // key from .env - local only, never committed, never in frontend code).
 //
 // Usage:  node scripts/export.mjs
-// Needs in .env:  VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY
+// Needs in .env:  VITE_DB_URL, DB_SERVICE_KEY
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,12 +17,12 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const url = process.env.VITE_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_KEY;
+const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
+const key = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY);
 if (!url || !key) {
   console.error(
-    'Missing env. Need VITE_SUPABASE_URL and SUPABASE_SERVICE_KEY in .env.\n' +
-      'Get the service_role key: Supabase -> Project Settings -> API -> service_role.\n' +
+    'Missing env. Need VITE_DB_URL and DB_SERVICE_KEY in .env.\n' +
+      "Get the service_role key: your database provider's dashboard -> API settings -> service_role.\n" +
       'It stays local (gitignored). NEVER put it in frontend code or Vercel.'
   );
   process.exit(1);
@@ -30,7 +30,7 @@ if (!url || !key) {
 
 const sb = createClient(url, key);
 
-// Supabase caps a single select at 1000 rows. The ads table is well past that
+// The database API caps a single select at 1000 rows. The ads table is well past that
 // (thousands of competitor + own ads), so a plain select silently dropped
 // everything after the first 1000 - every analysis pass was reading a
 // truncated dataset. Page through with .range() until the table is exhausted.

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PlusCircle, MagnifyingGlass, Megaphone } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useTeam } from '@/contexts/TeamContext';
 
 const PLATFORMS = ['all', 'Facebook', 'Instagram', 'TikTok', 'YouTube', 'Other'];
@@ -22,7 +22,7 @@ export default function Posts() {
 
   useEffect(() => {
     let mounted = true;
-    supabase
+    db
       .from('posts')
       .select('*')
       .order('posted_at', { ascending: false, nullsFirst: false })
@@ -60,7 +60,7 @@ export default function Posts() {
         </div>
         <Link
           to="/posts/add"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta active:scale-[0.98] transition-transform"
+          className="press flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta"
         >
           <PlusCircle size={20} weight="bold" /> Add post
         </Link>

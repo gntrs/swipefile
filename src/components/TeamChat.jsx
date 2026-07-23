@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, PaperPlaneRight, Smiley, Sparkle, User } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { useMediaUrl } from '@/lib/media';
@@ -133,7 +133,7 @@ function Message({ msg, reactions, myEmail, mentionsMe, bySlug, pickerOpen, onTo
   );
 }
 
-// Quick team chat on the dashboard. Live via Supabase realtime; if realtime is
+// Quick team chat on the dashboard. Live via database realtime; if realtime is
 // off (or the channel errors), a slow poll keeps messages flowing anyway.
 // Reactions: tap the smiley on a message, pick an emoji; tap a pill to toggle
 // yours off. @mention: type @ to open the picker (team + Claude); mentioning
@@ -173,7 +173,7 @@ export default function TeamChat() {
   }, []);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('chat_messages')
       .select('*')
       .order('created_at', { ascending: false })
@@ -188,7 +188,7 @@ export default function TeamChat() {
     setLoading(false);
     if (msgs.length) {
       // Reactions table may not exist yet (migration 10) - chat still works.
-      const { data: r } = await supabase
+      const { data: r } = await db
         .from('chat_reactions')
         .select('*')
         .in('message_id', msgs.map((m) => m.id));
@@ -205,7 +205,7 @@ export default function TeamChat() {
   // effect below takes over.
   useEffect(() => {
     if (missing) return undefined;
-    const channel = supabase
+    const channel = db
       .channel('team-chat')
       .on(
         'postgres_changes',
@@ -226,7 +226,7 @@ export default function TeamChat() {
       )
       .subscribe((status) => setLive(status === 'SUBSCRIBED'));
     return () => {
-      supabase.removeChannel(channel);
+      db.removeChannel(channel);
     };
   }, [missing, append]);
 
@@ -367,15 +367,15 @@ export default function TeamChat() {
     if (!body || !user) return;
     setText('');
     setMentionQuery(null);
-    let { data, error } = await supabase
+    let { data, error } = await db
       .from('chat_messages')
       .insert({ body, author_id: user.id, author_email: user.email, mentions: resolveMentions(body) })
       .select()
       .single();
     if (error && isMissingColumn(error)) {
-      // supabase-migration-11.sql not run yet - send without @mention data
+      // db-setup.sql not run yet - send without @mention data
       // rather than blocking the whole chat on it.
-      ({ data, error } = await supabase
+      ({ data, error } = await db
         .from('chat_messages')
         .insert({ body, author_id: user.id, author_email: user.email })
         .select()
@@ -398,10 +398,10 @@ export default function TeamChat() {
     );
     if (mine) {
       setReactions((cur) => cur.filter((r) => r.id !== mine.id));
-      const { error } = await supabase.from('chat_reactions').delete().eq('id', mine.id);
+      const { error } = await db.from('chat_reactions').delete().eq('id', mine.id);
       if (error) setReactions((cur) => [...cur, mine]); // put it back
     } else {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('chat_reactions')
         .insert({ message_id: msg.id, emoji, author_email: user.email })
         .select()
@@ -446,7 +446,7 @@ export default function TeamChat() {
           <button
             type="button"
             onClick={jumpToLatest}
-            className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 rounded-full bg-ink text-black text-[12px] font-semibold shadow-cta active:scale-95 transition-transform"
+            className="press absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 rounded-full bg-ink text-black text-[12px] font-semibold shadow-cta"
           >
             {newCount} new <ArrowDown size={13} weight="bold" />
           </button>
@@ -492,7 +492,7 @@ export default function TeamChat() {
           type="submit"
           disabled={!text.trim()}
           aria-label="Send"
-          className="w-10 h-10 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta active:scale-[0.96] transition-transform disabled:opacity-40 disabled:shadow-none"
+          className="press w-10 h-10 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta disabled:opacity-40 disabled:shadow-none"
         >
           <PaperPlaneRight size={17} weight="bold" />
         </button>

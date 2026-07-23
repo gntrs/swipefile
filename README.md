@@ -1,173 +1,128 @@
-<div align="center">
-
-<img src="public/icons/icon-512.png" alt="Swipefile logo" width="96" />
-
 # Swipefile
 
-**Your competitors already told you what works. They keep paying for it.**
+**An open-source ad intelligence dashboard and lightweight CRM with a Claude AI analysis layer.**
 
-The open-source ad swipe file + competitor intelligence dashboard.
-Self-hosted on your own free-tier Supabase. Your data. $0/month.
+Swipefile is where your team collects winning ads, tracks competitors, and turns raw creative into briefs. Save ads from the Meta Ad Library or your swipe file, mark winners and losers, mine hooks, watch keyword ranks and trends, and let AI tell you why something works. It runs as a static React app on top of a Postgres database, so you own all of your data.
 
-![License: MIT](https://img.shields.io/badge/license-MIT-ffffff?labelColor=0A0A0A)
-![PRs welcome](https://img.shields.io/badge/PRs-welcome-ffffff?labelColor=0A0A0A)
-![Stack](https://img.shields.io/badge/React_18_+_Vite-Supabase-ffffff?labelColor=0A0A0A)
-![Cost](https://img.shields.io/badge/self--hosted-%240%2Fmo-ffffff?labelColor=0A0A0A)
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-black.svg)](CONTRIBUTING.md)
 
-[Quick start](#quick-start) · [How it works](#the-one-insight-this-tool-is-built-on) · [Power-ups](#optional-power-ups) · [Full setup guide](docs/SETUP.md)
+## Features
 
-</div>
+### Library
 
----
+- **Ad library** with media storage, tags, winner/loser verdicts, and a side-by-side compare view
+- **Hook bank** that collects the opening lines of your best creative in one place
+- **Star winners**: top-performing ads get auto-promoted to a star tier
+- **Spotlight**: swipe through just-imported ad batches and verdict them fast
 
-Ad-intelligence SaaS charges $50-100 per seat per month for what is, let's be
-honest, a database with a nice UI. Swipefile is the same damn database with
-the same nice UI, except it's yours and it costs nothing:
+### Intelligence
 
-- **Ad library** - one shared, searchable home for every ad you and your
-  team save. Winner / testing / loser / unsure verdicts, tags, team notes,
-  who-added-what.
-- **Rivals' proven plays** - competitor ads ranked by how long they've been
-  running. Nobody pays to run a losing ad for a month; the long-runners are
-  your niche's battle-tested angles.
-- **Hook bank** - every hook from every saved ad in one filterable list.
-  Filter to proven-only, click to copy, go write.
-- **Your real numbers** - optional: revenue from Stripe (with confetti on
-  every live sale), your ads' spend/CTR/CPC from the Meta API, site funnel
-  from PostHog.
-- **AI analysis** - optional: export the library and ask Claude Code
-  "what do my winners have in common?" over your own data.
-- **Dark, fast, phone-ready** - monochrome UI, installable PWA, bottom
-  tab bar on phones, team chat, goals, creator outreach CRM.
+- **Meta Ad Library importers**: discover and pull ads by brand or page
+- **Foreplay import** with auto-verdicts inferred from ad longevity (human verdicts are never overwritten)
+- **CSV bulk import** for everything else
+- **Competitor tracking** via the Meta Ad Library
+- **SEO and trends intel**: keyword rank tracking per market and domain over time, Google Trends interest, and per-ad EU geo/reach data in the Intel view
 
-<!-- screenshots: add 2-3 dark-mode shots here, e.g.
-<p align="center"><img src="docs/screens/dashboard.png" width="800" /></p>
--->
+### Automation
 
-## The one insight this tool is built on
+- **Radar**: a daily founder/market digest built from X, Google News, Hacker News, and Reddit (plus optional Brave Search) with a configurable watchlist, delivered to Telegram
+- **Telegram assistant**: text "gm" for the daily brief, or ask free-text questions answered by Claude with Radar context (read-only)
+- **AI-generated ad briefs** and editor prompts
+- **Cron-able scripts** for imports, scoring, digests, and alerts (see [Automation](#automation-scripts))
 
-**A brand keeps paying only for what converts.** So competitor ad longevity
-is a free, public proxy for performance data you'll never get access to:
+### Team and Ops
 
-| What you observe | Auto verdict |
-| --- | --- |
-| Competitor ad ran 30+ days | `winner` - a proven play, study it |
-| Still live, under 30 days | `testing` |
-| Killed in under 14 days | `loser` |
-| A human set a verdict by hand | never overwritten by automation |
-
-Feed it saved ads (by hand or via the importers) and the library sorts your
-whole niche into "copy this energy" and "avoid this" for you.
+- **Team chat** with mentions and reactions, plus realtime shared goals (admin-locked)
+- **Availability board** so everyone knows who is on
+- **Creator outreach** with Instagram lead scraping and email enrichment
+- **Ops dashboard**: KPI snapshots, Stripe sales tracking with revenue and failed-payment alerts, a production health monitor, and a morning brief
+- **Sale celebrations**: drop your own celebration clips into `public/memes/` (they are gitignored) and the app plays one on every sale
 
 ## Quick start
 
-Ten minutes, two accounts (GitHub + free [Supabase](https://supabase.com)),
-no server, no bullshit.
-
 ```bash
-git clone https://github.com/gntrs/swipefile
+git clone https://github.com/your-org/swipefile.git
 cd swipefile
 npm install
-cp .env.example .env    # fill in the two Supabase values below
-npm run dev             # -> http://localhost:3100
+cp .env.example .env
 ```
 
-Then in your Supabase project:
+1. Create a Postgres database project with the provider of your choice (any host with auth, storage, row-level security, and realtime works).
+2. Open your database's SQL editor and run **`db-setup.sql`** from the repo root. That single file is the entire schema and it is idempotent.
+3. Create a storage bucket named **`ad-media`**.
+4. Put your project URL and anon key in `.env` (see [Configuration](#configuration)).
+5. Run the app:
 
-1. **SQL Editor**: paste and run `supabase-setup-all.sql` - the whole database
-   in one shot. (The individual `supabase-schema.sql` + numbered migrations
-   are there too if you'd rather run them piece by piece.)
-2. **Storage**: create a bucket named exactly `ad-media`, then run:
-   ```sql
-   create policy "team read ad-media"   on storage.objects for select to authenticated using (bucket_id = 'ad-media');
-   create policy "team write ad-media"  on storage.objects for insert to authenticated with check (bucket_id = 'ad-media');
-   create policy "team delete ad-media" on storage.objects for delete to authenticated using (bucket_id = 'ad-media');
-   ```
-3. **Authentication**: turn "Allow new users to sign up" OFF, add yourself
-   under Users (auto-confirm on).
-4. **Project Settings -> API**: copy the URL + anon key into `.env`.
-
-Log in. Add your first ad. Done.
-
-Never touched Node or Supabase before? The zero-assumptions walkthrough is in
-**[docs/SETUP.md](docs/SETUP.md)** - it starts at "install Node.js".
-
-**Using an AI coding agent?** Open this repo in Claude Code, Cursor, or any
-agent and say *"set this up for me"* - [AGENTS.md](AGENTS.md) tells it exactly
-what to ask you (your brand, your keys, whether you have a server) and what to
-wire. It only enables what you actually have.
-
-## Deploy free
-
-`npm run build` gives you a static `dist/` - host it anywhere. On Vercel or
-Netlify: import your fork, add the two `VITE_SUPABASE_*` env vars (plus
-`VITE_OWN_BRAND`), deploy. Nothing secret ships in the build; row-level
-security does the guarding.
-
-## Optional power-ups
-
-Everything below stays dormant until you add its key to `.env`. Full
-instructions per integration in [docs/SETUP.md](docs/SETUP.md#part-4-optional-integrations).
-
-| Power-up | Needs | What you get |
-| --- | --- | --- |
-| Revenue card | `STRIPE_API_KEY` | lifetime revenue, MRR, confetti per live sale |
-| Own-ads import | `META_ACCESS_TOKEN` + account id | real spend/CTR/CPC per ad, auto-refreshed |
-| Competitor import | `FOREPLAY_API_KEY` | auto-fill the library from a swipe file |
-| Ad Library pulls | Meta Ad Library token | competitor ads straight from the source |
-| Site funnel | `POSTHOG_API_KEY` + project id | visitors -> signup -> paid card |
-| AI analysis | [Claude Code](https://claude.com/claude-code) CLI | "what's working?" answered from your data |
-| Creator finder | `BRAVE_API_KEY` | scout niche creators for outreach |
-| Party mode | your own clips in `public/memes/` | fullscreen meme when a sale lands ([how](public/memes/README.md)) |
-
-Set `VITE_OWN_BRAND` + `OWN_BRAND` to your brand name so the app knows which
-ads are yours and which are the competition's.
-
-## Stack
-
-React 18 + Vite + Tailwind on the front, Supabase (Postgres, Auth, Storage,
-Realtime) behind it. No backend server to run, no Docker to babysit: the
-browser talks to Supabase directly and RLS enforces access.
-
-```
-src/pages/          screens: Dashboard, Library, HookBank, Competitors, ...
-src/components/      Layout, AdCard, RevenueCard, FunnelCard, StatCard, ...
-src/lib/            supabase client, brand + format helpers
-scripts/            optional local admin/import scripts (Node, service key)
-supabase-*.sql      schema + numbered migrations
-docs/SETUP.md       beginner-to-advanced setup guide
+```bash
+npm run dev
 ```
 
-## FAQ
+For the full walkthrough, including per-feature setup, see [docs/SETUP.md](docs/SETUP.md).
 
-**Really free?** For a small team, yes: Supabase free tier + any free static
-host. Optional integrations bill on their own plans.
+## Configuration
 
-**Solo?** A team of one is still a team.
+All configuration lives in `.env`. Client-side variables are prefixed `VITE_`; everything else is read only by the Node scripts and never reaches the browser.
 
-**Mobile app?** It's a PWA - deploy it, open on your phone, Add to Home
-Screen. Standalone window, bottom tab bar, the works.
+### Core (required)
 
-**Why is there no Docker?** There's no server. Static files + Supabase.
+| Variable | Description |
+|---|---|
+| `VITE_DB_URL` | Postgres database project URL |
+| `VITE_DB_ANON_KEY` | Public anon key for the same project |
 
-**Can I rename it / reskin it?** MIT license - it's yours. The whole theme
-lives in `tailwind.config.js`.
+### Per-feature (optional)
 
-## Contributing
+| Variable | Needed for |
+|---|---|
+| `DB_SERVICE_KEY` | Automation scripts (server-side only, never in a frontend deploy) |
+| `META_ACCESS_TOKEN` / `META_ADLIB_TOKEN` | Meta Ad Library import and competitor tracking |
+| `FOREPLAY_API_KEY` | Foreplay swipe-file import |
+| `TG_BOT_TOKEN` / `TG_CHAT_ID` | Radar digests, Telegram assistant, alerts, morning brief |
+| `X_BEARER_TOKEN` | Radar's X posts (reads are day-cached) |
+| `BRAVE_API_KEY` | Optional Brave Search enrichment for Radar |
+| `POSTHOG_API_KEY` / `POSTHOG_PROJECT_ID` | KPI dashboard product analytics |
+| `SEO_OWN_DOMAIN` | Keyword rank tracking for your own domain |
+| `OWN_BRAND` | Marks your own ads apart from competitors |
+| `APP_NAME` | Display name used in the UI and briefs |
+| `REVENUE_TZ` | Timezone for daily revenue buckets (e.g. `Europe/Berlin`) |
+| `HEALTH_*` | Endpoints and thresholds for the health monitor |
 
-Issues and PRs welcome - see [CONTRIBUTING.md](CONTRIBUTING.md).
-If Swipefile saves you a SaaS subscription, a star helps others find it.
+Features stay silently off until their variables are set. The frontend needs only the two `VITE_DB_*` values.
 
-## Take it. Seriously.
+## Automation scripts
 
-MIT means exactly what it sounds like: fork it, rebrand it, reskin it,
-**charge money for it** - people pay $100/mo for less. You don't owe me
-anything, you don't have to ask, and no strings ever get attached. Whatever
-you build on top is your win.
+Everything in `scripts/` runs standalone with Node and is safe to cron. One line each:
 
-And this repo isn't done. I run Swipefile for my own brand every day, so
-whatever I cook for myself gets dropped here too. That's the game we're all
-playing. Star it to catch the next drop. 🧑‍🍳
+| Script | What it does |
+|---|---|
+| `import-meta-ads.mjs` / `import-ad-library.mjs` | Pull ads from the Meta Ad Library by brand or page |
+| `import-foreplay.mjs` | Import your Foreplay swipe file with longevity auto-verdicts |
+| `import-ads-csv.mjs` | Bulk import ads from CSV |
+| `star-winners.mjs` | Promote top performers to the star tier |
+| `rescore-verdicts.mjs` | Refresh auto-verdicts without touching human ones |
+| `scrape-competitor-posts.mjs` | Refresh tracked competitors' ads |
+| `seo-rank-pull.mjs` / `seo-keywords.mjs` | Record keyword ranks per market and domain |
+| `trends-pull.mjs` | Pull Google Trends interest |
+| `sync-geo.mjs` | Sync per-ad EU geo and reach data |
+| `startup-radar.mjs` | Build and send the daily Radar digest to Telegram |
+| `gm-listener.mjs` | Long-running Telegram assistant ("gm" brief + Q&A) |
+| `morning-brief.mjs` | Morning summary to Telegram |
+| `stripe-pull.mjs` | Sync Stripe sales |
+| `revenue-alert.mjs` / `failed-payment-alert.mjs` | Revenue and failed-payment pings |
+| `snapshot-kpis.mjs` / `posthog-pull.mjs` | Feed the KPI dashboard |
+| `health-monitor.mjs` | Probe prod endpoints and alert on failures |
+| `scrape-creators.mjs` / `scrape-emails.mjs` | Instagram lead scraping and email enrichment |
+
+The `.sh` wrappers bundle related scripts for cron. See [RUN-ON-WSL.md](RUN-ON-WSL.md) for scheduling them (including on Windows via WSL).
+
+## Stack and architecture
+
+- **Frontend**: React + Vite + Tailwind. PWA-enabled, dark-mode-first (Inter + Geist Mono, monochrome base with coral/mint/amber accents).
+- **Backend**: a Postgres database providing auth, storage, row-level security, and realtime. The entire schema lives in `db-setup.sql`.
+- **Automation**: standalone Node scripts in `scripts/`, independent of the frontend.
+
+Deploy the frontend to Vercel or any static host. Run the scripts anywhere Node runs.
 
 ## License
 

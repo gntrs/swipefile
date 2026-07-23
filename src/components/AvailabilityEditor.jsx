@@ -10,7 +10,7 @@ const toMin = (t) => {
 };
 
 // Add / edit one availability block. Pure form: it hands values back up and the
-// page talks to Supabase, so all the data logic lives in one place.
+// page talks to the database, so all the data logic lives in one place.
 export default function AvailabilityEditor({ block, defaultDay, defaultStart, statuses, onSave, onDelete, onClose }) {
   const editing = Boolean(block?.id);
   const [day, setDay] = useState(block?.day || defaultDay);
@@ -131,7 +131,7 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
             <button
               type="submit"
               disabled={busy}
-              className="flex-1 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta active:scale-[0.98] transition-transform disabled:opacity-60"
+              className="press flex-1 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
             >
               {busy ? 'Saving...' : editing ? 'Save' : 'Add'}
             </button>

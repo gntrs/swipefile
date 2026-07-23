@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, ArrowSquareOut } from '@phosphor-icons/react';
-import { isOwnBrand } from '@/lib/ads';
+import { isOwnBrand } from '@/lib/brand';
 
 // "What rivals keep paying for." A brand keeps spending on what works, so an ad
 // that has been LIVE for months is a battle-tested play. This ranks the
@@ -32,7 +32,7 @@ export default function ProvenPlays({ ads }) {
   const { rows, max, brands } = useMemo(() => {
     let pool = ads.filter((a) => isRival(a) && days(a) != null && hookOf(a));
     if (scope === 'live') pool = pool.filter((a) => a.metrics?.live);
-    // Dedupe by brand+hook so five copies of the same Smart Tales ad don't fill
+    // Dedupe by brand+hook so five copies of the same competitor ad don't fill
     // the board; keep the longest-running instance of each play.
     const seen = new Map();
     for (const a of pool) {

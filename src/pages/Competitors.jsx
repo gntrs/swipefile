@@ -9,8 +9,8 @@ import {
   PlusCircle,
   TrendUp,
 } from '@phosphor-icons/react';
-import { fetchAll } from '@/lib/supabase';
-import { isOwnBrand } from '@/lib/ads';
+import { fetchAll } from '@/lib/db';
+import { isOwnBrand } from '@/lib/brand';
 import { useTeam } from '@/contexts/TeamContext';
 import AdCard from '@/components/AdCard';
 import StatCard from '@/components/StatCard';
@@ -103,7 +103,7 @@ export default function Competitors() {
         </div>
         <Link
           to="/ads/add"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta active:scale-[0.98] transition-transform"
+          className="press flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta"
         >
           <PlusCircle size={20} weight="bold" /> Add ad
         </Link>
@@ -191,7 +191,7 @@ export default function Competitors() {
                     {b.ads.length === 0 ? (
                       <p className="text-ink-soft text-[13px]">No ads yet, only posts.</p>
                     ) : (
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                         {b.ads.slice(0, 8).map((ad) => (
                           <AdCard key={ad.id} ad={ad} />
                         ))}

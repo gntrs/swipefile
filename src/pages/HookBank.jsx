@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowSquareOut, Check, Copy, MagnifyingGlass, Quotes } from '@phosphor-icons/react';
-import { fetchAll } from '@/lib/supabase';
-import { isOwnBrand } from '@/lib/ads';
+import { fetchAll } from '@/lib/db';
+import { isOwnBrand } from '@/lib/brand';
 
 const WHO = [
   { id: 'all', label: 'All' },

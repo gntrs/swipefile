@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowSquareOut, CaretLeft, Check, LinkSimple, Trash, PaperPlaneRight, Star } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
 import { creativeLink, reachRating } from '@/lib/ads';
 import { compactNum, formatNum, formatMoney } from '@/lib/format';
@@ -30,12 +30,12 @@ export default function AdDetail() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const { data } = await supabase.from('ads').select('*').eq('id', id).single();
+      const { data } = await db.from('ads').select('*').eq('id', id).single();
       if (mounted) {
         setAd(data);
         setLoading(false);
       }
-      const { data: c } = await supabase
+      const { data: c } = await db
         .from('comments')
         .select('*')
         .eq('ad_id', id)
@@ -49,12 +49,12 @@ export default function AdDetail() {
 
   const patch = async (fields) => {
     setAd((a) => ({ ...a, ...fields }));
-    await supabase.from('ads').update(fields).eq('id', id);
+    await db.from('ads').update(fields).eq('id', id);
   };
 
   const remove = async () => {
     if (!confirm('Delete this ad?')) return;
-    await supabase.from('ads').delete().eq('id', id);
+    await db.from('ads').delete().eq('id', id);
     navigate('/ads');
   };
 
@@ -62,7 +62,7 @@ export default function AdDetail() {
     e.preventDefault();
     const body = newComment.trim();
     if (!body) return;
-    const { data } = await supabase
+    const { data } = await db
       .from('comments')
       .insert({ ad_id: id, body, author_email: user.email, author_id: user.id })
       .select()
@@ -247,7 +247,7 @@ export default function AdDetail() {
                 type="submit"
                 disabled={!linkDraft.trim()}
                 aria-label="Save ad link"
-                className="w-9 h-9 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 active:scale-95 disabled:opacity-40"
+                className="press w-9 h-9 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40"
               >
                 <Check size={15} weight="bold" />
               </button>
@@ -310,7 +310,7 @@ export default function AdDetail() {
             placeholder="Add a note for the team..."
             className="flex-1 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
           />
-          <button className="w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center shadow-cta active:scale-95">
+          <button className="press w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center shadow-cta">
             <PaperPlaneRight size={18} weight="fill" />
           </button>
         </form>

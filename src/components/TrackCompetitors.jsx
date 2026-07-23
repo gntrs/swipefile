@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CaretDown, CheckCircle, PlusCircle, Warning } from '@phosphor-icons/react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 
 // Which brands the Ad Library importer auto-tracks (competitors table,
 // migration 15). Adding a brand that already exists updates its row, so
@@ -26,7 +26,7 @@ export default function TrackCompetitors() {
   const [error, setError] = useState(null);
 
   const load = () =>
-    supabase
+    db
       .from('competitors')
       .select('*')
       .order('brand')
@@ -47,7 +47,7 @@ export default function TrackCompetitors() {
     }
     setSaving(true);
     setError(null);
-    const { data: session } = await supabase.auth.getUser();
+    const { data: session } = await db.auth.getUser();
     const patch = {
       brand: name,
       active: true,
@@ -56,7 +56,7 @@ export default function TrackCompetitors() {
     if (pageId) patch.page_id = pageId;
     const ig = handle.trim().replace(/^@/, '').toLowerCase();
     if (ig) patch.ig_handle = ig;
-    const { error: err } = await supabase.from('competitors').upsert(patch, { onConflict: 'brand' });
+    const { error: err } = await db.from('competitors').upsert(patch, { onConflict: 'brand' });
     setSaving(false);
     if (err) {
       setError(err.message);
@@ -69,7 +69,7 @@ export default function TrackCompetitors() {
   }
 
   async function toggle(row) {
-    await supabase.from('competitors').update({ active: !row.active }).eq('id', row.id);
+    await db.from('competitors').update({ active: !row.active }).eq('id', row.id);
     load();
   }
 
@@ -152,7 +152,7 @@ export default function TrackCompetitors() {
               <button
                 type="submit"
                 disabled={saving || !brand.trim()}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-coral text-black text-[13px] font-semibold shadow-cta disabled:opacity-50 active:scale-[0.98] transition-transform"
+                className="press flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-coral text-black text-[13px] font-semibold shadow-cta disabled:opacity-50"
               >
                 <PlusCircle size={16} weight="bold" /> Track brand
               </button>

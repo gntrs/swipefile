@@ -7,7 +7,7 @@
 //         node scripts/bulk-add-outreach.mjs --status sent   # outreach status
 //                                                            # (default 'sent';
 //                                                            # any of sent|followup|replied|deal|dead)
-// Needs in .env: VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY.
+// Needs in .env: VITE_DB_URL, DB_SERVICE_KEY.
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,10 +21,10 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const url = process.env.VITE_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_KEY;
+const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
+const key = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY);
 if (!url || !key) {
-  console.error('Missing VITE_SUPABASE_URL or SUPABASE_SERVICE_KEY in .env');
+  console.error('Missing VITE_DB_URL or DB_SERVICE_KEY in .env');
   process.exit(1);
 }
 const sb = createClient(url, key);
