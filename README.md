@@ -19,21 +19,15 @@ Swipefile is where your team collects winning ads, tracks competitors, and turns
 ### Intelligence
 
 - **Meta Ad Library importers**: discover and pull ads by brand or page
-- **Foreplay import** with auto-verdicts inferred from ad longevity (human verdicts are never overwritten)
+- **Third-party imports** (Foreplay and similar) with auto-verdicts inferred from ad longevity (human verdicts are never overwritten)
 - **CSV bulk import** for everything else
 - **Competitor tracking** via the Meta Ad Library
 - **SEO and trends intel**: keyword rank tracking per market and domain over time, Google Trends interest, and per-ad EU geo/reach data in the Intel view
-
-### Automation
-
-- **Radar**: a daily founder/market digest built from X, Google News, Hacker News, and Reddit (plus optional Brave Search) with a configurable watchlist, delivered to Telegram
-- **Telegram assistant**: text "gm" for the daily brief, or ask free-text questions answered by Claude with Radar context (read-only)
-- **AI-generated ad briefs** and editor prompts
-- **Cron-able scripts** for imports, scoring, digests, and alerts (see [Automation](#automation-scripts))
+- **PostHog analytics**: product and website activity pulled into KPI snapshots and AI briefs
 
 ### Team and Ops
 
-- **Team chat** with mentions and reactions, plus realtime shared goals (admin-locked)
+- **Team chat** with mentions and reactions, plus realtime shared goals
 - **Availability board** so everyone knows who is on
 - **Creator outreach** with Instagram lead scraping and email enrichment
 - **Ops dashboard**: KPI snapshots, Stripe sales tracking with revenue and failed-payment alerts, a production health monitor, and a morning brief
