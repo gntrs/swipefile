@@ -1,3 +1,5 @@
+
+
 # Swipefile
 
 **An open-source ad intelligence dashboard and lightweight CRM with a Claude AI analysis layer.**
@@ -79,6 +81,7 @@ All configuration lives in `.env`. Client-side variables are prefixed `VITE_`; e
 | `SEO_OWN_DOMAIN` | Keyword rank tracking for your own domain |
 | `OWN_BRAND` | Marks your own ads apart from competitors |
 | `APP_NAME` | Display name used in the UI and briefs |
+| `STRIPE_API_KEY` | Stripe sales tracking with revenue and failed-payment alerts |
 | `REVENUE_TZ` | Timezone for daily revenue buckets (e.g. `Europe/Berlin`) |
 | `HEALTH_*` | Endpoints and thresholds for the health monitor |
 
