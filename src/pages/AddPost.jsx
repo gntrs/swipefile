@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CaretLeft, UploadSimple } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
-import { MEDIA_BUCKET, mediaPathFor, validateFile, friendlyStorageError, removeMedia } from '@/lib/saveAd';
+import { MEDIA_BUCKET, mediaPathFor, validateFile, friendlyStorageError, removeMedia, uploadBody } from '@/lib/saveAd';
 
 const PLATFORMS = ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'Other'];
 const TYPES = ['post', 'story', 'reel', 'video', 'other'];
@@ -65,7 +65,7 @@ export default function AddPost() {
       let media_path = null;
       if (file) {
         const path = mediaPathFor(user.id, file);
-        const { error: upErr } = await db.storage.from(MEDIA_BUCKET).upload(path, file);
+        const { error: upErr } = await db.storage.from(MEDIA_BUCKET).upload(path, uploadBody(file));
         if (upErr) throw new Error(friendlyStorageError(upErr, { size: file.size }));
         media_path = path;
       }

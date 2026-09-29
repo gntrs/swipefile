@@ -4,7 +4,7 @@ From an empty folder to your own swipe file, then every optional feature. The ap
 
 ## 1. What you need
 
-- Node.js 20 or newer, npm and Git.
+- Node.js 22 or newer, npm and Git. The scripts (creating your account is the first one) use supabase-js, which stops on Node 20 with "native WebSocket not found".
 - A [Supabase](https://supabase.com) project. The free plan is enough to start. You need its project URL, its anon (or publishable) key and, for the scripts, its service role key. All three are under Project Settings, API.
 
 ## 2. Try the demo first

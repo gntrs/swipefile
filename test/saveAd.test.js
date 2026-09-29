@@ -13,6 +13,8 @@ import {
   MAX_UPLOAD_BYTES,
   MEDIA_BUCKET,
   STORAGE_ERRORS,
+  uploadBody,
+  attachMedia,
 } from '../src/lib/saveAd.js';
 
 const MB = 1024 * 1024;
@@ -165,6 +167,26 @@ describe('uploadMedia and removeMedia', () => {
     const { client } = stub({ uploadError: { message: 'Bucket not found' } });
     await expect(uploadMedia(file('a.png', 'image/png'), { user: USER, client })).rejects.toThrow(STORAGE_ERRORS.bucket);
   });
+  it('sends a file with an empty type under the type its name gives', async () => {
+    // The bucket takes only images and video. A browser that hands over a
+    // HEIC or an mp4 with an empty type would upload it as
+    // application/octet-stream, which a real Supabase bucket refuses.
+    const { client, calls } = stub();
+    const heic = new File([new Uint8Array(12)], 'IMG_0001.HEIC', { type: '' });
+    const res = await uploadMedia(heic, { user: USER, client });
+    expect(res.path).toMatch(/\.heic$/);
+    expect(calls.upload[0].body.type).toBe('image/heic');
+    expect(calls.upload[0].body.size).toBe(12);
+  });
+  it('uploadBody leaves typed and unknown files alone', () => {
+    const typed = new File([new Uint8Array(3)], 'a.png', { type: 'image/png' });
+    expect(uploadBody(typed)).toBe(typed);
+    const unknown = new File([new Uint8Array(3)], 'notes', { type: '' });
+    expect(uploadBody(unknown)).toBe(unknown);
+    expect(uploadBody(new File([new Uint8Array(3)], 'clip.mp4', { type: '' })).type).toBe('video/mp4');
+    expect(uploadBody(new File([new Uint8Array(3)], 'clip.m4v', { type: '' })).type).toBe('video/x-m4v');
+    expect(uploadBody(null)).toBe(null);
+  });
   it('removeMedia never throws', async () => {
     const client = { storage: { from: () => ({ remove: async () => { throw new Error('x'); } }) } };
     await expect(removeMedia('p', { client })).resolves.toBeUndefined();
@@ -231,5 +253,91 @@ describe('saveAd', () => {
 
   it('announceSaved is a no-op outside the browser', () => {
     expect(() => announceSaved(['a'])).not.toThrow();
+  });
+});
+
+describe('attachMedia', () => {
+  // A stub whose ads update answers with `update` ({ data, error }) or throws.
+  function attachStub({ uploadError = null, update = { data: [{ id: 'ad-1' }], error: null }, updateThrows = false } = {}) {
+    const { client, calls } = stub({ uploadError });
+    calls.update = [];
+    client.from = (table) => ({
+      update: (values) => ({
+        eq: (col, val) => ({
+          select: async (cols) => {
+            calls.update.push({ table, values, where: [col, val], cols });
+            if (updateThrows) throw new Error('socket hang up');
+            return update;
+          },
+        }),
+      }),
+    });
+    return { client, calls };
+  }
+
+  it('uploads, points the ad at the file and returns the path and format', async () => {
+    const { client, calls } = attachStub();
+    const out = await attachMedia('ad-1', file('clip.mp4', 'video/mp4'), { user: USER, client });
+    expect(out.format).toBe('video');
+    expect(out.path).toMatch(/^user-1\/\d+-[a-z0-9]{8}\.mp4$/);
+    expect(calls.upload).toHaveLength(1);
+    expect(calls.update).toEqual([{ table: 'ads', values: { media_path: out.path, format: 'video' }, where: ['id', 'ad-1'], cols: 'id' }]);
+    expect(calls.remove).toHaveLength(0);
+  });
+
+  it('sends an untyped HEIC as image/heic and marks the ad as an image', async () => {
+    const { client, calls } = attachStub();
+    const heic = new File([new Uint8Array(12)], 'IMG_0001.HEIC', { type: '' });
+    const out = await attachMedia('ad-1', heic, { user: USER, client });
+    expect(calls.upload[0].body.type).toBe('image/heic');
+    expect(out.format).toBe('image');
+    expect(calls.update[0].values.format).toBe('image');
+  });
+
+  it('refuses a missing, empty or wrong file before touching storage or the row', async () => {
+    const { client, calls } = attachStub();
+    await expect(attachMedia('ad-1', null, { user: USER, client })).rejects.toThrow('That file is empty.');
+    await expect(attachMedia('ad-1', file('a.png', 'image/png', 0), { user: USER, client })).rejects.toThrow('That file is empty.');
+    await expect(attachMedia('ad-1', file('notes.txt', 'text/plain'), { user: USER, client })).rejects.toThrow('notes.txt is not an image or a video.');
+    await expect(attachMedia('ad-1', file('big.mp4', 'video/mp4', MAX_UPLOAD_BYTES + 1), { user: USER, client })).rejects.toThrow('The limit is 50 MB');
+    expect(calls.upload).toHaveLength(0);
+    expect(calls.update).toHaveLength(0);
+  });
+
+  it('never touches the row when the upload fails', async () => {
+    const { client, calls } = attachStub({ uploadError: { message: 'Bucket not found' } });
+    await expect(attachMedia('ad-1', file('a.png', 'image/png'), { user: USER, client })).rejects.toThrow(STORAGE_ERRORS.bucket);
+    expect(calls.update).toHaveLength(0);
+    expect(calls.remove).toHaveLength(0);
+  });
+
+  it('removes the upload and says why when the row refuses it', async () => {
+    const { client, calls } = attachStub({ update: { data: null, error: { message: 'permission denied for table ads' } } });
+    await expect(attachMedia('ad-1', file('a.png', 'image/png'), { user: USER, client })).rejects.toThrow(
+      'Could not save the file: permission denied for table ads'
+    );
+    expect(calls.remove).toEqual([{ bucket: MEDIA_BUCKET, paths: [calls.upload[0].path] }]);
+  });
+
+  it('removes the upload when the ad is gone (no row updated)', async () => {
+    const { client, calls } = attachStub({ update: { data: [], error: null } });
+    await expect(attachMedia('ad-1', file('a.png', 'image/png'), { user: USER, client })).rejects.toThrow('that ad is not there any more');
+    expect(calls.remove).toHaveLength(1);
+  });
+
+  it('removes the upload when the update throws', async () => {
+    const { client, calls } = attachStub({ updateThrows: true });
+    await expect(attachMedia('ad-1', file('a.png', 'image/png'), { user: USER, client })).rejects.toThrow('Could not save the file: socket hang up');
+    expect(calls.remove).toHaveLength(1);
+  });
+
+  it('two attaches to the same ad upload two distinct files', async () => {
+    const { client, calls } = attachStub();
+    const [a, b] = await Promise.all([
+      attachMedia('ad-1', file('a.png', 'image/png'), { user: USER, client }),
+      attachMedia('ad-1', file('a.png', 'image/png'), { user: USER, client }),
+    ]);
+    expect(a.path).not.toBe(b.path);
+    expect(calls.update).toHaveLength(2);
   });
 });

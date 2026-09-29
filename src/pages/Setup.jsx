@@ -96,9 +96,16 @@ export default function Setup() {
               {checks.map((c, i) => (
                 <CheckRow key={`${c.id}-${i}`} check={c} />
               ))}
-              {/* Optional features report their own rows after the core checks. */}
-              <AiSetupRow />
-              <CaptureSetupRow />
+              {/* Optional features report their own rows after the core checks,
+                  once nothing blocks. Before that they cannot be used: with a
+                  half filled .env the AI row would claim demo mode and Set up
+                  capture would only lead back to this page. */}
+              {!blocking && (
+                <>
+                  <AiSetupRow />
+                  <CaptureSetupRow />
+                </>
+              )}
             </ul>
           )}
         </div>

@@ -52,7 +52,10 @@ export async function runDoctor({ config, db, fetch: fetchImpl = globalThis.fetc
     const e = health?.error;
     if (e && (e.code === 'PGRST202' || e.code === '42883' || health?.status === 404)) {
       try {
-        adsProbe = await withTimeout(db.from('ads').select('id', { head: true, count: 'exact' }).limit(1));
+        // A GET on purpose. supabase-js turns the empty 404 a HEAD request
+        // gets for a missing table into "204 No Content" with no error, which
+        // would make a database with no tables look like an old setup.
+        adsProbe = await withTimeout(db.from('ads').select('id').limit(1));
       } catch (error) {
         adsProbe = { error: { message: error?.message || String(error) } };
       }

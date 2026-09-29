@@ -154,6 +154,10 @@ export default function ImportPage() {
   const onDrop = (e) => {
     e.preventDefault();
     setOver(false);
+    // The pick button is disabled while a file is read or imported; a drop is
+    // too. Otherwise a second file would replace the plan mid import and the
+    // first import's result would show under the second file.
+    if (busy) return;
     const files = [...(e.dataTransfer?.files || [])];
     if (files.length > 1) {
       reset();

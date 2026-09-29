@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { useMediaUrl } from '@/lib/media';
-import { MEDIA_BUCKET, avatarPathFor, validateFile, friendlyStorageError, removeMedia } from '@/lib/saveAd';
+import { MEDIA_BUCKET, avatarPathFor, validateFile, friendlyStorageError, removeMedia, uploadBody } from '@/lib/saveAd';
 import { triggerCelebration, celebrationEnabled, setCelebrationEnabled } from '@/lib/celebration';
 import { isOn } from '@/lib/modules';
 
@@ -65,7 +65,7 @@ export default function Profile() {
       // Unique name each upload (no storage UPDATE policy needed), in the one
       // avatars/<user id>-... shape the storage policy allows.
       const path = avatarPathFor(user.id, file);
-      const { error: upErr } = await db.storage.from(MEDIA_BUCKET).upload(path, file);
+      const { error: upErr } = await db.storage.from(MEDIA_BUCKET).upload(path, uploadBody(file));
       if (upErr) throw new Error(friendlyStorageError(upErr, { size: file.size }));
       const { error } = await db.from('team').update({ avatar_path: path }).eq('id', user.id);
       if (error) {

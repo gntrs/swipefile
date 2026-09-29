@@ -16,6 +16,7 @@
 - Briefs can be written, edited and deleted in the app. A brief made from a selection links back to its source ads and hooks. The overview's latest brief shows its source count and opens that brief.
 - `scripts/add-brief.mjs --ads id1,id2` links a brief to its source ads.
 - Capture from the Meta Ad Library. A bookmarklet and a small Chrome extension (also Edge and Brave) read the ad you click, in your own browser, and open your swipefile's new capture page with it filled in: brand, text, headline, call to action, landing page, running dates and platforms. Nothing saves until you press Save. An ad you already have shows `Already in your swipe file` and can update its running dates without touching its verdict. Set up at `/capture/setup`; details in docs/CAPTURE.md.
+- An ad saved without its image or video (a capture before fetch-media is deployed, a pasted link, an import) takes the file on its ad page: Add the image or video.
 - `fetch-media` edge function (optional). Copies a captured ad's image or video from Meta's CDN into your `ad-media` bucket as the signed in user. Only https, only the hosts in `FETCH_MEDIA_HOSTS`, at most 3 checked redirects, up to `FETCH_MEDIA_MAX_MB`. `/setup` shows whether it is deployed.
 - `scripts/track-longevity.mjs` (opt in, off by default) re-checks how long competitor ads keep running. It refuses to run without `--i-accept-the-terms` or `LONGEVITY_OPT_IN=1`, because loading Meta pages automatically is restricted by Meta's terms, and you run it at your own risk. `--fixture` parses a saved page offline.
 

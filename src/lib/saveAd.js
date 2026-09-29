@@ -21,10 +21,35 @@ const MIME_EXT = {
 };
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif', 'avif'];
 const VIDEO_EXTS = ['mp4', 'mov', 'webm', 'm4v'];
+const EXT_MIME = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  heic: 'image/heic',
+  heif: 'image/heif',
+  avif: 'image/avif',
+  mp4: 'video/mp4',
+  mov: 'video/quicktime',
+  webm: 'video/webm',
+  m4v: 'video/x-m4v',
+};
 
 function nameExt(file) {
   const m = /\.([a-z0-9]{1,5})$/i.exec(String(file?.name || ''));
   return m ? m[1].toLowerCase() : null;
+}
+
+// What to hand to storage.upload. A browser can give a file an empty type (a
+// HEIC photo on some systems, a video with an extension it does not know).
+// That upload goes out as application/octet-stream and the bucket, which takes
+// only images and video, refuses it. When the name says what the file is, the
+// same bytes go up with that type instead.
+export function uploadBody(file) {
+  if (!file || file.type || typeof file.slice !== 'function') return file;
+  const mime = EXT_MIME[nameExt(file)];
+  return mime ? file.slice(0, file.size, mime) : file;
 }
 
 // File extension for the stored object: from the name when it has a sensible
@@ -99,9 +124,10 @@ export async function uploadMedia(file, { user, client = db } = {}) {
   const invalid = validateFile(file);
   if (invalid) throw new Error(invalid.message);
   const path = mediaPathFor(user.id, file);
+  const body = uploadBody(file);
   let result;
   try {
-    result = await client.storage.from(MEDIA_BUCKET).upload(path, file, { contentType: file.type || undefined });
+    result = await client.storage.from(MEDIA_BUCKET).upload(path, body, { contentType: body.type || undefined });
   } catch (err) {
     throw new Error(friendlyStorageError(err, { size: file.size }));
   }
@@ -116,6 +142,27 @@ export async function removeMedia(path, { client = db } = {}) {
   } catch {
     /* best effort: an orphaned file is better than a crash */
   }
+}
+
+// Gives an ad saved without a creative its file (a capture before fetch-media
+// is deployed, a pasted link, an import): the upload first, then the row takes
+// its path. When the row does not (an error, or no such ad any more), the
+// upload is removed again. -> { path, format }; throws a sentence fit to show.
+export async function attachMedia(adId, file, { user, client = db } = {}) {
+  const upload = await uploadMedia(file, { user, client });
+  let result;
+  try {
+    result = await client.from('ads').update({ media_path: upload.path, format: upload.format }).eq('id', adId).select('id');
+  } catch (err) {
+    result = { data: null, error: err };
+  }
+  if (result?.error || !result?.data?.length) {
+    await removeMedia(upload.path, { client });
+    throw new Error(
+      result?.error ? `Could not save the file: ${result.error.message || result.error}` : 'Could not save the file: that ad is not there any more.'
+    );
+  }
+  return upload;
 }
 
 export function announceSaved(ids) {

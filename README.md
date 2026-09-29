@@ -22,7 +22,7 @@ Open the URL it prints. With no `.env` the app runs in demo mode: a library of m
 2. Open the SQL editor, paste all of `db-setup.sql` and run it. It creates the tables, the row level security rules and a private `ad-media` storage bucket for your images and videos. It is safe to run again, and running it again is how you upgrade.
 3. In Supabase go to Authentication, Sign In / Providers, and turn off **Allow new users to sign up**. Any signed in account can read and change the whole swipe file, so only the accounts you create should exist.
 4. Copy `.env.example` to `.env` and set `VITE_DB_URL` and `VITE_DB_ANON_KEY` (Project Settings, API). Add `DB_SERVICE_KEY` (the service role key) for the scripts.
-5. Create your account:
+5. Create your account (the scripts need Node.js 22 or newer):
 
    ```bash
    node scripts/create-users.mjs --email you@example.com --password 'at least 8 characters' --role admin

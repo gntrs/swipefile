@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowSquareOut, CaretLeft, Check, LinkSimple, Trash, PaperPlaneRight, Star } from '@phosphor-icons/react';
+import { ArrowSquareOut, CaretLeft, Check, LinkSimple, Trash, PaperPlaneRight, Star, UploadSimple } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
 import { creativeLink, reachRating, humanVerdictPatch, VERDICTS, STATUSES } from '@/lib/ads';
-import { removeMedia } from '@/lib/saveAd';
+import { removeMedia, attachMedia } from '@/lib/saveAd';
 import { compactNum, formatNum, formatMoney } from '@/lib/format';
 import Pill from '@/components/Pill';
 import { Skeleton } from '@/components/Skeleton';
@@ -32,6 +32,10 @@ export default function AdDetail() {
   const [actionError, setActionError] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef(null);
+  const currentId = useRef(id);
+  currentId.current = id;
   const src = useMediaUrl(ad?.media_path);
   // Back to the list this ad was opened from, with its filters and page.
   const backToList = () => navigate(`/ads${readListContext()?.search || ''}`);
@@ -45,6 +49,7 @@ export default function AdDetail() {
     setComments([]);
     setImgBroken(false);
     setActionError('');
+    setUploading(false);
     (async () => {
       const { data } = await db.from('ads').select('*').eq('id', id).single();
       if (mounted) {
@@ -90,6 +95,24 @@ export default function AdDetail() {
     }
     if (ad?.media_path) await removeMedia(ad.media_path);
     backToList();
+  };
+
+  // The creative for an ad saved without one (see attachMedia). J or K may
+  // move on while it uploads: only the ad it was for changes, and its error
+  // is not shown on another ad.
+  const addCreative = async (file) => {
+    if (!file || uploading) return;
+    const adId = id;
+    setActionError('');
+    setUploading(true);
+    try {
+      const upload = await attachMedia(adId, file, { user });
+      setAd((a) => (a && a.id === adId ? { ...a, media_path: upload.path, format: upload.format } : a));
+    } catch (err) {
+      if (currentId.current === adId) setActionError(err.message || 'Upload failed.');
+    } finally {
+      if (currentId.current === adId) setUploading(false);
+    }
   };
 
   const addComment = async (e) => {
@@ -223,6 +246,29 @@ export default function AdDetail() {
               </div>
             )}
           </div>
+          {!ad.media_path && (
+            <div className="p-3 border-t border-line">
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                disabled={uploading}
+                className="press w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold text-ink transition-colors disabled:opacity-60"
+              >
+                <UploadSimple size={16} weight="bold" aria-hidden="true" />
+                {uploading ? 'Uploading...' : 'Add the image or video'}
+              </button>
+              <input
+                ref={fileInput}
+                type="file"
+                accept="image/*,video/*"
+                onChange={(e) => {
+                  addCreative(e.target.files?.[0]);
+                  e.target.value = '';
+                }}
+                className="hidden"
+              />
+            </div>
+          )}
         </div>
 
         {/* Details */}

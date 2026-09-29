@@ -48,7 +48,10 @@ describe('runDoctor', () => {
       adsProbe: { error: { code: 'PGRST205', message: 'Could not find the table public.ads' } },
     });
     const r = await runDoctor({ config, db, fetch });
-    expect(probe).toHaveBeenCalledWith('id', { head: true, count: 'exact' });
+    // A plain GET: supabase-js reports a HEAD request on a missing table as a
+    // 204 with no error (measured on a local Supabase stack), so a HEAD probe
+    // would never see PGRST205.
+    expect(probe).toHaveBeenCalledWith('id');
     expect(r.status).toBe('blocking');
     expect(r.checks.find((c) => c.id === 'schema').title).toBe('The database has no swipefile tables');
   });
