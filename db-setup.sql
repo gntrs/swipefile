@@ -6,9 +6,10 @@
 -- create or replace function, drop-then-create policies and triggers, guarded
 -- publication adds), so running it twice on the same database succeeds.
 --
--- After running it, create a storage bucket named `ad-media` in your database
--- dashboard (set it to Private; the app reads media through short-lived signed
--- URLs, never public URLs).
+-- It also creates the private `ad-media` storage bucket and its access rules
+-- (the app reads media through short lived signed URLs, never public URLs).
+-- Re-running this file is how you upgrade: it adds whatever a newer version
+-- needs and leaves your data alone.
 --
 -- Access model: internal team tool. Any signed-in team member can read/write
 -- everything, with two exceptions enforced below: goals (admin-only
@@ -60,6 +61,12 @@ create policy team_update_own on public.team
 -- their own row), but not their role.
 revoke update on public.team from authenticated;
 grant update (id, email, nickname, avatar_path) on public.team to authenticated;
+
+-- Same for INSERT: a member creating their own row may not pick a role.
+-- Without this, anyone signed in could insert themselves as admin before
+-- their first profile row existed.
+revoke insert on public.team from authenticated;
+grant insert (id, email, nickname, avatar_path) on public.team to authenticated;
 
 -- Who is the admin? Checked against the team table (role is set only via the
 -- dashboard / service role, never from the app). Used by the goals policies
@@ -133,6 +140,60 @@ comment on column public.ads.geo_status is 'eu | none | unknown - see the ads se
 comment on column public.ads.countries is 'ISO-3166-1 alpha-2 codes the ad is known to have run in (EU/UK only - Meta exposes no others)';
 comment on column public.ads.eu_reach is 'eu_total_reach from the Ad Library, null unless geo_status = eu';
 comment on column public.ads.geo_synced_at is 'last successful Ad Library geo lookup, null = never resolved';
+
+
+-- ============================ storage ===============================
+-- Creative files (ad images and videos) and profile photos live in one
+-- PRIVATE bucket, `ad-media`. Nothing in it is public: the app shows files
+-- through signed URLs that expire.
+--   * 50 MB per file (52428800 bytes), the same limit the app checks before
+--     uploading, and only images and video.
+--   * Every signed in member can read everything in the bucket (it is a
+--     shared swipe file).
+--   * A member may upload only into their own folder `<user id>/...` or their
+--     own avatar `avatars/<user id>-...`, and delete only their own files.
+--   * There is no update policy: every upload gets a unique name, so a file
+--     is never overwritten.
+--   * Re-running this file forces the bucket back to private.
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('ad-media', 'ad-media', false, 52428800, array['image/*', 'video/*'])
+on conflict (id) do update set public = false;
+
+drop policy if exists ad_media_read on storage.objects;
+create policy ad_media_read on storage.objects
+  for select to authenticated
+  using (bucket_id = 'ad-media');
+
+drop policy if exists ad_media_insert_own on storage.objects;
+create policy ad_media_insert_own on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'ad-media'
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or (
+        (storage.foldername(name))[1] = 'avatars'
+        and array_length(storage.foldername(name), 1) = 1
+        and starts_with(split_part(name, '/', 2), auth.uid()::text || '-')
+      )
+    )
+  );
+
+drop policy if exists ad_media_delete_own on storage.objects;
+create policy ad_media_delete_own on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'ad-media'
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or (
+        (storage.foldername(name))[1] = 'avatars'
+        and array_length(storage.foldername(name), 1) = 1
+        and starts_with(split_part(name, '/', 2), auth.uid()::text || '-')
+      )
+    )
+  );
 
 
 -- ============================ posts =================================
@@ -624,6 +685,27 @@ comment on column public.trends_interest.value is '0-100, RELATIVE to the peak o
 comment on column public.trends_interest.has_data is 'false = Google reported no data for the bucket (it renders as 0 but is not a measured 0)';
 comment on column public.trends_interest.is_partial is 'true = Google marked the point incomplete; it will change on the next pull';
 comment on column public.trends_interest.scale_group is 'terms fetched in one comparison request share a normalisation basis; cross-group value comparison is meaningless';
+
+
+-- =========================== health ================================
+-- Read by the app's setup check (/setup): which version of this file ran, and
+-- whether the storage bucket exists and is private. Returns no user data, so
+-- it is callable before sign in. Bump schema_version together with
+-- EXPECTED_SCHEMA_VERSION in src/lib/setup/checks.js.
+
+create or replace function public.swipefile_health()
+returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select jsonb_build_object(
+    'schema_version', 2,
+    'bucket_exists', exists (select 1 from storage.buckets where id = 'ad-media'),
+    'bucket_public', coalesce((select b.public from storage.buckets b where b.id = 'ad-media'), false)
+  );
+$$;
+revoke all on function public.swipefile_health() from public;
+grant execute on function public.swipefile_health() to anon, authenticated;
+comment on function public.swipefile_health() is 'Read by the app setup check. Returns no user data.';
 
 
 -- =========================== realtime ===============================

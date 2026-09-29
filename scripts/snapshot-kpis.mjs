@@ -44,14 +44,19 @@ const daysArg = process.argv.flatMap((a, i) => (a === '--days' ? [process.argv[i
 const daysLimit = daysArg ? parseInt(daysArg, 10) : null;
 
 // The funnel stages we care about, top to bottom. Stored by their raw event
-// name so the frontend can relabel/reorder without a data migration.
+// name so the frontend can relabel/reorder without a data migration. Set
+// FUNNEL_EVENTS in .env (comma list of PostHog event names) to match your
+// product; the app's Site funnel card reads the same names from
+// VITE_FUNNEL_STAGES.
+const DEFAULT_FUNNEL_EVENTS =
+  'landing_cta_clicked,signup_started,signup_completed,user_registered,payment_initiated,payment_completed';
 const FUNNEL_EVENTS = [
-  'landing_cta_clicked',
-  'fb_onb_started',
-  'fb_onb_completed',
-  'user_registered',
-  'payment_initiated',
-  'payment_completed',
+  ...new Set(
+    (process.env.FUNNEL_EVENTS || DEFAULT_FUNNEL_EVENTS)
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean)
+  ),
 ];
 
 // day -> { traffic:{pageviews,visitors}, funnel:{event:total} }
@@ -92,8 +97,11 @@ if (error) {
 }
 
 const last = byDay.get(days[days.length - 1]);
+const FIRST_STAGE = FUNNEL_EVENTS[0];
+const LAST_STAGE = FUNNEL_EVENTS[FUNNEL_EVENTS.length - 1];
 console.log(
   `Snapshotted ${rows.length} day(s) ${days[0]} -> ${days[days.length - 1]}. ` +
     `Latest: ${last.traffic.visitors} visitors, ` +
-    `${last.funnel.fb_onb_started || 0} onb started, ${last.funnel.payment_completed || 0} paid.`
+    `${last.funnel[FIRST_STAGE] || 0} at the first stage (${FIRST_STAGE}), ` +
+    `${last.funnel[LAST_STAGE] || 0} at the last (${LAST_STAGE}).`
 );

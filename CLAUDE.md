@@ -1,45 +1,60 @@
 # CLAUDE.md
 
-Guidance for AI coding agents working in this repository (Swipefile, an open-source ad intelligence dashboard and lightweight CRM).
+Guidance for coding agents working in this repository (Swipefile, an open-source ad swipe file).
 
 ## What this is
 
-A static React app on top of a Postgres database that provides auth, storage, row-level security, and realtime, plus standalone Node automation scripts. There is no custom server. Claude powers ad analysis, briefs, and the Telegram assistant.
+A static React app on a Supabase project (Postgres, auth, storage, row level security, realtime), plus standalone Node scripts. There is no custom server. The product talks to Claude through the Claude CLI in some scripts (`scripts/ads-cron.sh`, the Telegram scripts).
 
 ## Project structure
 
 ```
 src/
-  pages/       Route-level views (Library, Compare, Intel, Competitors, Outreach, ...)
-  components/  Shared UI (AdCard, TeamChat, Goals, Sparkline, ...)
-scripts/       Standalone Node automation (.mjs) and cron wrappers (.sh)
-docs/          Setup guide
-db-setup.sql   The entire database schema, one idempotent file
-public/        Static assets, PWA manifest, memes/ (gitignored user clips)
-.env.example   Every supported variable with comments
+  pages/        Route level views (Library, Compare, Intel, Competitors, Setup, ...)
+  components/   Shared UI (AdCard, TeamChat, Goals, DemoBanner, SetupBanner, ...)
+  lib/          db.js (client and demo switch), dbConfig.js, ads.js (verdict rules),
+                saveAd.js (uploads), demo/ (in memory demo client and sample data),
+                setup/ (the setup check)
+scripts/        Standalone Node automation (.mjs) and cron wrappers (.sh)
+test/           vitest unit tests; test/sql/ holds the SQL tests and the Supabase shim
+docs/           Setup guide
+db-setup.sql    The entire database schema, one idempotent file
+public/         Static assets, manifest, memes/ (gitignored user clips)
+.env.example    Every supported variable with comments
 ```
 
 ## Running
 
 ```bash
-npm install
-cp .env.example .env   # set VITE_DB_URL and VITE_DB_ANON_KEY
-npm run dev            # local dev server
+npm ci
+npm run dev            # no .env: demo mode on sample ads, nothing saved
 npm run build          # production build to dist/
 ```
 
-Database setup: run `db-setup.sql` in your database provider's SQL editor and create a storage bucket named `ad-media`.
+For a real project: run `db-setup.sql` in the Supabase SQL editor (it also creates the private `ad-media` bucket and its storage rules; there is no manual bucket step), set `VITE_DB_URL` and `VITE_DB_ANON_KEY` in `.env`, create an account with `node scripts/create-users.mjs --email ... --password ... --role admin`. `/setup` shows what is still missing.
 
-## Conventions
+## Demo mode
 
-- **Env vars**: anything the browser needs must be prefixed `VITE_`. Everything else (service keys, API tokens) is script-only and must never be imported by frontend code or added to a static-host deploy.
-- **Never commit `.env`** or any secret. `DB_SERVICE_KEY` bypasses row-level security; it stays local to the machine running scripts.
-- **Styling**: Tailwind only, using the design tokens in `tailwind.config.js` (monochrome base with coral, mint, and amber accents). Dark-mode-first. Fonts are Inter and Geist Mono.
-- **Mobile-first**: every view must work on a phone; check `MobileNav` when adding routes.
-- **Schema changes** go into `db-setup.sql` and must keep it idempotent (`create table if not exists`, `on conflict do nothing`, guarded `alter`s) so users can re-run the whole file safely.
-- **Verdict rule**: importers and scoring scripts may set auto-verdicts, but must never overwrite a verdict set by a human.
-- **Scripts** are self-contained `.mjs` files that read config from `.env`. A missing optional variable should make the feature no-op, not crash.
+With neither `VITE_DB_URL` nor `VITE_DB_ANON_KEY` set (or `VITE_DEMO=1`), `src/lib/db.js` exports an in memory client (`src/lib/demo/`) that answers the same supabase-js calls the app makes. A reload resets it. A half filled or wrong `.env` is "misconfigured": the app stays on `/setup`. When you add a query shape the demo client does not support, it returns a `DEMO_UNSUPPORTED` error and warns once; extend `src/lib/demo/query.js` and its test.
 
 ## Testing
 
-There is no test suite. Verify changes with `npm run build` (must pass clean) and by exercising the affected view in `npm run dev`. For scripts, run them once in the foreground with `--dry-run` where supported.
+```bash
+npm test            # vitest, everything in test/*.test.js
+npm run test:sql    # local Postgres only: shim, db-setup.sql twice, test/sql/*.test.sql
+npm run build
+```
+
+`npm run test:sql` reads `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD` and refuses any host that is not localhost. CI runs all three on pull requests. New behaviour gets a test; a schema change gets a SQL test.
+
+## Conventions
+
+- **Env vars**: anything the browser needs is prefixed `VITE_`. Service keys and API tokens are script only and never imported by frontend code or set on a static host.
+- **Never commit `.env`** or any secret. `DB_SERVICE_KEY` bypasses row level security.
+- **Styling**: Tailwind only, using the tokens in `tailwind.config.js`. Dark only. Fonts are Inter and Geist Mono.
+- **Mobile first**: every view works from 320 px wide and every control is at least 44 by 44 px. `scripts/responsive-probe.js` measures it; its header says how to run it.
+- **Schema changes** go into `db-setup.sql` and keep it idempotent (`if not exists`, `create or replace`, `drop policy if exists` then `create policy`, guarded `alter`s, `on conflict`), so anyone can re-run the whole file.
+- **Verdicts**: a person's verdict is written only through `humanVerdictPatch` in `src/lib/ads.js`. Importers use `nextImportVerdict`, scoring scripts use `isAutoVerdict`. Nothing overwrites a human verdict.
+- **Uploads** go through `src/lib/saveAd.js` (validation, unique paths, friendly storage errors).
+- **Scripts** are self contained `.mjs` files that read `.env`. A missing optional variable makes the feature stop with a hint, not crash.
+- **Dashes**: no em dash or en dash characters anywhere (code, comments, docs, UI text). Use a comma, colon or full stop. `test/no-dashes.test.js` fails on them.

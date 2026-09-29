@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowSquareOut, CaretLeft, Check, LinkSimple, Trash, PaperPlaneRight, Star } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
-import { creativeLink, reachRating } from '@/lib/ads';
+import { creativeLink, reachRating, humanVerdictPatch, VERDICTS, STATUSES } from '@/lib/ads';
+import { removeMedia } from '@/lib/saveAd';
 import { compactNum, formatNum, formatMoney } from '@/lib/format';
 import Pill from '@/components/Pill';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,8 +12,6 @@ import { useTeam } from '@/contexts/TeamContext';
 
 const VERDICT_TONE = { winner: 'good', loser: 'bad', testing: 'warn', unsure: 'neutral' };
 
-const VERDICTS = ['unsure', 'winner', 'testing', 'loser'];
-const STATUSES = ['running', 'dead', 'saved'];
 
 export default function AdDetail() {
   const { id } = useParams();
@@ -25,6 +24,9 @@ export default function AdDetail() {
   const [newComment, setNewComment] = useState('');
   const [linkDraft, setLinkDraft] = useState('');
   const [imgBroken, setImgBroken] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [sending, setSending] = useState(false);
   const src = useMediaUrl(ad?.media_path);
 
   useEffect(() => {
@@ -47,32 +49,57 @@ export default function AdDetail() {
     };
   }, [id]);
 
+  // Optimistic: the change shows at once and is rolled back if the save fails.
   const patch = async (fields) => {
+    const before = ad;
+    setActionError('');
     setAd((a) => ({ ...a, ...fields }));
-    await db.from('ads').update(fields).eq('id', id);
+    const { error } = await db.from('ads').update(fields).eq('id', id);
+    if (error) {
+      setAd(before);
+      setActionError(`Could not save: ${error.message}`);
+    }
   };
+
+  const setVerdict = (v) => patch(humanVerdictPatch(ad, v));
 
   const remove = async () => {
     if (!confirm('Delete this ad?')) return;
-    await db.from('ads').delete().eq('id', id);
+    setActionError('');
+    setDeleting(true);
+    const { error } = await db.from('ads').delete().eq('id', id);
+    if (error) {
+      setDeleting(false);
+      setActionError(`Could not delete: ${error.message}`);
+      return;
+    }
+    if (ad?.media_path) await removeMedia(ad.media_path);
     navigate('/ads');
   };
 
   const addComment = async (e) => {
     e.preventDefault();
     const body = newComment.trim();
-    if (!body) return;
-    const { data } = await db
+    if (!body || sending) return;
+    setActionError('');
+    setSending(true);
+    const { data, error } = await db
       .from('comments')
       .insert({ ad_id: id, body, author_email: user.email, author_id: user.id })
       .select()
       .single();
-    if (data) setComments((c) => [...c, data]);
+    setSending(false);
+    if (error || !data) {
+      // Keep the draft so nothing typed is lost.
+      setActionError(`Could not add the note: ${error?.message || 'no answer from the database'}`);
+      return;
+    }
+    setComments((c) => [...c, data]);
     setNewComment('');
   };
 
   if (loading) return <div className="p-8 text-ink-soft">Loading...</div>;
-  if (!ad) return <div className="p-8 text-ink-soft">Ad not found.</div>;
+  if (!ad) return <div data-page="ad-detail" className="p-8 text-ink-soft">Ad not found.</div>;
 
   const m = ad.metrics || {};
   // When we have no stored creative, fall back to any thumbnail the importer
@@ -92,29 +119,40 @@ export default function AdDetail() {
   ].filter(Boolean);
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[1000px] mx-auto">
+    <div data-page="ad-detail" className="px-5 sm:px-8 py-6 max-w-[1000px] mx-auto">
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => navigate('/ads')}
-          className="flex items-center gap-1 text-ink-soft text-[14px] font-medium"
+          className="press flex items-center gap-1 min-h-[44px] text-ink-soft text-[14px] font-medium"
         >
           <CaretLeft size={16} weight="bold" /> Library
         </button>
         <div className="flex items-center gap-2">
           <button
             onClick={() => patch({ metrics: { ...(ad.metrics || {}), starred: !ad.metrics?.starred } })}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[14px] font-medium transition-colors ${
+            aria-pressed={Boolean(ad.metrics?.starred)}
+            className={`press flex items-center gap-1.5 min-h-[44px] px-3 py-1.5 rounded-xl text-[14px] font-medium transition-colors ${
               ad.metrics?.starred ? 'bg-amber-400 text-white' : 'border border-line text-ink-soft hover:bg-card'
             }`}
           >
             <Star size={16} weight={ad.metrics?.starred ? 'fill' : 'bold'} />
             {ad.metrics?.starred ? 'Starred' : 'Star'}
           </button>
-          <button onClick={remove} className="flex items-center gap-1 text-red-500 text-[14px] font-medium">
-            <Trash size={16} weight="bold" /> Delete
+          <button
+            onClick={remove}
+            disabled={deleting}
+            className="press flex items-center gap-1 min-h-[44px] px-2 text-red-500 text-[14px] font-medium disabled:opacity-60"
+          >
+            <Trash size={16} weight="bold" /> {deleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </div>
+
+      {actionError && (
+        <p role="alert" className="mb-4 text-[14px] text-red-500">
+          {actionError}
+        </p>
+      )}
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Media */}
@@ -196,7 +234,7 @@ export default function AdDetail() {
           )}
 
           <div className="flex gap-3">
-            <Select label="Verdict" value={ad.verdict} options={VERDICTS} onChange={(v) => patch({ verdict: v })} />
+            <Select label="Verdict" value={ad.verdict} options={VERDICTS} onChange={setVerdict} />
             <Select label="Status" value={ad.status} options={STATUSES} onChange={(v) => patch({ status: v })} />
           </div>
 
@@ -222,7 +260,7 @@ export default function AdDetail() {
             <Info
               label="Ad link"
               value={
-                <a href={ad.metrics.source_url} target="_blank" rel="noreferrer" className="text-coral-dark underline break-all inline-flex items-center gap-1">
+                <a href={ad.metrics.source_url} target="_blank" rel="noreferrer" className="text-coral-dark underline break-all inline-flex items-center gap-1 min-h-[44px]">
                   {ad.metrics.source_url} <ArrowSquareOut size={14} className="flex-shrink-0" />
                 </a>
               }
@@ -241,13 +279,13 @@ export default function AdDetail() {
                 value={linkDraft}
                 onChange={(e) => setLinkDraft(e.target.value)}
                 placeholder="Paste the ad link (Ad Library, post url...)"
-                className="flex-1 min-w-0 py-2 px-3 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[16px] sm:text-[13px]"
+                className="flex-1 min-w-0 min-h-[44px] py-2 px-3 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[16px] sm:text-[13px]"
               />
               <button
                 type="submit"
                 disabled={!linkDraft.trim()}
                 aria-label="Save ad link"
-                className="press w-9 h-9 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40"
+                className="press w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40"
               >
                 <Check size={15} weight="bold" />
               </button>
@@ -257,7 +295,7 @@ export default function AdDetail() {
             <Info
               label="Ad Library"
               value={
-                <a href={ad.metrics.source_url} target="_blank" rel="noreferrer" className="text-coral-dark underline break-all inline-flex items-center gap-1">
+                <a href={ad.metrics.source_url} target="_blank" rel="noreferrer" className="text-coral-dark underline break-all inline-flex items-center gap-1 min-h-[44px]">
                   See the creative <ArrowSquareOut size={14} className="flex-shrink-0" />
                 </a>
               }
@@ -266,7 +304,7 @@ export default function AdDetail() {
             <Info
               label="Ad Library"
               value={
-                <a href={creativeLink(ad)} target="_blank" rel="noreferrer" className="text-coral-dark underline break-all inline-flex items-center gap-1">
+                <a href={creativeLink(ad)} target="_blank" rel="noreferrer" className="text-coral-dark underline break-all inline-flex items-center gap-1 min-h-[44px]">
                   Search this brand <ArrowSquareOut size={14} className="flex-shrink-0" />
                 </a>
               }
@@ -279,7 +317,7 @@ export default function AdDetail() {
           )}
           {ad.metrics?.transcription && <Info label="Transcript" value={ad.metrics.transcription} />}
           {ad.landing_url && (
-            <Info label="Landing" value={<a href={ad.landing_url} target="_blank" rel="noreferrer" className="text-coral-dark underline break-all">{ad.landing_url}</a>} />
+            <Info label="Landing" value={<a href={ad.landing_url} target="_blank" rel="noreferrer" className="text-coral-dark underline break-all inline-flex items-center min-h-[44px]">{ad.landing_url}</a>} />
           )}
           {Array.isArray(ad.tags) && ad.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -308,9 +346,13 @@ export default function AdDetail() {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Add a note for the team..."
-            className="flex-1 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
+            className="flex-1 min-w-0 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
           />
-          <button className="press w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center shadow-cta">
+          <button
+            disabled={sending || !newComment.trim()}
+            aria-label="Add note"
+            className="press w-11 h-11 flex-shrink-0 rounded-2xl bg-coral text-black flex items-center justify-center shadow-cta disabled:opacity-40"
+          >
             <PaperPlaneRight size={18} weight="fill" />
           </button>
         </form>
@@ -335,7 +377,7 @@ function Select({ label, value, options, onChange }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full py-2 px-3 rounded-2xl border border-line bg-card focus:outline-none focus:border-coral text-[14px] capitalize"
+        className="w-full min-h-[44px] py-2 px-3 rounded-2xl border border-line bg-card focus:outline-none focus:border-coral text-[14px] capitalize"
       >
         {options.map((o) => (
           <option key={o} value={o} className="capitalize">{o}</option>

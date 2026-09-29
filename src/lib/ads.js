@@ -69,9 +69,29 @@ const COUNTRY_NAMES = {
 };
 export const countryName = (code) => COUNTRY_NAMES[code] || code;
 
-// The expansion markets. Pinned to the top of the country picker so they are
-// one tap away, but never invented: a pinned code only appears if ads exist.
-export const FOCUS_COUNTRIES = ['ES', 'FR'];
+// Countries you care most about, pinned first. Set VITE_FOCUS_COUNTRIES to a
+// comma list of ISO codes (e.g. "ES,FR"). Pinned to the top of the country
+// picker and Intel so they are one tap away, but never invented: a pinned code
+// only appears if ads exist. Empty by default.
+const env = (typeof import.meta !== 'undefined' && import.meta.env) || {};
+export function parseCountryList(raw) {
+  const out = [];
+  for (const part of String(raw || '').split(',')) {
+    const code = part.trim().toUpperCase();
+    if (code && !out.includes(code)) out.push(code);
+  }
+  return out;
+}
+export const FOCUS_COUNTRIES = parseCountryList(env.VITE_FOCUS_COUNTRIES);
+
+// Sort order for market codes: focus countries first (in their listed order),
+// then everything else alphabetically.
+export function compareMarkets(a, b, focus = FOCUS_COUNTRIES) {
+  const ia = focus.indexOf(a);
+  const ib = focus.indexOf(b);
+  if (ia !== -1 || ib !== -1) return (ia === -1 ? Infinity : ia) - (ib === -1 ? Infinity : ib);
+  return String(a).localeCompare(String(b));
+}
 
 // Country options derived from the data, so the control stays empty (and the
 // UI hides it) until sync-geo has populated something. Focus markets first,
@@ -214,11 +234,35 @@ export const IMPORT_DEFAULT_VERDICT = {
 // means a human moved it. Rows with no auto_verdict at all are only safe if an
 // importer created them (then verdict is still that importer's default) - a
 // hand-added row is left alone.
+// A verdict a person set through the UI (metrics.verdict_by === 'human') is
+// never auto, whatever else is true.
 export function isAutoVerdict(ad) {
+  if (ad?.metrics?.verdict_by === 'human') return false;
   const last = ad?.metrics?.auto_verdict;
   if (last) return ad?.verdict === last;
   const fallback = IMPORT_DEFAULT_VERDICT[ad?.added_by_email];
   return fallback ? ad?.verdict === fallback : false;
+}
+
+export const VERDICTS = ['unsure', 'winner', 'testing', 'loser'];
+export const STATUSES = ['running', 'dead', 'saved'];
+
+// The only way a person's verdict is written. Marks it as human so importers
+// and the rescore script never move it again. Pure: returns the patch for
+// db.from('ads').update(...).
+export function humanVerdictPatch(ad, verdict, now = new Date()) {
+  if (!VERDICTS.includes(verdict)) throw new Error(`Unknown verdict: ${verdict}`);
+  return {
+    verdict,
+    metrics: { ...(ad?.metrics || {}), verdict_by: 'human', verdict_at: now.toISOString() },
+  };
+}
+
+// What an importer may write as the verdict of an EXISTING row. null means
+// leave the verdict alone (a person owns it, or there is nothing new to say).
+export function nextImportVerdict(existing, newAuto) {
+  if (!newAuto) return null;
+  return isAutoVerdict(existing) ? newAuto : null;
 }
 
 // Reach rating: one glanceable AMAZING / GOOD / BAD verdict on a card, so you

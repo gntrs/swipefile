@@ -212,7 +212,7 @@ export default function Goals() {
               setEditId(null);
             }}
             aria-label="Toggle goal editing"
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+            className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
               editing ? 'bg-coral text-black shadow-cta' : 'text-ink-soft hover:bg-cream'
             }`}
           >
@@ -272,7 +272,7 @@ export default function Goals() {
                         onClick={() => setDraft((d) => ({ ...d, urgent: !d.urgent }))}
                         aria-label="Toggle urgent"
                         aria-pressed={draft.urgent}
-                        className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+                        className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
                           draft.urgent ? 'bg-red-100 text-red-600' : 'text-ink-soft hover:bg-cream'
                         }`}
                       >
@@ -300,13 +300,14 @@ export default function Goals() {
                 ) : (
                   <label
                     key={g.id}
-                    className="flex items-start gap-2.5 py-1.5 cursor-pointer group"
+                    className="flex items-start gap-2.5 min-h-[44px] py-1.5 cursor-pointer group"
                   >
                     <input
                       type="checkbox"
                       checked={!!g.done}
                       onChange={() => toggle(g)}
                       className="sr-only"
+                      data-probe-skip
                     />
                     <span
                       aria-hidden="true"
@@ -321,7 +322,7 @@ export default function Goals() {
                         <Link
                           to={`/briefs?open=${g.brief_id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className={`block text-[14px] leading-snug break-words underline decoration-line underline-offset-2 hover:decoration-coral ${
+                          className={`block min-h-[44px] text-[14px] leading-snug break-words underline decoration-line underline-offset-2 hover:decoration-coral ${
                             g.done ? 'line-through text-ink-soft/60' : ''
                           }`}
                         >
@@ -391,7 +392,7 @@ export default function Goals() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Add a goal"
             maxLength={140}
-            className="w-full py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[16px] sm:text-[14px]"
+            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[16px] sm:text-[14px]"
           />
           <div className="flex items-center gap-2">
             <select
@@ -428,7 +429,7 @@ export default function Goals() {
               type="submit"
               disabled={!title.trim()}
               aria-label="Add goal"
-              className="press w-10 h-10 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta disabled:opacity-40 disabled:shadow-none"
+              className="press w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta disabled:opacity-40 disabled:shadow-none"
             >
               <Plus size={17} weight="bold" />
             </button>

@@ -31,6 +31,7 @@
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
+import { nextImportVerdict } from '../src/lib/ads.js';
 
 // Tiny .env loader (no dotenv dep).
 const envPath = path.resolve(process.cwd(), '.env');
@@ -46,7 +47,7 @@ const serviceKey = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_K
 const foreplayKey = process.env.FOREPLAY_API_KEY;
 // Optional: your own brand name. Rows matching it skip the auto-verdict (you
 // do not need a spy verdict on your own ads). Unset = no special-casing.
-const OWN_BRAND = (process.env.OWN_BRAND || '').trim().toLowerCase();
+const OWN_BRAND = (process.env.OWN_BRAND || process.env.VITE_OWN_BRAND || '').trim().toLowerCase();
 if (!url || !serviceKey || !foreplayKey) {
   console.error(
     'Missing env. Need VITE_DB_URL, DB_SERVICE_KEY and FOREPLAY_API_KEY in .env.\n' +
@@ -210,7 +211,7 @@ async function importBatch(ads, label, extras = {}) {
   const ids = ads.map((a) => a.id);
   const { data: existing, error: exErr } = await sb
     .from('ads')
-    .select('id, verdict, metrics')
+    .select('id, verdict, metrics, added_by_email')
     .in('metrics->>foreplay_id', ids);
   if (exErr) throw new Error(`dedupe query (${label}): ${exErr.message}`);
   const byForeplayId = new Map((existing || []).map((r) => [r.metrics?.foreplay_id, r]));
@@ -253,11 +254,12 @@ async function importBatch(ads, label, extras = {}) {
     if (typeof ad.live === 'boolean') update.status = ad.live ? 'running' : 'dead';
     // Verdict is opinion: auto-update only rows a human never touched, i.e.
     // the verdict still equals whatever the script (or import default) set.
-    const lastAuto = oldM.auto_verdict || 'unsure';
     const newAuto = (OWN_BRAND && (mapped.brand || '').trim().toLowerCase() === OWN_BRAND) ? null : autoVerdict(ad.live, daysRunning(ad));
-    if (newAuto && old.verdict === lastAuto) {
-      update.verdict = newAuto;
-      metrics.auto_verdict = newAuto;
+    // A person's verdict (verdict_by human, or any hand edit) is never moved.
+    const next = nextImportVerdict(old, newAuto);
+    if (next) {
+      update.verdict = next;
+      metrics.auto_verdict = next;
     } else {
       metrics.auto_verdict = oldM.auto_verdict;
       if (metrics.auto_verdict == null) delete metrics.auto_verdict;

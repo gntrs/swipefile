@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { useMediaUrl } from '@/lib/media';
+import { MEDIA_BUCKET, avatarPathFor, validateFile, friendlyStorageError, removeMedia } from '@/lib/saveAd';
 import { triggerCelebration, celebrationEnabled, setCelebrationEnabled } from '@/lib/celebration';
 
 function TeamMember({ member, isMe }) {
@@ -50,17 +51,26 @@ export default function Profile() {
 
   const uploadAvatar = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+    const invalid = validateFile(file);
+    if (invalid) {
+      setMsg(invalid.message);
+      return;
+    }
     setBusy(true);
     setMsg('');
     try {
-      const ext = file.name.split('.').pop();
-      // Unique name each upload (no storage UPDATE policy needed).
-      const path = `avatars/${user.id}-${Date.now()}.${ext}`;
-      const { error: upErr } = await db.storage.from('ad-media').upload(path, file);
-      if (upErr) throw upErr;
+      // Unique name each upload (no storage UPDATE policy needed), in the one
+      // avatars/<user id>-... shape the storage policy allows.
+      const path = avatarPathFor(user.id, file);
+      const { error: upErr } = await db.storage.from(MEDIA_BUCKET).upload(path, file);
+      if (upErr) throw new Error(friendlyStorageError(upErr, { size: file.size }));
       const { error } = await db.from('team').update({ avatar_path: path }).eq('id', user.id);
-      if (error) throw error;
+      if (error) {
+        await removeMedia(path);
+        throw error;
+      }
       await refresh();
       setMsg('Photo updated.');
     } catch (err) {
@@ -90,7 +100,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[480px] mx-auto">
+    <div data-page="profile" className="px-5 sm:px-8 py-6 max-w-[480px] mx-auto">
       <h1 className="text-[22px] font-semibold tracking-tight mb-5">Your profile</h1>
 
       <div className="bg-card rounded-xl3 border border-line shadow-card p-6">
@@ -125,7 +135,7 @@ export default function Profile() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="text-coral-dark text-[13px] font-medium mt-1"
+              className="inline-flex items-center min-h-[44px] text-coral-dark text-[13px] font-medium"
             >
               Change photo
             </button>
@@ -141,7 +151,7 @@ export default function Profile() {
             onChange={(e) => setNickname(e.target.value)}
             placeholder="How the team sees you"
             maxLength={30}
-            className="w-full py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
+            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
           />
           <p className="text-[12px] text-ink-soft mt-1.5">
             Shown on everything you add and every note you leave.
@@ -181,21 +191,26 @@ export default function Profile() {
               setPartyOn(next);
               setCelebrationEnabled(next);
             }}
-            className={`relative w-12 h-7 rounded-full flex-shrink-0 transition-colors ${
-              partyOn ? 'bg-emerald-500' : 'bg-line'
-            }`}
+            aria-label="Party mode"
+            className="flex-shrink-0 min-h-[44px] min-w-[48px] flex items-center justify-center"
           >
             <span
-              className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${
-                partyOn ? 'translate-x-5' : ''
+              className={`relative block w-12 h-7 rounded-full transition-colors ${
+                partyOn ? 'bg-emerald-500' : 'bg-line'
               }`}
-            />
+            >
+              <span
+                className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${
+                  partyOn ? 'translate-x-5' : ''
+                }`}
+              />
+            </span>
           </button>
         </div>
         <button
           type="button"
           onClick={() => triggerCelebration({ force: true })}
-          className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl border border-line text-[13px] font-semibold text-ink hover:bg-white/[0.04] transition-colors"
+          className="mt-4 inline-flex items-center gap-1.5 min-h-[44px] px-4 py-2 rounded-2xl border border-line text-[13px] font-semibold text-ink hover:bg-white/[0.04] transition-colors"
         >
           <Confetti size={15} weight="bold" /> Test it
         </button>

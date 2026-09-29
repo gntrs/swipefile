@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UploadSimple, CaretLeft } from '@phosphor-icons/react';
-import { db } from '@/lib/db';
+import { IS_DEMO } from '@/lib/db';
+import { VERDICTS } from '@/lib/ads';
+import { saveAd, validateFile, formatFor } from '@/lib/saveAd';
 import { useAuth } from '@/contexts/AuthContext';
 
 const PLATFORMS = ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'Other'];
-const VERDICTS = ['unsure', 'winner', 'testing', 'loser'];
 
-const field = 'w-full py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]';
+const field = 'w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]';
 const label = 'text-[13px] font-semibold text-ink-soft mb-1 block';
 
 export default function AddAd() {
@@ -31,11 +32,21 @@ export default function AddAd() {
 
   const set = (k) => (e) => setF((prev) => ({ ...prev, [k]: e.target.value }));
 
+  // Release the preview's object URL when it is replaced or the page closes.
+  useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview]);
+
   const onFile = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setFile(file);
-    setPreview(URL.createObjectURL(file));
+    const picked = e.target.files?.[0];
+    e.target.value = '';
+    if (!picked) return;
+    const invalid = validateFile(picked);
+    if (invalid) {
+      setError(invalid.message);
+      return;
+    }
+    setError('');
+    setFile(picked);
+    setPreview(URL.createObjectURL(picked));
   };
 
   const submit = async (e) => {
@@ -43,43 +54,16 @@ export default function AddAd() {
     setBusy(true);
     setError('');
     try {
-      let media_path = null;
-      let format = 'image';
-      if (file) {
-        format = file.type.startsWith('video') ? 'video' : 'image';
-        const ext = file.name.split('.').pop();
-        const path = `${user.id}/${Date.now()}.${ext}`;
-        const { error: upErr } = await db.storage.from('ad-media').upload(path, file);
-        if (upErr) throw upErr;
-        media_path = path;
-      }
-
-      const { data, error: insErr } = await db
-        .from('ads')
-        .insert({
-          brand: f.brand.trim() || null,
-          platform: f.platform,
-          format,
-          hook: f.hook.trim() || null,
-          ad_copy: f.ad_copy.trim() || null,
-          landing_url: f.landing_url.trim() || null,
-          verdict: f.verdict,
-          status: f.status,
-          tags: f.tags
-            .split(',')
-            .map((t) => t.trim())
-            .filter(Boolean),
+      const { ad } = await saveAd(
+        {
+          ...f,
           // Link to the ad itself (Meta Ad Library, TikTok, a post url...).
           // Lives in metrics jsonb so no schema change is needed.
           metrics: f.source_url.trim() ? { source_url: f.source_url.trim() } : {},
-          media_path,
-          added_by: user.id,
-          added_by_email: user.email,
-        })
-        .select()
-        .single();
-      if (insErr) throw insErr;
-      navigate(`/ad/${data.id}`);
+        },
+        { user, file }
+      );
+      navigate(`/ad/${ad.id}`);
     } catch (err) {
       setError(err.message || 'Could not save.');
     } finally {
@@ -88,10 +72,10 @@ export default function AddAd() {
   };
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[720px] mx-auto">
+    <div data-page="add-ad" className="px-5 sm:px-8 py-6 max-w-[720px] mx-auto">
       <button
         onClick={() => navigate('/ads')}
-        className="flex items-center gap-1 text-ink-soft text-[14px] font-medium mb-4"
+        className="press flex items-center gap-1 min-h-[44px] text-ink-soft text-[14px] font-medium mb-2"
       >
         <CaretLeft size={16} weight="bold" /> Library
       </button>
@@ -101,7 +85,7 @@ export default function AddAd() {
         {/* Media */}
         <label className="block bg-card border-2 border-dashed border-line rounded-xl3 p-5 text-center cursor-pointer hover:border-coral transition-colors">
           {preview ? (
-            file?.type.startsWith('video') ? (
+            formatFor(file) === 'video' ? (
               <video src={preview} className="max-h-64 mx-auto rounded-2xl" controls playsInline />
             ) : (
               <img src={preview} className="max-h-64 mx-auto rounded-2xl" alt="preview" />
@@ -110,7 +94,7 @@ export default function AddAd() {
             <div className="py-8 text-ink-soft">
               <UploadSimple size={28} className="mx-auto mb-2" />
               <p className="font-medium text-[14px]">Upload the ad image or video</p>
-              <p className="text-[12px]">PNG, JPG, MP4...</p>
+              <p className="text-[12px]">PNG, JPG, MP4... up to 50 MB</p>
             </div>
           )}
           <input type="file" accept="image/*,video/*" onChange={onFile} className="hidden" />
@@ -154,7 +138,7 @@ export default function AddAd() {
 
         <div>
           <span className={label}>Tags (comma separated)</span>
-          <input className={field} value={f.tags} onChange={set('tags')} placeholder="ugc, testimonial, brain" />
+          <input className={field} value={f.tags} onChange={set('tags')} placeholder="ugc, testimonial, offer" />
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
@@ -178,15 +162,22 @@ export default function AddAd() {
           </div>
         </div>
 
-        {error && <p className="text-red-500 text-[13px]">{error}</p>}
+        {error && (
+          <p role="alert" className="text-red-500 text-[14px]">
+            {error}
+          </p>
+        )}
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="press justify-self-start px-6 py-3 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
-        >
-          {busy ? 'Saving...' : 'Save ad'}
-        </button>
+        <div>
+          <button
+            type="submit"
+            disabled={busy}
+            className="press min-h-[44px] px-6 py-3 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
+          >
+            {busy ? 'Saving...' : 'Save ad'}
+          </button>
+          {IS_DEMO && <p className="mt-2 text-[13px] text-ink-soft">Demo: saved until you reload.</p>}
+        </div>
       </form>
     </div>
   );

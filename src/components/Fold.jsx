@@ -32,7 +32,7 @@ export default function Fold({ id, title, children, defaultOpen = true }) {
         type="button"
         onClick={toggle}
         aria-expanded={open}
-        className="sm:hidden w-full flex items-center justify-between px-1 pt-1 pb-2 select-none"
+        className="sm:hidden w-full min-h-[44px] flex items-center justify-between px-1 pt-1 pb-2 select-none"
       >
         <span className="text-[12px] font-semibold uppercase tracking-wider text-ink-soft">
           {title}

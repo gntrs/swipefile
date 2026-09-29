@@ -10,6 +10,7 @@ import {
   TrendUp,
 } from '@phosphor-icons/react';
 import { fetchAll } from '@/lib/db';
+import PartialNotice from '@/components/PartialNotice';
 import { isOwnBrand } from '@/lib/brand';
 import { useTeam } from '@/contexts/TeamContext';
 import AdCard from '@/components/AdCard';
@@ -39,6 +40,8 @@ export default function Competitors() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(null);
+  const [partial, setPartial] = useState(null);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -49,12 +52,13 @@ export default function Competitors() {
       if (!mounted) return;
       setAds(adsData);
       setPosts(postsData);
+      setPartial([adsData, postsData].find((rows) => rows.error) || null);
       setLoading(false);
     });
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [reload]);
 
   const compAds = useMemo(() => ads.filter((a) => isCompetitor(a.brand)), [ads]);
   const compPosts = useMemo(() => posts.filter((p) => isCompetitor(p.brand)), [posts]);
@@ -95,7 +99,7 @@ export default function Competitors() {
   }, [brands, compAds]);
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[1200px] mx-auto">
+    <div data-page="competitors" className="px-5 sm:px-8 py-6 max-w-[1200px] mx-auto">
       <div className="flex items-center justify-between gap-3 mb-5">
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight">Competitors</h1>
@@ -103,11 +107,12 @@ export default function Competitors() {
         </div>
         <Link
           to="/ads/add"
-          className="press flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta"
+          className="press flex items-center gap-2 min-h-[44px] px-4 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta"
         >
           <PlusCircle size={20} weight="bold" /> Add ad
         </Link>
       </div>
+      <PartialNotice rows={partial} onRetry={() => setReload((n) => n + 1)} className="mb-4" />
 
       <TrackCompetitors />
 
@@ -221,7 +226,7 @@ export default function Competitors() {
             </div>
             <Link
               to="/posts/add?competitor=1"
-              className="flex items-center gap-1.5 text-coral-dark text-[14px] font-semibold flex-shrink-0"
+              className="flex items-center gap-1.5 min-h-[44px] text-coral-dark text-[14px] font-semibold flex-shrink-0"
             >
               <PlusCircle size={18} weight="bold" /> Log one
             </Link>

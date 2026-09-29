@@ -76,7 +76,7 @@ const run = async () => {
 
   if (dryRun) {
     console.log('\n--dry-run, nothing written.');
-    selected.slice(0, 10).forEach((a) => console.log(`  ${a.brand} — ${(a.hook || '').slice(0, 60)}`));
+    selected.slice(0, 10).forEach((a) => console.log(`  ${a.brand}: ${(a.hook || '').slice(0, 60)}`));
     return;
   }
 
@@ -92,7 +92,7 @@ const run = async () => {
     if (error) throw new Error(`tag ${ad.id}: ${error.message}`);
   }
 
-  console.log(`\ndone — ${selected.length} ad(s) now flagged "${RECENT_TAG}".`);
+  console.log(`\ndone: ${selected.length} ad(s) now flagged "${RECENT_TAG}".`);
 };
 
 run().catch((e) => {

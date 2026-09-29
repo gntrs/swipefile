@@ -13,7 +13,7 @@
 //
 // Existing ads keep their verdict, tags, media, and notes; only metrics are
 // refreshed. Flags: --dry-run (print, no writes).
-// Needs in .env: VITE_DB_URL, DB_SERVICE_KEY, OWN_BRAND (your brand name).
+// Needs in .env: VITE_DB_URL, DB_SERVICE_KEY, OWN_BRAND (your brand name; falls back to VITE_OWN_BRAND).
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -28,9 +28,9 @@ if (fs.existsSync(envPath)) {
 }
 
 // Your own brand name - rows are created/updated under this brand.
-const OUR_BRAND = (process.env.OWN_BRAND || "").trim();
+const OUR_BRAND = (process.env.OWN_BRAND || process.env.VITE_OWN_BRAND || "").trim();
 if (!OUR_BRAND) {
-  console.error("Missing OWN_BRAND in .env (your brand name as used in the ads table).");
+  console.error("Missing OWN_BRAND (or VITE_OWN_BRAND) in .env (your brand name as used in the ads table).");
   process.exit(1);
 }
 

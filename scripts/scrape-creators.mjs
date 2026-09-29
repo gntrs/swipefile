@@ -1,4 +1,4 @@
-// Find Instagram creators in our niche via the Brave Search API and store
+// Find Instagram creators in your niche via the Brave Search API and store
 // them as creator_leads for the Outreach page. No Instagram scraping: we
 // search the open web (site:instagram.com), and follower counts come from
 // Instagram's own meta descriptions as surfaced in search snippets
@@ -6,7 +6,7 @@
 // null and the UI shows them under "unknown" for a manual look.
 //
 // Usage:
-//   node scripts/scrape-creators.mjs               # run the builtin niche queries
+//   node scripts/scrape-creators.mjs               # run the CREATOR_QUERIES from .env
 //   node scripts/scrape-creators.mjs --query "..."  # one custom query
 //   node scripts/scrape-creators.mjs --job          # process the oldest pending
 //                                                   # scrape_jobs row (cron mode;
@@ -14,6 +14,13 @@
 //
 // Needs in .env: VITE_DB_URL, DB_SERVICE_KEY, BRAVE_API_KEY
 // (free tier at brave.com/search/api is plenty: 1 req/sec, 2000/month).
+// Optional in .env:
+//   CREATOR_QUERIES   comma list of searches, topics your target creators post
+//                     about, e.g. "vegan recipes creator instagram,home workout
+//                     coach instagram". Used when no --query and no job queries.
+//   CREATOR_NICHE_RE  a regex (case insensitive). When set, a lead is only kept
+//                     if its name, handle or snippet matches it. Unset: every
+//                     Instagram profile found is kept.
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -47,27 +54,29 @@ const customQuery = args.includes('--query') ? args[args.indexOf('--query') + 1]
 // the band only shapes the summary (how many landed where you aimed).
 const customTier = args.includes('--tier') ? args[args.indexOf('--tier') + 1] : null;
 
-// What we search when the job does not override queries. Edit these defaults
-// for your own niche - topics your target creators post about.
-// Plain "<topic> instagram" queries yield far more profile results than
+// What we search when neither --query nor the job gives queries. Plain
+// "<topic> instagram" queries yield far more profile results than
 // site:instagram.com ones; handleFrom() below already keeps only Instagram
-// profile URLs, and the niche gate keeps only on-topic accounts.
-const DEFAULT_QUERIES = [
-  'speech delay mom instagram',
-  'late talker toddler mom instagram',
-  'autism mom creator instagram',
-  'speech therapist SLP kids instagram',
-  'toddler speech activities instagram',
-  'nonverbal autism AAC parent instagram',
-  'early intervention speech therapy instagram',
-  'autism parenting speech tips instagram',
-];
+// profile URLs, and the optional topic gate keeps only on-topic accounts.
+const ENV_QUERIES = (process.env.CREATOR_QUERIES || '')
+  .split(',')
+  .map((q) => q.trim())
+  .filter(Boolean);
+const NO_QUERIES =
+  'No search queries. Set CREATOR_QUERIES in .env (comma separated, for example "vegan recipes creator instagram,home workout coach instagram") or pass --query.';
 
-// Hard niche gate: whatever the query was, a lead only gets stored if its
-// name/handle/snippet shows a real signal of our world (speech development,
-// autism, therapy for kids). This is what keeps "success coach" and
-// "instagram expert" accounts out even when a custom query goes wide.
-const NICHE_RE = /(speech|autis|\basd\b|\bslp\b|late.?talker|nonverbal|non.?verbal|\baac\b|apraxia|early.?intervention|language.?delay|language.?development|first.?words|speech.?therap|pediatric.?therap|special.?needs)/i;
+// Optional topic gate: whatever the query was, a lead only gets stored if its
+// name/handle/snippet matches CREATOR_NICHE_RE. This is what keeps "success
+// coach" and "instagram expert" accounts out when a query goes wide.
+let NICHE_RE = null;
+if (process.env.CREATOR_NICHE_RE) {
+  try {
+    NICHE_RE = new RegExp(process.env.CREATOR_NICHE_RE, 'i');
+  } catch (e) {
+    console.error(`CREATOR_NICHE_RE is not a valid regular expression: ${e.message}`);
+    process.exit(1);
+  }
+}
 
 // Tier cutoffs (followers). Tune here if the outreach pricing bands move.
 function tierFor(followers) {
@@ -136,7 +145,7 @@ async function scrape(queries, requestedBy, wantTier) {
   }
 
   let checked = 0;
-  let offNiche = 0;
+  let offTopic = 0;
   const fresh = new Map(); // handle -> row (dedupe across queries)
   for (const q of queries) {
     let results = [];
@@ -150,8 +159,8 @@ async function scrape(queries, requestedBy, wantTier) {
       const handle = handleFrom(r.url || '');
       if (!handle || known.has(handle) || fresh.has(handle)) continue;
       const snippet = `${r.title || ''} ${r.description || ''}`;
-      if (!NICHE_RE.test(`${handle} ${snippet}`)) {
-        offNiche++;
+      if (NICHE_RE && !NICHE_RE.test(`${handle} ${snippet}`)) {
+        offTopic++;
         continue;
       }
       const followers = parseFollowers(snippet);
@@ -176,9 +185,9 @@ async function scrape(queries, requestedBy, wantTier) {
     if (error) throw new Error(`insert failed: ${error.message}`);
   }
   const byTier = rows.reduce((acc, r) => ((acc[r.tier || 'unknown'] = (acc[r.tier || 'unknown'] || 0) + 1), acc), {});
-  let summary = `${rows.length} new creators from ${queries.length} queries (${checked} results checked, ${offNiche} off-niche skipped)` +
-    (rows.length ? ` - ${Object.entries(byTier).map(([t, n]) => `${t}: ${n}`).join(', ')}` : '');
-  if (wantTier) summary += ` - ${byTier[wantTier] || 0} in your ${wantTier} band`;
+  let summary = `${rows.length} new creators from ${queries.length} queries (${checked} results checked${NICHE_RE ? `, ${offTopic} off-topic skipped` : ''})` +
+    (rows.length ? `: ${Object.entries(byTier).map(([t, n]) => `${t}: ${n}`).join(', ')}` : '');
+  if (wantTier) summary += `; ${byTier[wantTier] || 0} in your ${wantTier} band`;
   console.log(summary);
   return summary;
 }
@@ -201,7 +210,12 @@ if (jobMode) {
   try {
     const queries = Array.isArray(job.params?.queries) && job.params.queries.length
       ? job.params.queries
-      : DEFAULT_QUERIES;
+      : ENV_QUERIES;
+    if (!queries.length) {
+      console.log(NO_QUERIES);
+      await sb.from('scrape_jobs').update({ status: 'error', note: NO_QUERIES, finished_at: new Date().toISOString() }).eq('id', job.id);
+      process.exit(0);
+    }
     const note = await scrape(queries, job.requested_by_email, job.params?.tier || null);
     await sb.from('scrape_jobs').update({ status: 'done', note, finished_at: new Date().toISOString() }).eq('id', job.id);
   } catch (e) {
@@ -210,5 +224,10 @@ if (jobMode) {
     process.exit(1);
   }
 } else {
-  await scrape(customQuery ? [customQuery] : DEFAULT_QUERIES, null, customTier);
+  const queries = customQuery ? [customQuery] : ENV_QUERIES;
+  if (!queries.length) {
+    console.log(NO_QUERIES);
+    process.exit(0); // cron safe: nothing to do is not a failure
+  }
+  await scrape(queries, null, customTier);
 }

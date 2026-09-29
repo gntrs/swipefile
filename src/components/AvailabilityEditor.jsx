@@ -61,7 +61,7 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
           <h2 className="text-[18px] font-semibold tracking-tight">
             {editing ? 'Edit availability' : 'Add availability'}
           </h2>
-          <button onClick={onClose} aria-label="Close" className="w-8 h-8 rounded-xl flex items-center justify-center text-ink-soft hover:bg-cream">
+          <button onClick={onClose} aria-label="Close" className="w-11 h-11 rounded-xl flex items-center justify-center text-ink-soft hover:bg-cream">
             <X size={18} weight="bold" />
           </button>
         </div>
@@ -90,7 +90,7 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
             type="date"
             value={day}
             onChange={(e) => setDay(e.target.value)}
-            className="w-full py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[15px] mb-4"
+            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[15px] mb-4"
           />
 
           {/* Time */}
@@ -122,7 +122,7 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
             onChange={(e) => setNote(e.target.value)}
             placeholder="Note (optional) e.g. dentist, half day"
             maxLength={120}
-            className="w-full py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[15px] mb-4"
+            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[15px] mb-4"
           />
 
           {err && <p className="text-[13px] text-red-500 mb-3">{err}</p>}

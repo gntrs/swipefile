@@ -96,21 +96,21 @@ export default function Outreach() {
 
   if (missing) {
     return (
-      <div className="px-5 sm:px-8 py-6 max-w-[900px] mx-auto">
+      <div data-page="outreach" className="px-5 sm:px-8 py-6 max-w-[900px] mx-auto">
         <MigrationCard title="Creator outreach" migration="db-setup.sql" />
       </div>
     );
   }
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[900px] mx-auto">
+    <div data-page="outreach" className="px-5 sm:px-8 py-6 max-w-[900px] mx-auto">
       <div className="flex items-center justify-between gap-3 mb-1">
         <h1 className="text-[22px] font-semibold tracking-tight">Creator outreach</h1>
         {isAdmin && (
           <button
             onClick={() => setEditing((e) => !e)}
             aria-label="Toggle edit mode"
-            className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-colors ${
+            className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors ${
               editing ? 'bg-coral text-black shadow-cta' : 'bg-card border border-line text-ink-soft'
             }`}
           >
@@ -136,7 +136,7 @@ export default function Outreach() {
             value={f.platform}
             onChange={(e) => setF((cur) => ({ ...cur, platform: e.target.value }))}
             aria-label="Platform"
-            className="flex-1 sm:flex-none py-2.5 px-3 rounded-2xl border border-line focus:outline-none focus:border-coral bg-card text-[16px] sm:text-[13px] text-ink-soft capitalize"
+            className="flex-1 sm:flex-none min-w-0 min-h-[44px] py-2.5 px-3 rounded-2xl border border-line focus:outline-none focus:border-coral bg-card text-[16px] sm:text-[13px] text-ink-soft capitalize"
           >
             {PLATFORMS.map((p) => (
               <option key={p} value={p} className="capitalize">{p}</option>
@@ -146,7 +146,7 @@ export default function Outreach() {
             value={f.link}
             onChange={(e) => setF((cur) => ({ ...cur, link: e.target.value }))}
             placeholder="Link (optional)"
-            className="w-32 sm:w-44 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-card text-[16px] sm:text-[14px]"
+            className="w-28 min-w-0 sm:w-44 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-card text-[16px] sm:text-[14px]"
           />
           <button
             type="submit"
@@ -165,7 +165,7 @@ export default function Outreach() {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`flex-shrink-0 px-3 py-2 rounded-2xl text-[13px] font-semibold capitalize transition-colors ${
+            className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold capitalize transition-colors ${
               filter === s ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
             }`}
           >
@@ -214,7 +214,7 @@ export default function Outreach() {
                 <button
                   onClick={() => remove(r)}
                   aria-label={`Delete ${r.creator}`}
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-red-500 hover:bg-red-50 flex-shrink-0"
+                  className="w-11 h-11 rounded-xl flex items-center justify-center text-red-500 hover:bg-red-50 flex-shrink-0"
                 >
                   <Trash size={15} weight="bold" />
                 </button>

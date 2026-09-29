@@ -78,7 +78,7 @@ export default function TrackCompetitors() {
 
   return (
     <div className="bg-card rounded-xl3 border border-line shadow-card px-4 py-3.5 mb-6">
-      <button onClick={() => setOpenForm(!openForm)} className="w-full flex items-center gap-3 text-left">
+      <button onClick={() => setOpenForm(!openForm)} className="w-full min-h-[44px] flex items-center gap-3 text-left">
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-[15px]">Auto-tracked competitors</p>
           <p className="text-[12px] text-ink-soft">

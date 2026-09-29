@@ -7,6 +7,10 @@ import { useMediaUrl } from '@/lib/media';
 import WelcomePopup from '@/components/WelcomePopup';
 import MobileNav from '@/components/MobileNav';
 import SaleCelebration from '@/components/SaleCelebration';
+import DemoBanner from '@/components/DemoBanner';
+import SetupBanner from '@/components/SetupBanner';
+import { IS_DEMO } from '@/lib/db';
+import { APP_NAME } from '@/lib/brand';
 
 const nav = [
   { to: '/', label: 'Dashboard', short: 'Home', icon: SquaresFour, end: true },
@@ -31,17 +35,18 @@ export default function Layout() {
       {/* First-login setup: pick a nickname + replace the temporary password */}
       <WelcomePopup />
 
-      {/* Inside-joke fullscreen meme on a new sale (desktop only). */}
+      {/* Fullscreen celebration on a new sale (desktop only). */}
       <SaleCelebration />
 
       {/* Sidebar - a translucent structural layer (content scrolls under the
           blur), not an opaque strip. `glass` lets reduced-transparency and
           high-contrast users get a solid fallback. */}
       <aside className="glass hidden sm:flex w-60 flex-col border-r border-line bg-card/60 backdrop-blur-xl backdrop-saturate-150 px-4 py-5">
-        {/* Wordmark only - no icon. One coral accent, nothing else. */}
+        {/* Wordmark only, no icon. One accent dot, nothing else. */}
         <div className="px-3 mb-7 pt-1">
           <span className="font-semibold text-[18px] tracking-tight">
-            Tracker<span className="text-coral">.</span>
+            {APP_NAME}
+            <span className="text-coral">.</span>
           </span>
         </div>
 
@@ -52,7 +57,7 @@ export default function Layout() {
               to={to}
               end={end}
               className={({ isActive }) =>
-                `press flex items-center gap-3 px-3 py-2.5 rounded-2xl font-medium text-[15px] transition-colors ${
+                `press flex items-center gap-3 min-h-[44px] px-3 py-2.5 rounded-2xl font-medium text-[15px] transition-colors ${
                   isActive ? 'bg-coral-soft text-coral-dark' : 'text-ink-soft hover:bg-cream'
                 }`
               }
@@ -86,15 +91,21 @@ export default function Layout() {
               <span className="block text-[11px] text-ink-soft truncate">{user?.email}</span>
             </span>
           </NavLink>
-          <button
-            onClick={async () => {
-              await signOut();
-              navigate('/login');
-            }}
-            className="press mt-2 w-full flex items-center gap-2 px-3 py-2 rounded-2xl text-[14px] font-medium text-ink-soft hover:bg-cream transition-colors"
-          >
-            <SignOut size={18} weight="bold" /> Sign out
-          </button>
+          {IS_DEMO ? (
+            <p className="mt-2 px-3 min-h-[44px] flex items-center font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft">
+              Demo mode
+            </p>
+          ) : (
+            <button
+              onClick={async () => {
+                await signOut();
+                navigate('/login');
+              }}
+              className="press mt-2 w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-2xl text-[14px] font-medium text-ink-soft hover:bg-cream transition-colors"
+            >
+              <SignOut size={18} weight="bold" /> Sign out
+            </button>
+          )}
         </div>
       </aside>
 
@@ -104,6 +115,8 @@ export default function Layout() {
           rubber-band the whole app frame (the PWA "wiggle"); overflow-x-hidden
           clips any accidentally-wide child instead of letting it pan the page. */}
       <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain pt-[env(safe-area-inset-top)] pb-[calc(4.75rem+env(safe-area-inset-bottom))] sm:pb-0">
+        <DemoBanner />
+        <SetupBanner />
         <Outlet />
       </main>
 

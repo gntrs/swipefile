@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Images, Megaphone, Trophy, ChatCircleText } from '@phosphor-icons/react';
 import { db, fetchAll } from '@/lib/db';
+import PartialNotice from '@/components/PartialNotice';
 import StatCard from '@/components/StatCard';
 import { Skeleton, StatSkeleton } from '@/components/Skeleton';
 import TeamChat from '@/components/TeamChat';
@@ -59,6 +60,8 @@ export default function Dashboard() {
   const [posts, setPosts] = useState([]);
   const [notes, setNotes] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [partial, setPartial] = useState(null);
+  const [reload, setReload] = useState(0);
   const { displayName, me } = useTeam();
 
   useEffect(() => {
@@ -72,13 +75,14 @@ export default function Dashboard() {
       if (!mounted) return;
       setAds(a);
       setPosts(p);
+      setPartial([a, p].find((rows) => rows.error) || null);
       setNotes(c.count || 0);
       setLoading(false);
     })();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [reload]);
 
   const winnerAds = ads.filter((a) => a.verdict === 'winner');
   const winners = winnerAds.length;
@@ -126,7 +130,7 @@ export default function Dashboard() {
     );
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
+    <div data-page="dashboard" className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
       {/* Reference-style header: quiet dated eyebrow, then a big greeting. */}
       <header className="mb-6 animate-rise">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">{dateLabel}</p>
@@ -135,6 +139,7 @@ export default function Dashboard() {
         </h1>
         <p className="text-ink-soft text-[14px] mt-1">Ads, posts and what the team thinks of them.</p>
       </header>
+      <PartialNotice rows={partial} onRetry={() => setReload((n) => n + 1)} className="mb-5" />
 
       {/* The money counter: lifetime revenue + MRR + live confetti per sale */}
       <Fold id="revenue" title="Revenue">
@@ -174,7 +179,7 @@ export default function Dashboard() {
 
       {/* Team board: quick chat + goals */}
       <Fold id="team" title="Team board">
-        <div className="grid lg:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
           <TeamChat />
           <Goals />
         </div>
@@ -237,7 +242,7 @@ export default function Dashboard() {
         ) : (
           <div className="divide-y divide-line">
             {recent.map((r) => (
-              <Link key={`${r.kind}-${r.id}`} to={r.to} className="flex items-center gap-3 py-2.5 group">
+              <Link key={`${r.kind}-${r.id}`} to={r.to} className="flex items-center gap-3 min-h-[44px] py-2.5 group">
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${r.kind === 'ad' ? 'bg-coral-soft text-coral-dark' : 'bg-amber-100 text-amber-700'}`}>
                   {r.kind}
                 </span>

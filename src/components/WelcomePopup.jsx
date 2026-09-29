@@ -64,7 +64,7 @@ export default function WelcomePopup() {
             placeholder="How the team sees you"
             maxLength={30}
             autoFocus
-            className="w-full py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
+            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
           />
 
           <label className="text-[13px] font-semibold text-ink-soft mb-1 mt-4 block">
@@ -76,7 +76,7 @@ export default function WelcomePopup() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 8 characters"
             autoComplete="new-password"
-            className="w-full py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
+            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
           />
           <p className="text-[12px] text-ink-soft mt-1.5">
             Replaces the temporary one you logged in with. Use it next time.

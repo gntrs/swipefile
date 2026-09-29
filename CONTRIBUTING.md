@@ -4,12 +4,12 @@ Thanks for helping make Swipefile better. The process is deliberately light.
 
 ## Getting set up
 
-Follow the [quick start](README.md#quick-start) in the README, or the full walkthrough in [docs/SETUP.md](docs/SETUP.md). You will need a Postgres database project of your own to develop against.
+`npm ci` and `npm run dev` give you the app in demo mode on sample ads, which is enough for most UI work. For anything that touches the database, follow [docs/SETUP.md](docs/SETUP.md) with a Supabase project of your own.
 
 ## Pull requests
 
 - Keep PRs focused: one feature or fix per PR.
-- Run `npm run build` before opening the PR; it must pass clean.
+- Run `npm test` and `npm run build` before opening the PR; both must pass. If you changed `db-setup.sql`, run `npm run test:sql` against a local Postgres too. CI runs all three.
 - Match the existing style: Tailwind tokens only, dark-mode-first, mobile-first. Check new views on a phone-sized viewport.
 - Schema changes go into `db-setup.sql` and must keep it idempotent so existing users can re-run the file safely.
 - Never include secrets, `.env` files, or personal data in a PR.

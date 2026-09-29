@@ -20,7 +20,7 @@ function CopyButton({ text, label = 'Copy', icon: Icon = Copy, accent = false })
         setTimeout(() => setCopied(false), 1200);
       }}
       aria-label={`${label} brief`}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold flex-shrink-0 transition-colors ${
+      className={`flex items-center gap-1.5 min-h-[44px] px-3 py-1.5 rounded-xl text-[12px] font-semibold flex-shrink-0 transition-colors ${
         copied ? 'bg-mint/40 text-emerald-700' : idle
       }`}
     >
@@ -89,13 +89,13 @@ export default function Briefs() {
   }, [highlight, loading]);
 
   if (missing) return (
-    <div className="px-5 sm:px-8 py-6 max-w-[720px] mx-auto">
+    <div data-page="briefs" className="px-5 sm:px-8 py-6 max-w-[720px] mx-auto">
       <MigrationCard title="Briefs" />
     </div>
   );
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[720px] mx-auto">
+    <div data-page="briefs" className="px-5 sm:px-8 py-6 max-w-[720px] mx-auto">
       <div className="mb-5">
         <h1 className="text-[22px] font-semibold tracking-tight">Briefs</h1>
         <p className="text-ink-soft text-[14px]">
@@ -126,7 +126,7 @@ export default function Briefs() {
                 <div className="flex items-start gap-3 px-4 pt-4 pb-2">
                   <button
                     onClick={() => setOpen(expanded ? null : b.id)}
-                    className="flex-1 min-w-0 text-left"
+                    className="flex-1 min-w-0 min-h-[44px] text-left"
                   >
                     <p className="font-semibold text-[16px] leading-snug">{b.title}</p>
                     <p className="text-[12px] text-ink-soft mt-0.5">
@@ -150,7 +150,7 @@ export default function Briefs() {
                 ) : (
                   <button
                     onClick={() => setOpen(b.id)}
-                    className="block w-full text-left px-4 pb-4"
+                    className="block w-full min-h-[44px] text-left px-4 pb-4"
                   >
                     <p className="text-[13px] text-ink-soft line-clamp-2 whitespace-pre-wrap">
                       {b.body}

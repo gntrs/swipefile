@@ -66,13 +66,13 @@ export default function MobileNav() {
             className="sm:hidden fixed inset-0 bg-black/50 backdrop-blur-[2px] z-[55]"
             onClick={() => setMoreOpen(false)}
           />
-          <div className="sm:hidden fixed inset-x-0 bottom-0 z-[56] bg-card border-t border-line rounded-t-3xl px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] animate-sheet-up">
+          <div data-sheet="more" className="sm:hidden fixed inset-x-0 bottom-0 z-[56] bg-card border-t border-line rounded-t-3xl px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] animate-sheet-up">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">More</span>
               <button
                 onClick={() => setMoreOpen(false)}
                 aria-label="Close"
-                className="press w-8 h-8 rounded-full border border-line flex items-center justify-center text-ink-soft"
+                className="press w-11 h-11 -mr-1.5 rounded-full border border-line flex items-center justify-center text-ink-soft"
               >
                 <X size={16} weight="bold" />
               </button>

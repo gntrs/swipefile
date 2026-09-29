@@ -1,11 +1,11 @@
 ---
-description: Swipefile setup and integration work - follow the agent playbook
+description: Swipefile setup and integration work, follow the hard rules in AGENTS.md
 alwaysApply: true
 ---
 
-When setting up this project for the user or wiring integrations
-(Supabase/Stripe/Meta/PostHog/Foreplay), follow the interview flow and hard
-rules in AGENTS.md at the repo root. Key points: never commit .env or any
-key; SUPABASE_SERVICE_KEY never reaches the browser or deploy env; Supabase
-"allow signups" stays OFF; every integration is optional - only wire what the
-user actually has. Human docs: README.md and docs/SETUP.md.
+When setting up this project or wiring integrations (Supabase, Stripe, Meta,
+PostHog, Foreplay), follow the hard rules in AGENTS.md at the repo root. Key
+points: never commit .env or any key; DB_SERVICE_KEY never reaches the browser
+or a static host; Supabase "Allow new users to sign up" stays off; every
+integration is optional, so only wire what the person actually has. The app's
+/setup page reports what is missing. Human docs: README.md and docs/SETUP.md.

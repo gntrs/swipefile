@@ -10,11 +10,19 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let mounted = true;
-    db.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setUser(data?.session?.user ?? null);
-      setLoading(false);
-    });
+    // A failed session read (network down, bad project) must end the spinner
+    // too: signed out is a state the app can show, loading forever is not.
+    Promise.resolve()
+      .then(() => db.auth.getSession())
+      .then(({ data }) => {
+        if (mounted) setUser(data?.session?.user ?? null);
+      })
+      .catch(() => {
+        if (mounted) setUser(null);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
     const { data: sub } = db.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
     });

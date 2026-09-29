@@ -4,6 +4,7 @@ import { ArrowLeft, Star } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
 import { setStarred, isStarred } from '@/lib/ads';
+import { parseCompareIds, MAX_COMPARE } from '@/lib/compare';
 
 const num = (a, k) => {
   const v = Number(a?.metrics?.[k]);
@@ -43,39 +44,57 @@ function AdThumb({ ad }) {
 
 export default function Compare() {
   const [params] = useSearchParams();
-  const ids = (params.get('ids') || '').split(',').filter(Boolean);
+  const raw = params.get('ids') || '';
+  const { ids, invalid, dropped } = parseCompareIds(raw);
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [, force] = useState(0);
+  const [error, setError] = useState('');
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let mounted = true;
+    setError('');
     if (!ids.length) {
+      setAds([]);
       setLoading(false);
       return;
     }
-    db
-      .from('ads')
-      .select('*')
-      .in('id', ids)
-      .then(({ data }) => {
+    setLoading(true);
+    Promise.resolve(db.from('ads').select('*').in('id', ids))
+      .then(({ data, error: err }) => {
         if (!mounted) return;
-        // preserve the order the user picked
-        const byId = new Map((data || []).map((a) => [a.id, a]));
-        setAds(ids.map((id) => byId.get(id)).filter(Boolean));
+        if (err) {
+          setError(err.message || 'Could not load these ads.');
+          setAds([]);
+        } else {
+          // preserve the order the user picked
+          const byId = new Map((data || []).map((a) => [a.id, a]));
+          setAds(ids.map((id) => byId.get(id)).filter(Boolean));
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        setError(err?.message || 'Could not load these ads.');
         setLoading(false);
       });
     return () => {
       mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.get('ids')]);
+  }, [raw, reload]);
+
+  // Asked for, minus what came back: bad ids plus ids with no row.
+  const requested = ids.length + invalid.length;
+  const missing = requested - ads.length;
 
   const toggleStar = async (ad) => {
     const next = !isStarred(ad);
-    ad.metrics = { ...(ad.metrics || {}), starred: next };
-    force((n) => n + 1);
-    await setStarred(ad, next);
+    const swap = (starred) =>
+      setAds((cur) => cur.map((a) => (a.id === ad.id ? { ...a, metrics: { ...(a.metrics || {}), starred } } : a)));
+    swap(next);
+    const ok = await setStarred(ad, next);
+    if (!ok) swap(!next);
   };
 
   // Best cell index per row, for highlighting.
@@ -95,9 +114,9 @@ export default function Compare() {
   };
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[1200px] mx-auto">
+    <div data-page="compare" className="px-5 sm:px-8 py-6 max-w-[1200px] mx-auto">
       <div className="flex items-center gap-3 mb-5">
-        <Link to="/ads" className="w-9 h-9 rounded-xl border border-line flex items-center justify-center text-ink-soft hover:bg-card">
+        <Link to="/ads" aria-label="Back to the library" className="press w-11 h-11 flex-shrink-0 rounded-xl border border-line flex items-center justify-center text-ink-soft hover:bg-card">
           <ArrowLeft size={18} weight="bold" />
         </Link>
         <div>
@@ -106,12 +125,35 @@ export default function Compare() {
         </div>
       </div>
 
+      {!loading && !error && missing > 0 && (
+        <p className="text-[14px] text-amber-600 mb-4">
+          {missing} of {requested} ads were not found.
+        </p>
+      )}
+      {dropped > 0 && (
+        <p className="text-[14px] text-ink-soft mb-4">
+          Compare shows up to {MAX_COMPARE} ads. {dropped} more {dropped === 1 ? 'was' : 'were'} left out.
+        </p>
+      )}
+
       {loading ? (
         <p className="text-ink-soft">Loading...</p>
+      ) : error ? (
+        <div role="alert" className="text-center py-16">
+          <p className="text-[15px] text-ink mb-1">Could not load these ads.</p>
+          <p className="text-[14px] text-ink-soft mb-4">{error}</p>
+          <button
+            type="button"
+            onClick={() => setReload((n) => n + 1)}
+            className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl border border-line font-semibold"
+          >
+            Retry
+          </button>
+        </div>
       ) : ads.length < 2 ? (
         <div className="text-center py-20 text-ink-soft">
           <p className="mb-3">Pick at least 2 ads to compare.</p>
-          <Link to="/ads" className="text-coral-dark font-semibold">Back to the library</Link>
+          <Link to="/ads" className="inline-flex items-center min-h-[44px] text-coral-dark font-semibold">Back to the library</Link>
         </div>
       ) : (
         <div className="overflow-x-auto -mx-5 px-5 sm:mx-0 sm:px-0">
@@ -127,14 +169,14 @@ export default function Compare() {
                         <button
                           onClick={() => toggleStar(a)}
                           aria-label="Star"
-                          className={`absolute top-1.5 right-1.5 w-7 h-7 rounded-full flex items-center justify-center backdrop-blur ${
+                          className={`absolute top-1 right-1 w-11 h-11 rounded-full flex items-center justify-center backdrop-blur ${
                             isStarred(a) ? 'bg-amber-400 text-white' : 'bg-card/85 text-ink-soft'
                           }`}
                         >
                           <Star size={14} weight={isStarred(a) ? 'fill' : 'bold'} />
                         </button>
                       </div>
-                      <Link to={`/ad/${a.id}`} className="block mt-2 font-semibold text-[13px] truncate hover:text-coral-dark">
+                      <Link to={`/ad/${a.id}`} className="block min-h-[44px] leading-[44px] font-semibold text-[13px] truncate hover:text-coral-dark">
                         {a.brand || 'Untitled'}
                       </Link>
                       <p className="text-[11px] text-ink-soft truncate">{a.platform}</p>

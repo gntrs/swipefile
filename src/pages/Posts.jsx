@@ -52,7 +52,7 @@ export default function Posts() {
   const metric = (p, key) => p?.metrics?.[key] ?? null;
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
+    <div data-page="posts" className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
       <div className="flex items-center justify-between gap-3 mb-5">
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight">Organic posts</h1>
@@ -73,7 +73,7 @@ export default function Posts() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search title, copy, tags..."
-            className="w-full py-2.5 bg-transparent focus:outline-none text-[14px]"
+            className="w-full min-h-[44px] py-2.5 bg-transparent focus:outline-none text-[14px]"
           />
         </div>
         <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 sm:flex-wrap">
@@ -81,7 +81,7 @@ export default function Posts() {
             <button
               key={p}
               onClick={() => setPlatform(p)}
-              className={`flex-shrink-0 px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
+              className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
                 platform === p ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
               }`}
             >

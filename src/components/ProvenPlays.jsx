@@ -67,7 +67,7 @@ export default function ProvenPlays({ ads }) {
             <button
               key={id}
               onClick={() => setScope(id)}
-              className={`px-2.5 py-1.5 rounded-xl text-[12px] font-semibold transition-colors ${
+              className={`min-h-[44px] min-w-[44px] px-2.5 py-1.5 rounded-xl text-[12px] font-semibold transition-colors ${
                 scope === id ? 'bg-ink text-black' : 'bg-card border border-line text-ink-soft'
               }`}
             >
@@ -87,7 +87,7 @@ export default function ProvenPlays({ ads }) {
             const d = days(a);
             const live = a.metrics?.live;
             return (
-              <Link key={a.id} to={`/ad/${a.id}`} className="block group">
+              <Link key={a.id} to={`/ad/${a.id}`} className="block min-h-[44px] group">
                 <div className="flex items-baseline gap-2 mb-1">
                   <span className="font-mono text-[11px] text-ink-soft/60 tabular-nums w-4 flex-shrink-0">
                     {i + 1}

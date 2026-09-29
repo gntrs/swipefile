@@ -2,9 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { GlobeHemisphereWest, MagnifyingGlass, ArrowRight } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
-import { geoStatus, countryOptions } from '@/lib/ads';
-
-const MARKET_LABEL = { ES: 'Spain', FR: 'France', US: 'US' };
+import { geoStatus, countryOptions, countryName, FOCUS_COUNTRIES } from '@/lib/ads';
 
 // The dashboard face of /intel: three plain-language headlines, no controls.
 // Reuses the ads the dashboard already loaded (geo), and does one cheap read
@@ -39,7 +37,7 @@ export default function IntelCard({ ads = [] }) {
       if (geoStatus(a) === 'eu') eu += 1;
     });
     const countries = countryOptions(ads);
-    const focus = countries.filter((c) => c.code === 'ES' || c.code === 'FR');
+    const focus = countries.filter((c) => FOCUS_COUNTRIES.includes(c.code));
     return { eu, ready: eu > 0, focus };
   }, [ads]);
 
@@ -56,12 +54,12 @@ export default function IntelCard({ ads = [] }) {
     !seo.ready
       ? 'Search tracking not set up'
       : seo.best
-      ? `Best rank #${seo.best.position} — “${seo.best.term}” (${MARKET_LABEL[seo.best.market] || seo.best.market})`
+      ? `Best rank #${seo.best.position}: “${seo.best.term}” (${countryName(seo.best.market)})`
       : 'Not in top results in any tracked market';
 
   const geoLine = geo.ready
     ? `${geo.eu} ads ran in the EU` +
-      (geo.focus.length ? ` · ${geo.focus.map((c) => `${c.count} ${MARKET_LABEL[c.code]}`).join(' · ')}` : '')
+      (geo.focus.length ? ` · ${geo.focus.map((c) => `${c.count} ${countryName(c.code)}`).join(' · ')}` : '')
     : 'EU geo sync not run';
 
   return (

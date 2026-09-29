@@ -1,13 +1,16 @@
 {
   "name": "swipefile",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
-  "description": "Open-source ad intelligence dashboard: swipe file, competitor tracking, and an AI analysis layer on a Postgres database.",
+  "description": "Open-source ad swipe file: save ads, call winners and losers, mine hooks and write briefs. Runs on your own Supabase project.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:sql": "node scripts/test-sql.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.7",
@@ -21,6 +24,7 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
-    "vite": "^5.4.8"
+    "vite": "^5.4.8",
+    "vitest": "^3.2.7"
   }
 }

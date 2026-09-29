@@ -123,7 +123,7 @@ function Message({ msg, reactions, myEmail, mentionsMe, bySlug, pickerOpen, onTo
         type="button"
         onClick={() => onTogglePicker(msg.id)}
         aria-label="React to message"
-        className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
+        className={`w-11 h-11 -my-2.5 -mr-2.5 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
           pickerOpen ? 'bg-coral-soft text-coral-dark' : 'text-ink-soft/50 hover:bg-cream'
         }`}
       >
@@ -486,13 +486,13 @@ export default function TeamChat() {
           onKeyDown={onInputKeyDown}
           placeholder="Message the team, @mention someone"
           maxLength={500}
-          className="flex-1 min-w-0 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[16px] sm:text-[14px]"
+          className="flex-1 min-w-0 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[16px] sm:text-[14px]"
         />
         <button
           type="submit"
           disabled={!text.trim()}
           aria-label="Send"
-          className="press w-10 h-10 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta disabled:opacity-40 disabled:shadow-none"
+          className="press w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta disabled:opacity-40 disabled:shadow-none"
         >
           <PaperPlaneRight size={17} weight="bold" />
         </button>

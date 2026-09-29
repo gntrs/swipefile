@@ -14,15 +14,12 @@ import {
   euReach,
   fmtEuReach,
   FOCUS_COUNTRIES,
+  compareMarkets,
+  countryName,
 } from '@/lib/ads';
 
-// The markets we actually care about, in the order we want to read them.
-const MARKET_ORDER = ['ES', 'US', 'GB', 'FR'];
-const MARKET_LABEL = { ES: 'Spain', US: 'United States', GB: 'United Kingdom', FR: 'France' };
-const marketRank = (m) => {
-  const i = MARKET_ORDER.indexOf(m);
-  return i === -1 ? 99 : i;
-};
+// Markets read in this order: your focus countries (VITE_FOCUS_COUNTRIES)
+// first, then the rest alphabetically. Labels come from countryName.
 
 // A database read that treats a missing table/column as "feature not set up
 // yet" rather than an error to crash on. Migrations 18 (geo columns) and 19
@@ -90,7 +87,7 @@ function SectionHead({ icon: Icon, title, status, live }) {
 function NotSetUp({ summary, steps }) {
   return (
     <details className="group rounded-xl3 border border-line bg-card/60 overflow-hidden">
-      <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer list-none select-none text-[13px] text-ink-soft transition-colors duration-150 ease-swift hover:text-ink [&::-webkit-details-marker]:hidden">
+      <summary className="flex items-center gap-2 min-h-[44px] px-4 py-3 cursor-pointer list-none select-none text-[13px] text-ink-soft transition-colors duration-150 ease-swift hover:text-ink [&::-webkit-details-marker]:hidden">
         <span className="flex-1 min-w-0">{summary}</span>
         <span className="flex items-center gap-1 text-[12px] flex-shrink-0">
           Set up
@@ -194,7 +191,7 @@ export default function Intel() {
         const ranked = terms.filter((t) => t.ours?.position != null).length;
         return { market, latestDay, terms, ranked };
       })
-      .sort((a, b) => marketRank(a.market) - marketRank(b.market));
+      .sort((a, b) => compareMarkets(a.market, b.market));
   }, [seo.rows]);
 
   const seoLatestDay = useMemo(
@@ -221,7 +218,7 @@ export default function Intel() {
           .sort((a, b) => b.value - a.value);
         return { geo: g, terms };
       })
-      .sort((a, b) => marketRank(a.geo) - marketRank(b.geo));
+      .sort((a, b) => compareMarkets(a.geo, b.geo));
   }, [trends.rows]);
 
   const seoLive = !seo.missing && seoByMarket.length > 0;
@@ -240,7 +237,7 @@ export default function Intel() {
     );
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
+    <div data-page="intel" className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
       <header className="mb-7 animate-rise">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">Market intel</p>
         <h1 className="text-[26px] sm:text-[30px] font-semibold tracking-tight mt-1">Where we stand</h1>
@@ -271,7 +268,7 @@ export default function Intel() {
             {seoByMarket.map(({ market, terms, ranked }) => (
               <Card key={market}>
                 <div className="flex items-baseline justify-between mb-4">
-                  <h3 className="font-semibold text-[15px] tracking-tight">{MARKET_LABEL[market] || market}</h3>
+                  <h3 className="font-semibold text-[15px] tracking-tight">{countryName(market)}</h3>
                   <span className="text-[11px] text-ink-soft tabular-nums">
                     {ranked}/{terms.length} ranking
                   </span>
@@ -334,7 +331,7 @@ export default function Intel() {
             steps={[
               <>Add <Cmd>META_ACCESS_TOKEN</Cmd> to <Cmd>.env</Cmd>.</>,
               <>Apply <Cmd>db-setup.sql</Cmd>.</>,
-              <>Run <Cmd>node scripts/sync-geo.mjs</Cmd> to pull reach and per-country splits (Spain and France first).</>,
+              <>Run <Cmd>node scripts/sync-geo.mjs</Cmd> to pull reach and per-country splits (your VITE_FOCUS_COUNTRIES first).</>,
             ]}
           />
         ) : (
@@ -355,12 +352,12 @@ export default function Intel() {
               {geo.countries.length === 0 ? (
                 <p className="text-ink-soft text-[13px]">No per-country data resolved yet.</p>
               ) : (
-                <div className="space-y-2">
+                <div>
                   {geo.countries.slice(0, 6).map(({ code, label, count }) => (
                     <Link
                       key={code}
                       to={`/ads?country=${code}`}
-                      className="flex items-center justify-between group -mx-1 px-1 rounded transition-colors duration-150 ease-swift hover:bg-cream/60 active:bg-cream"
+                      className="flex items-center justify-between min-h-[44px] group -mx-1 px-1 rounded transition-colors duration-150 ease-swift hover:bg-cream/60 active:bg-cream"
                     >
                       <span className="text-[13px] transition-colors duration-150 group-hover:text-coral-dark">
                         {label}
@@ -417,13 +414,13 @@ export default function Intel() {
           <div className="grid gap-4 md:grid-cols-3">
             {trendsByGeo.map(({ geo: g, terms }) => (
               <Card key={g}>
-                <h3 className="font-semibold text-[15px] tracking-tight mb-4">{MARKET_LABEL[g] || g}</h3>
+                <h3 className="font-semibold text-[15px] tracking-tight mb-4">{countryName(g)}</h3>
                 <div className="space-y-2.5">
                   {terms.slice(0, 6).map(({ term, value, hasData }) => (
                     <div key={term}>
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[12px] text-ink-soft truncate pr-2">{term}</span>
-                        <span className="text-[12px] font-semibold tabular-nums">{hasData ? value : '—'}</span>
+                        <span className="text-[12px] font-semibold tabular-nums">{hasData ? value : '-'}</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-cream overflow-hidden">
                         <div className="h-full bg-coral rounded-full" style={{ width: `${Math.max(value, hasData ? 2 : 0)}%` }} />
@@ -431,7 +428,7 @@ export default function Intel() {
                     </div>
                   ))}
                 </div>
-                <p className="text-[11px] text-ink-soft/60 mt-3.5">relative interest, 0–100 within {MARKET_LABEL[g] || g}</p>
+                <p className="text-[11px] text-ink-soft/60 mt-3.5">relative interest, 0 to 100 within {countryName(g)}</p>
               </Card>
             ))}
           </div>

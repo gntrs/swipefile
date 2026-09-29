@@ -6,9 +6,9 @@ import { triggerCelebration } from '@/lib/celebration';
 import Pill from '@/components/Pill';
 
 // The money counter. YT-subscriber-counter energy: lifetime revenue GENERATED
-// (not what was paid out), MRR, sales today - and confetti the moment a new
+// (not what was paid out), MRR, sales today, and confetti the moment a new
 // sale row lands via realtime (scripts/stripe-pull.mjs feeds the sales table
-// from the WSL cron every ~5 min). Numbers animate up; green is reserved for
+// from your cron machine every ~5 min). Numbers animate up; green is reserved for
 // the good-news accents per the color law.
 
 const CUR = { eur: '€', usd: '$', gbp: '£' };
@@ -154,10 +154,10 @@ export default function RevenueCard() {
 
       {empty ? (
         <div className="text-[13px] text-ink-soft bg-cream/60 rounded-2xl px-4 py-3">
-          Waiting for Stripe. Add <span className="font-mono text-[12px]">STRIPE_API_KEY</span> to
-          the WSL <span className="font-mono text-[12px]">.env</span>, apply{' '}
-          <span className="font-mono text-[12px]">db-setup.sql</span>, then{' '}
-          <span className="font-mono text-[12px]">node scripts/stripe-pull.mjs</span> backfills
+          Waiting for Stripe. Add <span className="font-mono text-[12px]">STRIPE_API_KEY</span> to{' '}
+          <span className="font-mono text-[12px]">.env</span> on your cron machine, apply{' '}
+          <span className="font-mono text-[12px]">db-setup.sql</span>, then run{' '}
+          <span className="font-mono text-[12px]">node scripts/stripe-pull.mjs</span> to backfill
           every sale.
         </div>
       ) : (

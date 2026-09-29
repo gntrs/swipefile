@@ -4,6 +4,7 @@ import { isOwnBrand } from '@/lib/brand';
 import {
   PlusCircle,
   MagnifyingGlass,
+  Tray,
   Star,
   Trophy,
   Scales,
@@ -21,6 +22,11 @@ import {
   GEO_STATUS,
 } from '@/lib/ads';
 import AdCard from '@/components/AdCard';
+import PartialNotice from '@/components/PartialNotice';
+import { libraryEmptyState, anyFilterActive } from '@/lib/libraryState';
+
+// Until the CSV importer lands in the app, the button points at the guide.
+const CSV_GUIDE_URL = 'https://github.com/gntrs/swipefile/blob/main/docs/SETUP.md#csv-import';
 
 const FILTERS = ['all', 'winner', 'testing', 'loser', 'unsure'];
 
@@ -63,8 +69,11 @@ export default function Library() {
   const [compareMode, setCompareMode] = useState(false);
   const [selected, setSelected] = useState([]); // ad objects
 
+  const [reload, setReload] = useState(0);
+
   useEffect(() => {
     let mounted = true;
+    setLoading(true);
     fetchAll((q) => q.order('created_at', { ascending: false }), 'ads').then((data) => {
       if (!mounted) return;
       setAds(data);
@@ -73,7 +82,7 @@ export default function Library() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [reload]);
 
   // Tapping the nav link while already on /ads changes the query string without
   // remounting, so mirror it back into state.
@@ -148,6 +157,20 @@ export default function Library() {
     });
   };
 
+  const filtersActive = anyFilterActive({ q, verdict, who, provenOnly, starredOnly, recentOnly, country, geo });
+  const emptyState = libraryEmptyState({ total: ads.length, shown: sorted.length, filtersActive });
+
+  const clearFilters = () => {
+    setProvenOnly(false);
+    setStarredOnly(false);
+    setRecentOnly(false);
+    setVerdict('all');
+    setWho('all');
+    setCountry('all');
+    setGeo('all');
+    setQ('');
+  };
+
   const exitCompare = () => {
     setCompareMode(false);
     setSelected([]);
@@ -156,12 +179,12 @@ export default function Library() {
   // Every chip in the filter rows is a thumb target first and a label second:
   // 44px tall minimum, never smaller, on every viewport.
   const pill = (active) =>
-    `press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-2xl text-[13px] font-semibold transition-colors ${
+    `press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-2xl text-[13px] font-semibold transition-colors ${
       active ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
     }`;
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[1200px] mx-auto pb-24">
+    <div data-page="library" className="px-5 sm:px-8 py-6 max-w-[1200px] mx-auto pb-24">
       <div className="flex items-start justify-between gap-3 mb-5">
         <div className="min-w-0">
           <h1 className="text-[26px] sm:text-[22px] font-semibold tracking-[-0.02em] leading-tight">
@@ -203,7 +226,7 @@ export default function Library() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search brand, hook, copy, tags..."
-            className="w-full min-w-0 py-2.5 bg-transparent focus:outline-none text-[14px]"
+            className="w-full min-w-0 min-h-[44px] py-2.5 bg-transparent focus:outline-none text-[14px]"
           />
         </div>
         <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0">
@@ -211,7 +234,7 @@ export default function Library() {
             <button
               key={w.id}
               onClick={() => setWho(w.id)}
-              className={`press flex-shrink-0 min-h-[44px] px-3.5 rounded-2xl text-[13px] font-semibold transition-colors ${
+              className={`press flex-shrink-0 min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-2xl text-[13px] font-semibold transition-colors ${
                 who === w.id ? 'bg-ink text-black' : 'bg-card border border-line text-ink-soft'
               }`}
             >
@@ -241,7 +264,7 @@ export default function Library() {
         <button
           onClick={() => setStarredOnly((v) => !v)}
           aria-pressed={starredOnly}
-          className={`press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-2xl text-[13px] font-semibold transition-colors ${
+          className={`press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-2xl text-[13px] font-semibold transition-colors ${
             starredOnly
               ? 'bg-amber-400 text-black'
               : 'bg-card border border-line text-ink-soft'
@@ -271,7 +294,7 @@ export default function Library() {
             key={f}
             onClick={() => setVerdict(f)}
             aria-pressed={verdict === f}
-            className={`press flex-shrink-0 flex items-center min-h-[44px] px-3.5 rounded-2xl text-[13px] font-semibold capitalize transition-colors ${
+            className={`press flex-shrink-0 flex items-center min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-2xl text-[13px] font-semibold capitalize transition-colors ${
               verdict === f ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
             }`}
           >
@@ -330,22 +353,40 @@ export default function Library() {
         </p>
       )}
 
+      <PartialNotice rows={ads} noun="ads" onRetry={() => setReload((n) => n + 1)} className="mb-4" />
+
       {loading ? (
         <p className="text-ink-soft">Loading...</p>
-      ) : sorted.length === 0 ? (
+      ) : emptyState === 'first-run' ? (
+        <div className="max-w-[440px] mx-auto my-12 bg-card border border-line rounded-xl3 p-6 text-center">
+          <Tray size={28} weight="bold" className="mx-auto mb-3 text-ink-soft" />
+          <h2 className="text-[20px] font-semibold tracking-tight mb-2">Your swipe file is empty</h2>
+          <p className="text-[15px] text-ink-soft leading-relaxed mb-5">
+            Save an ad you liked, or bring in a batch from a CSV export.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <Link
+              to="/ads/add"
+              className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl bg-coral text-black font-semibold"
+            >
+              Add your first ad
+            </Link>
+            <a
+              href={CSV_GUIDE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl border border-line font-semibold text-ink"
+            >
+              Import a CSV
+            </a>
+          </div>
+        </div>
+      ) : emptyState === 'no-match' ? (
         <div className="text-center py-20 text-ink-soft">
           <p className="mb-3">No ads match.</p>
-          {(provenOnly || starredOnly || recentOnly || verdict !== 'all' || country !== 'all' || geo !== 'all' || q) && (
+          {filtersActive && (
             <button
-              onClick={() => {
-                setProvenOnly(false);
-                setStarredOnly(false);
-                setRecentOnly(false);
-                setVerdict('all');
-                setCountry('all');
-                setGeo('all');
-                setQ('');
-              }}
+              onClick={clearFilters}
               className="press inline-flex items-center min-h-[44px] px-4 rounded-2xl border border-line text-coral-dark font-semibold"
             >
               Clear filters

@@ -1,4 +1,4 @@
-// Regenerate the PWA icons in public/ from the Tracker. mark.
+// Regenerate the PWA icons in public/ from the app mark.
 // The PNGs are committed, so this only needs to run when the mark changes:
 //   npm i -D sharp --no-save && node scripts/make-icons.mjs
 // (sharp is deliberately not a dependency; it is only needed here.)

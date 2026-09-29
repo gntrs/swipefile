@@ -1,10 +1,10 @@
-// "gm" listener. Runs on the WSL cron every minute. Polls Telegram for messages
+// "gm" listener. Runs from cron on your cron machine every minute. Polls Telegram for messages
 // the owner sends the bot; when they say "gm" (or morning / intel / news), it sends
 // today's startup-radar digest IF it hasn't already gone out this morning. Saying
 // "refresh" / "again" forces a fresh pull regardless.
 //
 // This is the only thing that READS from the bot (the bot is otherwise send-only,
-// no webhook), so getUpdates is ours to use — offset is tracked on disk so nothing
+// no webhook), so getUpdates is ours to use; offset is tracked on disk so nothing
 // gets processed twice.
 //
 //   node scripts/gm-listener.mjs           # one poll (cron uses this)
@@ -113,7 +113,7 @@ async function askClaude(text) {
     ['-p', prompt, '--model', AGENT_MODEL],
     { cwd: process.cwd(), timeout: Number(process.env.TG_AGENT_TIMEOUT_MS || 150000), maxBuffer: 4 * 1024 * 1024 }
   );
-  return (stdout || '').trim().replace(/\s[—–]\s/g, '. ').replace(/[—–]/g, ',');
+  return (stdout || '').trim().replace(/\s[\u2014\u2013]\s/g, '. ').replace(/[\u2014\u2013]/g, ',');
 }
 
 async function main() {

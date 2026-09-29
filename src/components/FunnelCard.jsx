@@ -1,24 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { fetchAll } from '@/lib/db';
+import { fetchAll, isMissingTable } from '@/lib/db';
+import PartialNotice from '@/components/PartialNotice';
+import { parseFunnelStages, DEFAULT_FUNNEL_STAGES } from '@/lib/funnel';
 
 // Site funnel + traffic, read from kpi_snapshots (one row per day, written by
-// scripts/snapshot-kpis.mjs from the daily PostHog pull - the browser can't
+// scripts/snapshot-kpis.mjs from the daily PostHog pull; the browser can't
 // reach PostHog directly). Sums the last N days for the funnel bars and plots
 // visitors/day as a sparkline. Degrades to a quiet setup note when the table
 // is empty (migration 16 not applied yet, or the cron hasn't run).
 
 const WINDOW = 30;
 
-// Funnel stages top to bottom, with human labels. Keyed by the raw event names
-// snapshot-kpis.mjs stores, so relabeling here needs no data change.
-const STAGES = [
-  { key: 'landing_cta_clicked', label: 'Landing CTA' },
-  { key: 'fb_onb_started', label: 'Onboarding started' },
-  { key: 'fb_onb_completed', label: 'Onboarding done' },
-  { key: 'user_registered', label: 'Registered' },
-  { key: 'payment_initiated', label: 'Checkout started' },
-  { key: 'payment_completed', label: 'Paid' },
-];
+// Funnel stages top to bottom, with human labels, from VITE_FUNNEL_STAGES
+// (see lib/funnel.js). Keyed by the raw event names snapshot-kpis.mjs stores,
+// so relabeling needs no data change.
+const env = (typeof import.meta !== 'undefined' && import.meta.env) || {};
+const STAGES = parseFunnelStages(env.VITE_FUNNEL_STAGES || DEFAULT_FUNNEL_STAGES);
 
 const cutoff = () => {
   const d = new Date();
@@ -28,6 +25,7 @@ const cutoff = () => {
 
 export default function FunnelCard() {
   const [rows, setRows] = useState(null); // null = loading, [] = empty/no table
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -37,7 +35,10 @@ export default function FunnelCard() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [reload]);
+
+  // A missing table is the setup note below, not a load failure.
+  const partial = rows?.error && !isMissingTable(rows.error) ? rows : null;
 
   const { funnel, spark, visitors, days } = useMemo(() => {
     const list = rows || [];
@@ -93,6 +94,7 @@ export default function FunnelCard() {
         )}
       </div>
 
+      <PartialNotice rows={partial} noun="days" onRetry={() => setReload((n) => n + 1)} className="mb-3" />
       {rows === null ? (
         <p className="text-ink-soft text-[13px]">Loading...</p>
       ) : rows.length === 0 ? (

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowSquareOut, Check, Copy, MagnifyingGlass, Quotes } from '@phosphor-icons/react';
 import { fetchAll } from '@/lib/db';
+import PartialNotice from '@/components/PartialNotice';
 import { isOwnBrand } from '@/lib/brand';
 
 const WHO = [
@@ -44,7 +45,7 @@ function CopyButton({ text }) {
         setTimeout(() => setCopied(false), 1200);
       }}
       aria-label="Copy hook"
-      className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+      className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
         copied ? 'bg-mint/40 text-emerald-700' : 'text-ink-soft hover:bg-cream'
       }`}
     >
@@ -63,17 +64,21 @@ export default function HookBank() {
   const [only, setOnly] = useState('all');
   const [tag, setTag] = useState(null);
 
+  const [partial, setPartial] = useState(null);
+  const [reload, setReload] = useState(0);
+
   useEffect(() => {
     let mounted = true;
     fetchAll((q) => q.order('created_at', { ascending: false }), 'ads').then((data) => {
       if (!mounted) return;
+      setPartial(data.error ? data : null);
       setAds(data.filter((a) => hookText(a)));
       setLoading(false);
     });
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [reload]);
 
   // Collapse identical hook text into one card carrying its best ad.
   const hooks = useMemo(() => {
@@ -138,13 +143,14 @@ export default function HookBank() {
   }, [hooks, q, who, only, tag]);
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[860px] mx-auto">
+    <div data-page="hooks" className="px-5 sm:px-8 py-6 max-w-[860px] mx-auto">
       <div className="mb-5">
         <h1 className="text-[22px] font-semibold tracking-tight">Hook bank</h1>
         <p className="text-ink-soft text-[14px]">
           {hooks.length} hooks to steal from. Proven ones float to the top.
         </p>
       </div>
+      <PartialNotice rows={partial} noun="ads" onRetry={() => setReload((n) => n + 1)} className="mb-4" />
 
       {/* Controls */}
       <div className="flex flex-col gap-3 mb-3">
@@ -154,7 +160,7 @@ export default function HookBank() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search hooks, brands, tags..."
-            className="w-full py-2.5 bg-transparent focus:outline-none text-[14px]"
+            className="w-full min-h-[44px] py-2.5 bg-transparent focus:outline-none text-[14px]"
           />
         </div>
         <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 sm:flex-wrap">
@@ -162,7 +168,7 @@ export default function HookBank() {
             <button
               key={w.id}
               onClick={() => setWho(w.id)}
-              className={`flex-shrink-0 px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
+              className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
                 who === w.id ? 'bg-ink text-black' : 'bg-card border border-line text-ink-soft'
               }`}
             >
@@ -173,7 +179,7 @@ export default function HookBank() {
             <button
               key={o.id}
               onClick={() => setOnly(o.id)}
-              className={`flex-shrink-0 px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
+              className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
                 only === o.id ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
               }`}
             >
@@ -187,7 +193,7 @@ export default function HookBank() {
               <button
                 key={t}
                 onClick={() => setTag(tag === t ? null : t)}
-                className={`px-2.5 py-1 rounded-full text-[12px] font-medium transition-colors ${
+                className={`min-h-[44px] min-w-[44px] px-3 py-1 rounded-full text-[12px] font-medium transition-colors ${
                   tag === t ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
                 }`}
               >
@@ -256,7 +262,7 @@ export default function HookBank() {
                 <Link
                   to={`/ad/${h.best.id}`}
                   aria-label="Open the ad"
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-ink-soft hover:bg-cream"
+                  className="w-11 h-11 rounded-xl flex items-center justify-center text-ink-soft hover:bg-cream"
                 >
                   <ArrowSquareOut size={16} weight="bold" />
                 </Link>

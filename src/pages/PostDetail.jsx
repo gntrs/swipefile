@@ -65,19 +65,19 @@ export default function PostDetail() {
   };
 
   if (loading) return <div className="p-8 text-ink-soft">Loading...</div>;
-  if (!post) return <div className="p-8 text-ink-soft">Post not found.</div>;
+  if (!post) return <div data-page="post-detail" className="p-8 text-ink-soft">Post not found.</div>;
 
   
   const metrics = post.metrics || {};
   const hasMetrics = METRIC_KEYS.some((k) => metrics[k] != null);
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[860px] mx-auto">
+    <div data-page="post-detail" className="px-5 sm:px-8 py-6 max-w-[860px] mx-auto">
       <div className="flex items-center justify-between mb-4">
-        <button onClick={() => navigate('/posts')} className="flex items-center gap-1 text-ink-soft text-[14px] font-medium">
+        <button onClick={() => navigate('/posts')} className="flex items-center gap-1 min-h-[44px] text-ink-soft text-[14px] font-medium">
           <CaretLeft size={16} weight="bold" /> Posts
         </button>
-        <button onClick={remove} className="flex items-center gap-1 text-red-500 text-[14px] font-medium">
+        <button onClick={remove} className="flex items-center gap-1 min-h-[44px] text-red-500 text-[14px] font-medium">
           <Trash size={16} weight="bold" /> Delete
         </button>
       </div>
@@ -100,7 +100,7 @@ export default function PostDetail() {
               href={post.url}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1 text-coral-dark text-[14px] font-semibold flex-shrink-0"
+              className="flex items-center gap-1 min-h-[44px] text-coral-dark text-[14px] font-semibold flex-shrink-0"
             >
               Open <ArrowSquareOut size={16} weight="bold" />
             </a>
@@ -113,7 +113,7 @@ export default function PostDetail() {
             <select
               value={post.verdict}
               onChange={(e) => patch({ verdict: e.target.value })}
-              className="w-full py-2 px-3 rounded-2xl border border-line bg-card focus:outline-none focus:border-coral text-[14px] capitalize"
+              className="w-full min-h-[44px] py-2 px-3 rounded-2xl border border-line bg-card focus:outline-none focus:border-coral text-[14px] capitalize"
             >
               {VERDICTS.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
@@ -177,9 +177,9 @@ export default function PostDetail() {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Add a note for the team..."
-            className="flex-1 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
+            className="flex-1 min-w-0 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
           />
-          <button className="press w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center shadow-cta">
+          <button aria-label="Add note" className="press w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta">
             <PaperPlaneRight size={18} weight="fill" />
           </button>
         </form>

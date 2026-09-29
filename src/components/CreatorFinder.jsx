@@ -23,8 +23,8 @@ const fmtFollowers = (n) => {
 };
 
 // "Find creators" button + scraped Instagram leads grouped by follower tier.
-// The button queues a scrape_jobs row; the WSL cron (creators-cron.sh) picks
-// it up within ~2 minutes, searches the niche via Brave, and fills
+// The button queues a scrape_jobs row; the cron machine (creators-cron.sh) picks
+// it up within ~2 minutes, searches your CREATOR_QUERIES via Brave, and fills
 // creator_leads. One tap moves a lead into the outreach log above.
 export default function CreatorFinder({ onOutreachAdded }) {
   const { user } = useAuth();
@@ -128,7 +128,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
         <button
           onClick={findCreators}
           disabled={active}
-          className="press flex items-center gap-1.5 py-2 px-3.5 rounded-2xl bg-coral text-black text-[13px] font-semibold shadow-cta disabled:opacity-40 disabled:shadow-none"
+          className="press flex items-center gap-1.5 min-h-[44px] py-2 px-3.5 rounded-2xl bg-coral text-black text-[13px] font-semibold shadow-cta disabled:opacity-40 disabled:shadow-none"
         >
           <MagnifyingGlass size={15} weight="bold" />
           {active ? 'Searching...' : tier === 'unknown' ? 'Find creators' : `Find ${TIERS.find((t) => t.key === tier).label}`}
@@ -136,10 +136,10 @@ export default function CreatorFinder({ onOutreachAdded }) {
       </div>
       <p className="text-ink-soft text-[13px] mb-4">
         {job?.status === 'pending' && 'Queued. The scraper picks this up within a couple of minutes.'}
-        {job?.status === 'running' && 'Searching Instagram via web search, results appear below as they land.'}
+        {job?.status === 'running' && 'Searching the web for Instagram profiles, results appear below as they land.'}
         {job?.status === 'error' && `Last run failed: ${job.note || 'unknown error'}`}
         {job?.status === 'done' && `Last run: ${job.note || 'done'}`}
-        {!job && 'Pick an audience size, hit the button: searches Instagram for creators in your niche to partner with.'}
+        {!job && 'Pick an audience size and search. It finds public Instagram profiles through Brave Search using your CREATOR_QUERIES.'}
       </p>
 
       <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 mb-4">
@@ -147,7 +147,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
           <button
             key={t.key}
             onClick={() => setTier(t.key)}
-            className={`flex-shrink-0 px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
+            className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
               tier === t.key ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
             }`}
           >
@@ -192,7 +192,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
               <button
                 onClick={() => dismiss(l)}
                 aria-label={`Dismiss @${l.handle}`}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-ink-soft hover:bg-cream flex-shrink-0"
+                className="w-11 h-11 rounded-xl flex items-center justify-center text-ink-soft hover:bg-cream flex-shrink-0"
               >
                 <X size={14} weight="bold" />
               </button>

@@ -135,7 +135,7 @@ export default function Availability() {
 
   if (missing) {
     return (
-      <div className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
+      <div data-page="availability" className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
         <MigrationCard title="Team availability" migration="db-setup.sql" />
       </div>
     );
@@ -185,12 +185,12 @@ export default function Availability() {
   };
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
+    <div data-page="availability" className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
       <div className="flex items-center justify-between gap-3 mb-1">
         <h1 className="text-[22px] font-semibold tracking-tight">Availability</h1>
         <button
           onClick={() => setEditor({ day: ymd(days[selDay]), start: 540 })}
-          className="press flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-coral text-black text-[14px] font-semibold shadow-cta"
+          className="press flex items-center gap-1.5 min-h-[44px] px-3.5 py-2 rounded-2xl bg-coral text-black text-[14px] font-semibold shadow-cta"
         >
           <Plus size={16} weight="bold" /> Add
         </button>
@@ -200,13 +200,13 @@ export default function Availability() {
       {/* Week nav + legend */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-1">
-          <button onClick={() => setWeekStart((w) => addDays(w, -7))} aria-label="Previous week" className="w-9 h-9 rounded-2xl bg-card border border-line flex items-center justify-center text-ink-soft hover:bg-cream">
+          <button onClick={() => setWeekStart((w) => addDays(w, -7))} aria-label="Previous week" className="w-11 h-11 rounded-2xl bg-card border border-line flex items-center justify-center text-ink-soft hover:bg-cream">
             <CaretLeft size={16} weight="bold" />
           </button>
-          <button onClick={() => { setWeekStart(mondayOf(new Date())); setSelDay(weekdayIdx(new Date())); }} className="px-3 h-9 rounded-2xl bg-card border border-line text-[13px] font-semibold text-ink-soft hover:bg-cream">
+          <button onClick={() => { setWeekStart(mondayOf(new Date())); setSelDay(weekdayIdx(new Date())); }} className="px-3 h-11 rounded-2xl bg-card border border-line text-[13px] font-semibold text-ink-soft hover:bg-cream">
             Today
           </button>
-          <button onClick={() => setWeekStart((w) => addDays(w, 7))} aria-label="Next week" className="w-9 h-9 rounded-2xl bg-card border border-line flex items-center justify-center text-ink-soft hover:bg-cream">
+          <button onClick={() => setWeekStart((w) => addDays(w, 7))} aria-label="Next week" className="w-11 h-11 rounded-2xl bg-card border border-line flex items-center justify-center text-ink-soft hover:bg-cream">
             <CaretRight size={16} weight="bold" />
           </button>
           <span className="ml-2 text-[14px] font-semibold tabular-nums">{weekLabel}</span>
@@ -228,7 +228,7 @@ export default function Availability() {
             <button
               key={ymd(d)}
               onClick={() => setSelDay(i)}
-              className={`flex-shrink-0 px-3 py-2 rounded-2xl text-[13px] font-semibold tabular-nums transition-colors ${
+              className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold tabular-nums transition-colors ${
                 i === selDay ? 'bg-coral text-black shadow-cta' : isToday ? 'bg-coral-soft text-coral-dark' : 'bg-card border border-line text-ink-soft'
               }`}
             >

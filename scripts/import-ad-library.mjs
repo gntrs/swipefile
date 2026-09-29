@@ -38,6 +38,7 @@
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
+import { nextImportVerdict } from '../src/lib/ads.js';
 
 // Tiny .env loader (no dotenv dep).
 const envPath = path.resolve(process.cwd(), '.env');
@@ -52,7 +53,7 @@ const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
 const serviceKey = (process.env.DB_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY);
 const metaToken = process.env.META_ADLIB_TOKEN || process.env.META_ACCESS_TOKEN;
 // Optional: your own brand name, so it never gets seeded as a "competitor".
-const OWN_BRAND = (process.env.OWN_BRAND || '').trim().toLowerCase();
+const OWN_BRAND = (process.env.OWN_BRAND || process.env.VITE_OWN_BRAND || '').trim().toLowerCase();
 if (!url || !serviceKey) {
   console.error('Missing env. Need VITE_DB_URL and DB_SERVICE_KEY in .env.');
   process.exit(1);
@@ -236,7 +237,7 @@ async function importBrand(comp) {
   // per brand so Foreplay-era rows are not duplicated.
   const { data: existing, error: exErr } = await sb
     .from('ads')
-    .select('id, verdict, ad_copy, metrics')
+    .select('id, verdict, ad_copy, metrics, added_by_email')
     .eq('brand', comp.brand);
   if (exErr) throw new Error(`dedupe query (${comp.brand}): ${exErr.message}`);
   const byLibId = new Map();
@@ -300,11 +301,12 @@ async function importBrand(comp) {
       const oldM = old.metrics || {};
       const metrics = { ...oldM, ...mapped.metrics, source: oldM.source || mapped.metrics.source };
       const update = { metrics, status: mapped.status };
-      const lastAuto = oldM.auto_verdict || 'unsure';
       const newAuto = autoVerdict(mapped.metrics.live, mapped.metrics.days_running ?? null);
-      if (newAuto && old.verdict === lastAuto) {
-        update.verdict = newAuto;
-        metrics.auto_verdict = newAuto;
+      // A person's verdict (verdict_by human, or any hand edit) is never moved.
+      const next = nextImportVerdict(old, newAuto);
+      if (next) {
+        update.verdict = next;
+        metrics.auto_verdict = next;
       } else {
         metrics.auto_verdict = oldM.auto_verdict;
         if (metrics.auto_verdict == null) delete metrics.auto_verdict;
@@ -327,8 +329,8 @@ await seedCompetitors();
 
 if (!metaToken) {
   console.error(
-    'No META_ACCESS_TOKEN (or META_ADLIB_TOKEN) in .env - competitors seeded, ads not pulled.\n' +
-      'On this machine, copy META_ACCESS_TOKEN from the WSL clone .env to run the pull here.'
+    'No META_ACCESS_TOKEN (or META_ADLIB_TOKEN) in .env: competitors seeded, ads not pulled. ' +
+      'Add the token to .env on the machine that runs the importers.'
   );
   process.exit(0);
 }
