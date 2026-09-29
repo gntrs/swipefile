@@ -1,9 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowSquareOut, Check, Copy, MagnifyingGlass, Quotes } from '@phosphor-icons/react';
+import { ArrowSquareOut, Check, Copy, MagnifyingGlass, Quotes, X } from '@phosphor-icons/react';
 import { fetchAll } from '@/lib/db';
 import PartialNotice from '@/components/PartialNotice';
 import { isOwnBrand } from '@/lib/brand';
+import { ANGLE_IDS, angleLabel } from '@/lib/angles';
+import { hookText, hookAngle, angleCounts } from '@/lib/library/hooks';
+import { shouldIgnoreKey } from '@/lib/library/keys';
+import SelectBox from '@/features/save/SelectBox';
+import BriefFromSelection from '@/features/ai/BriefFromSelection';
+import ClassifyHooksButton from '@/features/ai/ClassifyHooksButton';
 
 const WHO = [
   { id: 'all', label: 'All' },
@@ -22,17 +28,9 @@ const isOurs = (a) => isOwnBrand(a.brand);
 // paying to run it for 30+ days (the auto-verdict threshold).
 const isProven = (a) => a.verdict === 'winner' || (a.metrics?.days_running ?? 0) >= 30;
 
-// The hook to show for an ad. Prefer the headline; when it is blank (Ad
-// Library and Foreplay-Spyder rows often carry no headline, only body copy),
-// fall back to the first line of the copy so those ads - hundreds of them,
-// many proven - still land in the bank. Capped so a hook stays a hook and
-// not a whole paragraph.
-function hookText(a) {
-  const headline = (a.hook || '').trim();
-  if (headline) return headline;
-  const firstLine = (a.ad_copy || '').split('\n').map((l) => l.trim()).find(Boolean) || '';
-  return firstLine.length > 140 ? `${firstLine.slice(0, 137).trimEnd()}...` : firstLine;
-}
+// A brief takes at most this many hooks and source ads.
+const MAX_BRIEF_HOOKS = 50;
+const MAX_BRIEF_ADS = 20;
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
@@ -63,12 +61,16 @@ export default function HookBank() {
   const [who, setWho] = useState('all');
   const [only, setOnly] = useState('all');
   const [tag, setTag] = useState(null);
+  const [angle, setAngle] = useState('all'); // 'all' | 'none' | angle id
+  const [picked, setPicked] = useState(() => new Set()); // hook keys
+  const searchRef = useRef(null);
 
   const [partial, setPartial] = useState(null);
   const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true);
     fetchAll((q) => q.order('created_at', { ascending: false }), 'ads').then((data) => {
       if (!mounted) return;
       setPartial(data.error ? data : null);
@@ -79,6 +81,18 @@ export default function HookBank() {
       mounted = false;
     };
   }, [reload]);
+  const reloadHooks = useCallback(() => setReload((n) => n + 1), []);
+
+  // "/" jumps to the search box, like the library.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== '/' || e.shiftKey || shouldIgnoreKey(e)) return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Collapse identical hook text into one card carrying its best ad.
   const hooks = useMemo(() => {
@@ -107,8 +121,10 @@ export default function HookBank() {
         ours: h.ads.some(isOurs),
         rivals: h.ads.some((a) => !isOurs(a)),
       };
-    });
+    }).map((h) => ({ ...h, key: h.text.toLowerCase(), angle: hookAngle(h) }));
   }, [ads]);
+
+  const angleChips = useMemo(() => angleCounts(hooks, ANGLE_IDS), [hooks]);
 
   const topTags = useMemo(() => {
     const counts = new Map();
@@ -128,6 +144,8 @@ export default function HookBank() {
         if (only === 'proven' && !h.proven) return false;
         if (only === 'live' && !h.live) return false;
         if (tag && !h.tags.includes(tag)) return false;
+        if (angle === 'none' && h.angle) return false;
+        if (angle !== 'all' && angle !== 'none' && h.angle !== angle) return false;
         if (!term) return true;
         return [h.text, ...h.brands, ...h.tags, ...h.drivers]
           .join(' ')
@@ -140,15 +158,35 @@ export default function HookBank() {
           b.days - a.days ||
           new Date(b.best.created_at) - new Date(a.best.created_at)
       );
-  }, [hooks, q, who, only, tag]);
+  }, [hooks, q, who, only, tag, angle]);
+
+  // Selection for a brief: hook text plus the best ad behind each hook.
+  const selectedHooks = useMemo(() => hooks.filter((h) => picked.has(h.key)), [hooks, picked]);
+  const briefHooks = selectedHooks.slice(0, MAX_BRIEF_HOOKS).map((h) => h.text);
+  const briefAdIds = [...new Set(selectedHooks.map((h) => h.best?.id).filter(Boolean))].slice(0, MAX_BRIEF_ADS);
+  const capped = selectedHooks.length > MAX_BRIEF_HOOKS || new Set(selectedHooks.map((h) => h.best?.id)).size > MAX_BRIEF_ADS;
+  const togglePick = (key) =>
+    setPicked((cur) => {
+      const next = new Set(cur);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  const chip = (active) =>
+    `press flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-1 rounded-2xl text-[13px] font-semibold transition-colors ${
+      active ? 'bg-accent text-black' : 'bg-card border border-line text-ink-soft'
+    }`;
 
   return (
-    <div data-page="hooks" className="px-5 sm:px-8 py-6 max-w-[860px] mx-auto">
-      <div className="mb-5">
-        <h1 className="text-[22px] font-semibold tracking-tight">Hook bank</h1>
-        <p className="text-ink-soft text-[14px]">
-          {hooks.length} hooks to steal from. Proven ones float to the top.
-        </p>
+    <div data-page="hooks" className={`px-5 sm:px-8 py-6 max-w-[860px] mx-auto ${picked.size ? 'pb-48' : ''}`}>
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-[22px] font-semibold tracking-tight">Hook bank</h1>
+          <p className="text-ink-soft text-[14px]">
+            {hooks.length} hooks to steal from. Proven ones float to the top.
+          </p>
+        </div>
+        <ClassifyHooksButton onDone={reloadHooks} />
       </div>
       <PartialNotice rows={partial} noun="ads" onRetry={() => setReload((n) => n + 1)} className="mb-4" />
 
@@ -157,10 +195,12 @@ export default function HookBank() {
         <div className="flex items-center gap-2 bg-card border border-line rounded-2xl px-3">
           <MagnifyingGlass size={18} className="text-ink-soft" />
           <input
+            ref={searchRef}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search hooks, brands, tags..."
-            className="w-full min-h-[44px] py-2.5 bg-transparent focus:outline-none text-[14px]"
+            aria-label="Search hooks"
+            className="w-full min-h-[44px] py-2.5 bg-transparent focus:outline-none text-[16px] sm:text-[14px]"
           />
         </div>
         <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 sm:flex-wrap">
@@ -187,6 +227,21 @@ export default function HookBank() {
             </button>
           ))}
         </div>
+        {(angleChips.angles.length > 0 || angle !== 'all') && (
+          <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 sm:flex-wrap" role="group" aria-label="Filter by angle">
+            <button type="button" onClick={() => setAngle('all')} aria-pressed={angle === 'all'} className={chip(angle === 'all')}>
+              All angles
+            </button>
+            <button type="button" onClick={() => setAngle('none')} aria-pressed={angle === 'none'} className={chip(angle === 'none')}>
+              No angle yet <span className="tabular-nums opacity-70">{angleChips.none}</span>
+            </button>
+            {angleChips.angles.map((a) => (
+              <button key={a.id} type="button" onClick={() => setAngle(a.id)} aria-pressed={angle === a.id} className={chip(angle === a.id)}>
+                {angleLabel(a.id)} <span className="tabular-nums opacity-70">{a.count}</span>
+              </button>
+            ))}
+          </div>
+        )}
         {topTags.length > 0 && (
           <div className="flex gap-1.5 flex-wrap">
             {topTags.map((t) => (
@@ -215,11 +270,17 @@ export default function HookBank() {
         <div className="flex flex-col gap-2.5">
           {filtered.map((h) => (
             <div
-              key={h.text.toLowerCase()}
-              className="bg-card rounded-xl3 border border-line shadow-card px-4 py-3.5 flex items-start gap-3"
+              key={h.key}
+              className={`bg-card rounded-xl3 border shadow-card pl-1 pr-4 py-2.5 flex items-start gap-2 ${
+                picked.has(h.key) ? 'border-accent' : 'border-line'
+              }`}
             >
-              <div className="flex-1 min-w-0">
+              <SelectBox checked={picked.has(h.key)} onChange={() => togglePick(h.key)} label={`Select hook: ${h.text.slice(0, 60)}`} />
+              <div className="flex-1 min-w-0 pt-1">
                 <p className="text-[15px] leading-snug break-words">{h.text}</p>
+                {h.angle && (
+                  <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-soft mt-1">{angleLabel(h.angle)}</p>
+                )}
                 <div className="flex items-center gap-1.5 flex-wrap mt-2">
                   {h.proven && (
                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-mint/30 text-emerald-700">
@@ -257,7 +318,7 @@ export default function HookBank() {
                   ))}
                 </div>
               </div>
-              <div className="flex flex-shrink-0 -mr-1">
+              <div className="flex flex-shrink-0 -mr-1 pt-1">
                 <CopyButton text={h.text} />
                 <Link
                   to={`/ad/${h.best.id}`}
@@ -269,6 +330,31 @@ export default function HookBank() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {picked.size > 0 && (
+        <div className="fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] sm:bottom-0 sm:left-60 z-40 px-3 sm:px-6 pb-2 sm:pb-[calc(1rem+env(safe-area-inset-bottom))] pointer-events-none">
+          <div className="pointer-events-auto max-w-[860px] mx-auto bg-card border border-line rounded-2xl shadow-cardhover p-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-mono text-[13px] tabular-nums text-ink px-2 min-h-[44px] flex items-center">{picked.size} selected</p>
+              <BriefFromSelection hooks={briefHooks} adIds={briefAdIds} label="Brief from these hooks" className="ml-auto" />
+              <button
+                type="button"
+                onClick={() => setPicked(new Set())}
+                aria-label="Clear selection"
+                className="press inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 rounded-2xl border border-line text-[13px] font-semibold text-ink"
+              >
+                <X size={16} weight="bold" />
+                <span className="hidden sm:inline">Clear</span>
+              </button>
+            </div>
+            {capped && (
+              <p aria-live="polite" className="px-2 pt-1 pb-1 text-[14px] text-ink-soft">
+                A brief takes the first {MAX_BRIEF_HOOKS} hooks and {MAX_BRIEF_ADS} ads.
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>

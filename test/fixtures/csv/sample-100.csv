@@ -1,0 +1,201 @@
+brand,hook,copy,landing url,ad link,platform,format,verdict,status,tags,started,days running,countries
+Sample Pebble,Why we changed our recipe 1,"Sample copy for ad 1.
+Second line, with a comma.",https://example.com/sample/1,https://www.facebook.com/ads/library/?id=99990000000001,Facebook,image,winner,running,"static, founder",2026-06-02,1,ES
+Sample Tidewell,Three reasons people switch 2,"Sample copy for ad 2.
+Second line, with a comma.",https://example.com/sample/2,https://www.facebook.com/ads/library/?id=99990000000002,Facebook,image,testing,running,"offer, testimonial",2026-06-03,2,"FR, DE"
+Sample Copperleaf,What nobody tells you about mornings 3,"Sample copy for ad 3.
+Second line, with a comma.",https://example.com/sample/3,https://www.facebook.com/ads/library/?id=99990000000003,Instagram,image,loser,running,"founder, how-to",2026-06-04,3,ES
+Sample Birchway,Try it for 30 days 4,"Sample copy for ad 4.
+Second line, with a comma.",https://example.com/sample/4,https://www.facebook.com/ads/library/?id=99990000000004,Facebook,video,unsure,running,"testimonial, ugc",2026-06-05,4,"FR, DE"
+Sample Harbor,Meet the maker 5,"Sample copy for ad 5.
+Second line, with a comma.",https://example.com/sample/5,https://www.facebook.com/ads/library/?id=99990000000005,Facebook,image,winner,dead,"how-to, static",2026-06-06,5,ES
+Sample Pebble,"Before and after, one week in 6","Sample copy for ad 6.
+Second line, with a comma.",https://example.com/sample/6,https://www.facebook.com/ads/library/?id=99990000000006,Instagram,image,testing,running,"ugc, offer",2026-06-07,6,"FR, DE"
+Sample Tidewell,"Your desk, finally tidy 7","Sample copy for ad 7.
+Second line, with a comma.",https://example.com/sample/7,https://www.facebook.com/ads/library/?id=99990000000007,Facebook,image,loser,running,"static, founder",2026-06-08,7,ES
+Sample Copperleaf,Built to last ten years 8,"Sample copy for ad 8.
+Second line, with a comma.",https://example.com/sample/8,https://www.facebook.com/ads/library/?id=99990000000008,Facebook,video,unsure,running,"offer, testimonial",2026-06-09,8,"FR, DE"
+Sample Birchway,The limited drop is back 9,"Sample copy for ad 9.
+Second line, with a comma.",https://example.com/sample/9,https://www.facebook.com/ads/library/?id=99990000000009,Instagram,image,winner,running,"founder, how-to",2026-06-10,9,ES
+Sample Harbor,The first line that stops the scroll 10,"Sample copy for ad 10.
+Second line, with a comma.",https://example.com/sample/10,https://www.facebook.com/ads/library/?id=99990000000010,Facebook,image,testing,dead,"testimonial, ugc",2026-06-11,10,"FR, DE"
+Sample Pebble,Why we changed our recipe 11,"Sample copy for ad 11.
+Second line, with a comma.",https://example.com/sample/11,https://www.facebook.com/ads/library/?id=99990000000011,Facebook,image,loser,running,"how-to, static",2026-06-12,11,ES
+Sample Tidewell,Three reasons people switch 12,"Sample copy for ad 12.
+Second line, with a comma.",https://example.com/sample/12,https://www.facebook.com/ads/library/?id=99990000000012,Instagram,video,unsure,running,"ugc, offer",2026-06-13,12,"FR, DE"
+Sample Copperleaf,What nobody tells you about mornings 13,"Sample copy for ad 13.
+Second line, with a comma.",https://example.com/sample/13,https://www.facebook.com/ads/library/?id=99990000000013,Facebook,image,winner,running,"static, founder",2026-06-14,13,ES
+Sample Birchway,Try it for 30 days 14,"Sample copy for ad 14.
+Second line, with a comma.",https://example.com/sample/14,https://www.facebook.com/ads/library/?id=99990000000014,Facebook,image,testing,running,"offer, testimonial",2026-06-15,14,"FR, DE"
+Sample Harbor,Meet the maker 15,"Sample copy for ad 15.
+Second line, with a comma.",https://example.com/sample/15,https://www.facebook.com/ads/library/?id=99990000000015,Instagram,image,loser,dead,"founder, how-to",2026-06-16,15,ES
+Sample Pebble,"Before and after, one week in 16","Sample copy for ad 16.
+Second line, with a comma.",https://example.com/sample/16,https://www.facebook.com/ads/library/?id=99990000000016,Facebook,video,unsure,running,"testimonial, ugc",2026-06-17,16,"FR, DE"
+Sample Tidewell,"Your desk, finally tidy 17","Sample copy for ad 17.
+Second line, with a comma.",https://example.com/sample/17,https://www.facebook.com/ads/library/?id=99990000000017,Facebook,image,winner,running,"how-to, static",2026-06-18,17,ES
+Sample Copperleaf,Built to last ten years 18,"Sample copy for ad 18.
+Second line, with a comma.",https://example.com/sample/18,https://www.facebook.com/ads/library/?id=99990000000018,Instagram,image,testing,running,"ugc, offer",2026-06-19,18,"FR, DE"
+Sample Birchway,The limited drop is back 19,"Sample copy for ad 19.
+Second line, with a comma.",https://example.com/sample/19,https://www.facebook.com/ads/library/?id=99990000000019,Facebook,image,loser,running,"static, founder",2026-06-20,19,ES
+Sample Harbor,The first line that stops the scroll 20,"Sample copy for ad 20.
+Second line, with a comma.",https://example.com/sample/20,https://www.facebook.com/ads/library/?id=99990000000020,Facebook,video,unsure,dead,"offer, testimonial",2026-06-21,20,"FR, DE"
+Sample Pebble,Why we changed our recipe 21,"Sample copy for ad 21.
+Second line, with a comma.",https://example.com/sample/21,https://www.facebook.com/ads/library/?id=99990000000021,Instagram,image,winner,running,"founder, how-to",2026-06-22,21,ES
+Sample Tidewell,Three reasons people switch 22,"Sample copy for ad 22.
+Second line, with a comma.",https://example.com/sample/22,https://www.facebook.com/ads/library/?id=99990000000022,Facebook,image,testing,running,"testimonial, ugc",2026-06-23,22,"FR, DE"
+Sample Copperleaf,What nobody tells you about mornings 23,"Sample copy for ad 23.
+Second line, with a comma.",https://example.com/sample/23,https://www.facebook.com/ads/library/?id=99990000000023,Facebook,image,loser,running,"how-to, static",2026-06-24,23,ES
+Sample Birchway,Try it for 30 days 24,"Sample copy for ad 24.
+Second line, with a comma.",https://example.com/sample/24,https://www.facebook.com/ads/library/?id=99990000000024,Instagram,video,unsure,running,"ugc, offer",2026-06-25,24,"FR, DE"
+Sample Harbor,Meet the maker 25,"Sample copy for ad 25.
+Second line, with a comma.",https://example.com/sample/25,https://www.facebook.com/ads/library/?id=99990000000025,Facebook,image,winner,dead,"static, founder",2026-06-26,25,ES
+Sample Pebble,"Before and after, one week in 26","Sample copy for ad 26.
+Second line, with a comma.",https://example.com/sample/26,https://www.facebook.com/ads/library/?id=99990000000026,Facebook,image,testing,running,"offer, testimonial",2026-06-27,26,"FR, DE"
+Sample Tidewell,"Your desk, finally tidy 27","Sample copy for ad 27.
+Second line, with a comma.",https://example.com/sample/27,https://www.facebook.com/ads/library/?id=99990000000027,Instagram,image,loser,running,"founder, how-to",2026-06-28,27,ES
+Sample Copperleaf,Built to last ten years 28,"Sample copy for ad 28.
+Second line, with a comma.",https://example.com/sample/28,https://www.facebook.com/ads/library/?id=99990000000028,Facebook,video,unsure,running,"testimonial, ugc",2026-06-29,28,"FR, DE"
+Sample Birchway,The limited drop is back 29,"Sample copy for ad 29.
+Second line, with a comma.",https://example.com/sample/29,https://www.facebook.com/ads/library/?id=99990000000029,Facebook,image,winner,running,"how-to, static",2026-06-30,29,ES
+Sample Harbor,The first line that stops the scroll 30,"Sample copy for ad 30.
+Second line, with a comma.",https://example.com/sample/30,https://www.facebook.com/ads/library/?id=99990000000030,Instagram,image,testing,dead,"ugc, offer",2026-07-01,30,"FR, DE"
+Sample Pebble,Why we changed our recipe 31,"Sample copy for ad 31.
+Second line, with a comma.",https://example.com/sample/31,https://www.facebook.com/ads/library/?id=99990000000031,Facebook,image,loser,running,"static, founder",2026-07-02,31,ES
+Sample Tidewell,Three reasons people switch 32,"Sample copy for ad 32.
+Second line, with a comma.",https://example.com/sample/32,https://www.facebook.com/ads/library/?id=99990000000032,Facebook,video,unsure,running,"offer, testimonial",2026-07-03,32,"FR, DE"
+Sample Copperleaf,What nobody tells you about mornings 33,"Sample copy for ad 33.
+Second line, with a comma.",https://example.com/sample/33,https://www.facebook.com/ads/library/?id=99990000000033,Instagram,image,winner,running,"founder, how-to",2026-07-04,33,ES
+Sample Birchway,Try it for 30 days 34,"Sample copy for ad 34.
+Second line, with a comma.",https://example.com/sample/34,https://www.facebook.com/ads/library/?id=99990000000034,Facebook,image,testing,running,"testimonial, ugc",2026-07-05,34,"FR, DE"
+Sample Harbor,Meet the maker 35,"Sample copy for ad 35.
+Second line, with a comma.",https://example.com/sample/35,https://www.facebook.com/ads/library/?id=99990000000035,Facebook,image,loser,dead,"how-to, static",2026-07-06,35,ES
+Sample Pebble,"Before and after, one week in 36","Sample copy for ad 36.
+Second line, with a comma.",https://example.com/sample/36,https://www.facebook.com/ads/library/?id=99990000000036,Instagram,video,unsure,running,"ugc, offer",2026-07-07,36,"FR, DE"
+Sample Tidewell,"Your desk, finally tidy 37","Sample copy for ad 37.
+Second line, with a comma.",https://example.com/sample/37,https://www.facebook.com/ads/library/?id=99990000000037,Facebook,image,winner,running,"static, founder",2026-07-08,37,ES
+Sample Copperleaf,Built to last ten years 38,"Sample copy for ad 38.
+Second line, with a comma.",https://example.com/sample/38,https://www.facebook.com/ads/library/?id=99990000000038,Facebook,image,testing,running,"offer, testimonial",2026-07-09,38,"FR, DE"
+Sample Birchway,The limited drop is back 39,"Sample copy for ad 39.
+Second line, with a comma.",https://example.com/sample/39,https://www.facebook.com/ads/library/?id=99990000000039,Instagram,image,loser,running,"founder, how-to",2026-07-10,39,ES
+Sample Harbor,The first line that stops the scroll 40,"Sample copy for ad 40.
+Second line, with a comma.",https://example.com/sample/40,https://www.facebook.com/ads/library/?id=99990000000040,Facebook,video,unsure,dead,"testimonial, ugc",2026-07-11,40,"FR, DE"
+Sample Pebble,Why we changed our recipe 41,"Sample copy for ad 41.
+Second line, with a comma.",https://example.com/sample/41,https://www.facebook.com/ads/library/?id=99990000000041,Facebook,image,winner,running,"how-to, static",2026-07-12,41,ES
+Sample Tidewell,Three reasons people switch 42,"Sample copy for ad 42.
+Second line, with a comma.",https://example.com/sample/42,https://www.facebook.com/ads/library/?id=99990000000042,Instagram,image,testing,running,"ugc, offer",2026-07-13,42,"FR, DE"
+Sample Copperleaf,What nobody tells you about mornings 43,"Sample copy for ad 43.
+Second line, with a comma.",https://example.com/sample/43,https://www.facebook.com/ads/library/?id=99990000000043,Facebook,image,loser,running,"static, founder",2026-07-14,43,ES
+Sample Birchway,Try it for 30 days 44,"Sample copy for ad 44.
+Second line, with a comma.",https://example.com/sample/44,https://www.facebook.com/ads/library/?id=99990000000044,Facebook,video,unsure,running,"offer, testimonial",2026-07-15,44,"FR, DE"
+Sample Harbor,Meet the maker 45,"Sample copy for ad 45.
+Second line, with a comma.",https://example.com/sample/45,https://www.facebook.com/ads/library/?id=99990000000045,Instagram,image,winner,dead,"founder, how-to",2026-07-16,45,ES
+Sample Pebble,"Before and after, one week in 46","Sample copy for ad 46.
+Second line, with a comma.",https://example.com/sample/46,https://www.facebook.com/ads/library/?id=99990000000046,Facebook,image,testing,running,"testimonial, ugc",2026-07-17,46,"FR, DE"
+Sample Tidewell,"Your desk, finally tidy 47","Sample copy for ad 47.
+Second line, with a comma.",https://example.com/sample/47,https://www.facebook.com/ads/library/?id=99990000000047,Facebook,image,loser,running,"how-to, static",2026-07-18,47,ES
+Sample Copperleaf,Built to last ten years 48,"Sample copy for ad 48.
+Second line, with a comma.",https://example.com/sample/48,https://www.facebook.com/ads/library/?id=99990000000048,Instagram,video,unsure,running,"ugc, offer",2026-07-19,48,"FR, DE"
+Sample Birchway,The limited drop is back 49,"Sample copy for ad 49.
+Second line, with a comma.",https://example.com/sample/49,https://www.facebook.com/ads/library/?id=99990000000049,Facebook,image,winner,running,"static, founder",2026-07-20,49,ES
+Sample Harbor,The first line that stops the scroll 50,"Sample copy for ad 50.
+Second line, with a comma.",https://example.com/sample/50,https://www.facebook.com/ads/library/?id=99990000000050,Facebook,image,testing,dead,"offer, testimonial",2026-07-21,50,"FR, DE"
+Sample Pebble,Why we changed our recipe 51,"Sample copy for ad 51.
+Second line, with a comma.",https://example.com/sample/51,https://www.facebook.com/ads/library/?id=99990000000051,Instagram,image,loser,running,"founder, how-to",2026-07-22,51,ES
+Sample Tidewell,Three reasons people switch 52,"Sample copy for ad 52.
+Second line, with a comma.",https://example.com/sample/52,https://www.facebook.com/ads/library/?id=99990000000052,Facebook,video,unsure,running,"testimonial, ugc",2026-07-23,52,"FR, DE"
+Sample Copperleaf,What nobody tells you about mornings 53,"Sample copy for ad 53.
+Second line, with a comma.",https://example.com/sample/53,https://www.facebook.com/ads/library/?id=99990000000053,Facebook,image,winner,running,"how-to, static",2026-07-24,53,ES
+Sample Birchway,Try it for 30 days 54,"Sample copy for ad 54.
+Second line, with a comma.",https://example.com/sample/54,https://www.facebook.com/ads/library/?id=99990000000054,Instagram,image,testing,running,"ugc, offer",2026-07-25,54,"FR, DE"
+Sample Harbor,Meet the maker 55,"Sample copy for ad 55.
+Second line, with a comma.",https://example.com/sample/55,https://www.facebook.com/ads/library/?id=99990000000055,Facebook,image,loser,dead,"static, founder",2026-07-26,55,ES
+Sample Pebble,"Before and after, one week in 56","Sample copy for ad 56.
+Second line, with a comma.",https://example.com/sample/56,https://www.facebook.com/ads/library/?id=99990000000056,Facebook,video,unsure,running,"offer, testimonial",2026-07-27,56,"FR, DE"
+Sample Tidewell,"Your desk, finally tidy 57","Sample copy for ad 57.
+Second line, with a comma.",https://example.com/sample/57,https://www.facebook.com/ads/library/?id=99990000000057,Instagram,image,winner,running,"founder, how-to",2026-07-28,57,ES
+Sample Copperleaf,Built to last ten years 58,"Sample copy for ad 58.
+Second line, with a comma.",https://example.com/sample/58,https://www.facebook.com/ads/library/?id=99990000000058,Facebook,image,testing,running,"testimonial, ugc",2026-07-29,58,"FR, DE"
+Sample Birchway,The limited drop is back 59,"Sample copy for ad 59.
+Second line, with a comma.",https://example.com/sample/59,https://www.facebook.com/ads/library/?id=99990000000059,Facebook,image,loser,running,"how-to, static",2026-07-30,59,ES
+Sample Harbor,The first line that stops the scroll 60,"Sample copy for ad 60.
+Second line, with a comma.",https://example.com/sample/60,https://www.facebook.com/ads/library/?id=99990000000060,Instagram,video,unsure,dead,"ugc, offer",2026-07-31,60,"FR, DE"
+Sample Pebble,Why we changed our recipe 61,"Sample copy for ad 61.
+Second line, with a comma.",https://example.com/sample/61,https://www.facebook.com/ads/library/?id=99990000000061,Facebook,image,winner,running,"static, founder",2026-08-01,61,ES
+Sample Tidewell,Three reasons people switch 62,"Sample copy for ad 62.
+Second line, with a comma.",https://example.com/sample/62,https://www.facebook.com/ads/library/?id=99990000000062,Facebook,image,testing,running,"offer, testimonial",2026-08-02,62,"FR, DE"
+Sample Copperleaf,What nobody tells you about mornings 63,"Sample copy for ad 63.
+Second line, with a comma.",https://example.com/sample/63,https://www.facebook.com/ads/library/?id=99990000000063,Instagram,image,loser,running,"founder, how-to",2026-08-03,63,ES
+Sample Birchway,Try it for 30 days 64,"Sample copy for ad 64.
+Second line, with a comma.",https://example.com/sample/64,https://www.facebook.com/ads/library/?id=99990000000064,Facebook,video,unsure,running,"testimonial, ugc",2026-08-04,64,"FR, DE"
+Sample Harbor,Meet the maker 65,"Sample copy for ad 65.
+Second line, with a comma.",https://example.com/sample/65,https://www.facebook.com/ads/library/?id=99990000000065,Facebook,image,winner,dead,"how-to, static",2026-08-05,65,ES
+Sample Pebble,"Before and after, one week in 66","Sample copy for ad 66.
+Second line, with a comma.",https://example.com/sample/66,https://www.facebook.com/ads/library/?id=99990000000066,Instagram,image,testing,running,"ugc, offer",2026-08-06,66,"FR, DE"
+Sample Tidewell,"Your desk, finally tidy 67","Sample copy for ad 67.
+Second line, with a comma.",https://example.com/sample/67,https://www.facebook.com/ads/library/?id=99990000000067,Facebook,image,loser,running,"static, founder",2026-08-07,67,ES
+Sample Copperleaf,Built to last ten years 68,"Sample copy for ad 68.
+Second line, with a comma.",https://example.com/sample/68,https://www.facebook.com/ads/library/?id=99990000000068,Facebook,video,unsure,running,"offer, testimonial",2026-08-08,68,"FR, DE"
+Sample Birchway,The limited drop is back 69,"Sample copy for ad 69.
+Second line, with a comma.",https://example.com/sample/69,https://www.facebook.com/ads/library/?id=99990000000069,Instagram,image,winner,running,"founder, how-to",2026-08-09,69,ES
+Sample Harbor,The first line that stops the scroll 70,"Sample copy for ad 70.
+Second line, with a comma.",https://example.com/sample/70,https://www.facebook.com/ads/library/?id=99990000000070,Facebook,image,testing,dead,"testimonial, ugc",2026-08-10,70,"FR, DE"
+Sample Pebble,Why we changed our recipe 71,"Sample copy for ad 71.
+Second line, with a comma.",https://example.com/sample/71,https://www.facebook.com/ads/library/?id=99990000000071,Facebook,image,loser,running,"how-to, static",2026-08-11,71,ES
+Sample Tidewell,Three reasons people switch 72,"Sample copy for ad 72.
+Second line, with a comma.",https://example.com/sample/72,https://www.facebook.com/ads/library/?id=99990000000072,Instagram,video,unsure,running,"ugc, offer",2026-08-12,72,"FR, DE"
+Sample Copperleaf,What nobody tells you about mornings 73,"Sample copy for ad 73.
+Second line, with a comma.",https://example.com/sample/73,https://www.facebook.com/ads/library/?id=99990000000073,Facebook,image,winner,running,"static, founder",2026-08-13,73,ES
+Sample Birchway,Try it for 30 days 74,"Sample copy for ad 74.
+Second line, with a comma.",https://example.com/sample/74,https://www.facebook.com/ads/library/?id=99990000000074,Facebook,image,testing,running,"offer, testimonial",2026-08-14,74,"FR, DE"
+Sample Harbor,Meet the maker 75,"Sample copy for ad 75.
+Second line, with a comma.",https://example.com/sample/75,https://www.facebook.com/ads/library/?id=99990000000075,Instagram,image,loser,dead,"founder, how-to",2026-08-15,75,ES
+Sample Pebble,"Before and after, one week in 76","Sample copy for ad 76.
+Second line, with a comma.",https://example.com/sample/76,https://www.facebook.com/ads/library/?id=99990000000076,Facebook,video,unsure,running,"testimonial, ugc",2026-08-16,76,"FR, DE"
+Sample Tidewell,"Your desk, finally tidy 77","Sample copy for ad 77.
+Second line, with a comma.",https://example.com/sample/77,https://www.facebook.com/ads/library/?id=99990000000077,Facebook,image,winner,running,"how-to, static",2026-08-17,77,ES
+Sample Copperleaf,Built to last ten years 78,"Sample copy for ad 78.
+Second line, with a comma.",https://example.com/sample/78,https://www.facebook.com/ads/library/?id=99990000000078,Instagram,image,testing,running,"ugc, offer",2026-08-18,78,"FR, DE"
+Sample Birchway,The limited drop is back 79,"Sample copy for ad 79.
+Second line, with a comma.",https://example.com/sample/79,https://www.facebook.com/ads/library/?id=99990000000079,Facebook,image,loser,running,"static, founder",2026-08-19,79,ES
+Sample Harbor,The first line that stops the scroll 80,"Sample copy for ad 80.
+Second line, with a comma.",https://example.com/sample/80,https://www.facebook.com/ads/library/?id=99990000000080,Facebook,video,unsure,dead,"offer, testimonial",2026-08-20,80,"FR, DE"
+Sample Pebble,Why we changed our recipe 81,"Sample copy for ad 81.
+Second line, with a comma.",https://example.com/sample/81,https://www.facebook.com/ads/library/?id=99990000000081,Instagram,image,winner,running,"founder, how-to",2026-08-21,81,ES
+Sample Tidewell,Three reasons people switch 82,"Sample copy for ad 82.
+Second line, with a comma.",https://example.com/sample/82,https://www.facebook.com/ads/library/?id=99990000000082,Facebook,image,testing,running,"testimonial, ugc",2026-08-22,82,"FR, DE"
+Sample Copperleaf,What nobody tells you about mornings 83,"Sample copy for ad 83.
+Second line, with a comma.",https://example.com/sample/83,https://www.facebook.com/ads/library/?id=99990000000083,Facebook,image,loser,running,"how-to, static",2026-08-23,83,ES
+Sample Birchway,Try it for 30 days 84,"Sample copy for ad 84.
+Second line, with a comma.",https://example.com/sample/84,https://www.facebook.com/ads/library/?id=99990000000084,Instagram,video,unsure,running,"ugc, offer",2026-08-24,84,"FR, DE"
+Sample Harbor,Meet the maker 85,"Sample copy for ad 85.
+Second line, with a comma.",https://example.com/sample/85,https://www.facebook.com/ads/library/?id=99990000000085,Facebook,image,winner,dead,"static, founder",2026-08-25,85,ES
+Sample Pebble,"Before and after, one week in 86","Sample copy for ad 86.
+Second line, with a comma.",https://example.com/sample/86,https://www.facebook.com/ads/library/?id=99990000000086,Facebook,image,testing,running,"offer, testimonial",2026-08-26,86,"FR, DE"
+Sample Tidewell,"Your desk, finally tidy 87","Sample copy for ad 87.
+Second line, with a comma.",https://example.com/sample/87,https://www.facebook.com/ads/library/?id=99990000000087,Instagram,image,loser,running,"founder, how-to",2026-08-27,87,ES
+Sample Copperleaf,Built to last ten years 88,"Sample copy for ad 88.
+Second line, with a comma.",https://example.com/sample/88,https://www.facebook.com/ads/library/?id=99990000000088,Facebook,video,unsure,running,"testimonial, ugc",2026-08-28,88,"FR, DE"
+Sample Birchway,The limited drop is back 89,"Sample copy for ad 89.
+Second line, with a comma.",https://example.com/sample/89,https://www.facebook.com/ads/library/?id=99990000000089,Facebook,image,winner,running,"how-to, static",2026-08-29,89,ES
+Sample Harbor,The first line that stops the scroll 90,"Sample copy for ad 90.
+Second line, with a comma.",https://example.com/sample/90,https://www.facebook.com/ads/library/?id=99990000000090,Instagram,image,testing,dead,"ugc, offer",2026-08-30,0,"FR, DE"
+Sample Pebble,Why we changed our recipe 91,"Sample copy for ad 91.
+Second line, with a comma.",https://example.com/sample/91,https://www.facebook.com/ads/library/?id=99990000000091,Facebook,image,loser,running,"static, founder",2026-08-31,1,ES
+Sample Tidewell,Three reasons people switch 92,"Sample copy for ad 92.
+Second line, with a comma.",https://example.com/sample/92,https://www.facebook.com/ads/library/?id=99990000000092,Facebook,video,unsure,running,"offer, testimonial",2026-09-01,2,"FR, DE"
+Sample Copperleaf,What nobody tells you about mornings 93,"Sample copy for ad 93.
+Second line, with a comma.",https://example.com/sample/93,https://www.facebook.com/ads/library/?id=99990000000093,Instagram,image,winner,running,"founder, how-to",2026-09-02,3,ES
+Sample Birchway,Try it for 30 days 94,"Sample copy for ad 94.
+Second line, with a comma.",https://example.com/sample/94,https://www.facebook.com/ads/library/?id=99990000000094,Facebook,image,testing,running,"testimonial, ugc",2026-09-03,4,"FR, DE"
+Sample Harbor,Meet the maker 95,"Sample copy for ad 95.
+Second line, with a comma.",https://example.com/sample/95,https://www.facebook.com/ads/library/?id=99990000000095,Facebook,image,loser,dead,"how-to, static",2026-09-04,5,ES
+Sample Pebble,"Before and after, one week in 96","Sample copy for ad 96.
+Second line, with a comma.",https://example.com/sample/96,https://www.facebook.com/ads/library/?id=99990000000096,Instagram,video,unsure,running,"ugc, offer",2026-09-05,6,"FR, DE"
+Sample Tidewell,"Your desk, finally tidy 97","Sample copy for ad 97.
+Second line, with a comma.",https://example.com/sample/97,https://www.facebook.com/ads/library/?id=99990000000097,Facebook,image,winner,running,"static, founder",2026-09-06,7,ES
+Sample Copperleaf,Built to last ten years 98,"Sample copy for ad 98.
+Second line, with a comma.",https://example.com/sample/98,https://www.facebook.com/ads/library/?id=99990000000098,Facebook,image,testing,running,"offer, testimonial",2026-09-07,8,"FR, DE"
+Sample Birchway,The limited drop is back 99,"Sample copy for ad 99.
+Second line, with a comma.",https://example.com/sample/99,https://www.facebook.com/ads/library/?id=99990000000099,Instagram,image,loser,running,"founder, how-to",2026-09-08,9,ES
+Sample Harbor,The first line that stops the scroll 100,"Sample copy for ad 100.
+Second line, with a comma.",https://example.com/sample/100,https://www.facebook.com/ads/library/?id=99990000000100,Facebook,video,unsure,dead,"testimonial, ugc",2026-09-09,10,"FR, DE"

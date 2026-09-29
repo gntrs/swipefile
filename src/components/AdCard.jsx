@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Check, ArrowSquareOut } from '@phosphor-icons/react';
 import { useTeam } from '@/contexts/TeamContext';
 import Pill from '@/components/Pill';
 import { TEAM_MODE } from '@/lib/modules';
+import { angleOf, angleLabel } from '@/lib/angles';
 import { setStarred, isStarred, isRecent, RECENT_TAG, reachRating, fmtReach, fmtEuReach, adCountries, countryName } from '@/lib/ads';
 
 const VERDICT = {
@@ -34,14 +35,19 @@ function fmtNum(n) {
 // AdCard is text-first on purpose: no creative thumbnail. It answers "is this ad
 // good or bad, and is it still running" at a glance, then links out to the exact
 // ad when you actually want to see the creative. Supports an optional selection
-// mode (for Compare): when `selectable` is set the whole card toggles selection
-// instead of navigating.
-export default function AdCard({ ad, selectable = false, selected = false, onToggleSelect }) {
+// mode (for bulk actions and Compare): when `selectable` is set the whole card
+// toggles selection instead of navigating. `focused` draws the keyboard ring;
+// `onAdChange` hears about a star toggled on the card, so a list can keep its
+// copy of the row in step.
+export default function AdCard({ ad, selectable = false, selected = false, onToggleSelect, focused = false, onAdChange }) {
   const { displayName } = useTeam();
   const v = VERDICT[ad.verdict] || VERDICT.unsure;
   const [starred, setStar] = useState(isStarred(ad));
   // Bumped on every toggle so the icon remounts and replays its spring.
   const [pop, setPop] = useState(0);
+  // The list may change the star too (a key press, a bulk action).
+  const propStarred = isStarred(ad);
+  useEffect(() => setStar(propStarred), [propStarred]);
 
   const toggleStar = async (e) => {
     e.preventDefault();
@@ -49,8 +55,12 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
     const next = !starred;
     setStar(next); // optimistic
     setPop((n) => n + 1);
-    ad.metrics = { ...(ad.metrics || {}), starred: next };
-    await setStarred(ad, next);
+    const ok = await setStarred(ad, next);
+    if (!ok) {
+      setStar(!next);
+      return;
+    }
+    onAdChange?.({ ...ad, metrics: { ...(ad.metrics || {}), starred: next } });
   };
 
   const m = ad.metrics || {};
@@ -63,6 +73,7 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
   const euR = fmtEuReach(ad);
   const geoCodes = adCountries(ad);
   const permalink = adPermalink(ad);
+  const angle = angleOf(ad);
   const metricBits = [
     Number.isFinite(+m.ctr) && +m.ctr > 0 && `${(+m.ctr).toFixed(1)}% CTR`,
     Number.isFinite(+m.cpc) && +m.cpc > 0 && `€${(+m.cpc).toFixed(2)} CPC`,
@@ -145,6 +156,9 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
           </span>
         )}
         {ad.platform && <span className="text-[11px] text-ink-soft truncate">{ad.platform}</span>}
+        {angle && (
+          <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-soft truncate">{angleLabel(angle)}</span>
+        )}
       </div>
 
       {stats.length > 0 && (
@@ -235,14 +249,17 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
     </span>
   );
 
-  const shell =
-    'press group relative block bg-card rounded-xl3 border shadow-card hover:shadow-cardhover overflow-hidden';
+  const shell = `press group relative block bg-card rounded-xl3 border shadow-card hover:shadow-cardhover overflow-hidden ${
+    focused ? 'ring-2 ring-accent' : ''
+  }`;
 
   if (selectable) {
     return (
       <div
+        data-ad-id={ad.id}
         role="button"
         tabIndex={0}
+        aria-pressed={selected}
         onClick={() => onToggleSelect?.(ad)}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggleSelect?.(ad)}
         className={`${shell} cursor-pointer ${selected ? 'border-accent ring-2 ring-accent/30' : 'border-line'}`}
@@ -255,7 +272,7 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
   }
 
   return (
-    <div className={`${shell} border-line`}>
+    <div data-ad-id={ad.id} className={`${shell} border-line`}>
       <Link to={`/ad/${ad.id}`} className="block">
         {content}
       </Link>

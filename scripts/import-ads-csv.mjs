@@ -12,11 +12,14 @@
 //      roas, results, plus ad_name (the match key) and last_csv_import.
 //
 // Existing ads keep their verdict, tags, media, and notes; only metrics are
-// refreshed. Flags: --dry-run (print, no writes).
+// refreshed. Flags: --dry-run (print, no writes), --parse-only (print the
+// summed rows as JSON; needs no .env and no database).
 // Needs in .env: VITE_DB_URL, DB_SERVICE_KEY, OWN_BRAND (your brand name; falls back to VITE_OWN_BRAND).
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
+import { parseCsv } from '../src/lib/csv/parse.js';
+import { metaColumns, aggregateMeta, metaRowFor } from '../src/lib/csv/meta.js';
 
 // Tiny .env loader (no dotenv dep).
 const envPath = path.resolve(process.cwd(), '.env');
@@ -25,6 +28,40 @@ if (fs.existsSync(envPath)) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.+?)\s*$/i);
     if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
   }
+}
+
+const dryRun = process.argv.includes('--dry-run');
+const parseOnly = process.argv.includes('--parse-only');
+const file = process.argv.slice(2).find((a) => !a.startsWith('--'));
+if (!file || !fs.existsSync(file)) {
+  console.error('Usage: node scripts/import-ads-csv.mjs <meta-export.csv> [--dry-run] [--parse-only]');
+  process.exit(1);
+}
+
+// Parsing and summing live in src/lib/csv/, shared with the import page in
+// the app, so both write the same numbers.
+const rows = parseCsv(fs.readFileSync(file, 'utf8'));
+if (rows.length < 2) {
+  console.error('CSV looks empty (no data rows).');
+  process.exit(1);
+}
+
+const col = metaColumns(rows[0]);
+if (col.name === -1) {
+  console.error(`No "Ad name" column found. Columns in this file:\n  ${rows[0].join('\n  ')}`);
+  process.exit(1);
+}
+
+// Sum rows per ad name (day/placement breakdowns collapse into totals).
+const byName = aggregateMeta(rows.slice(1), col);
+const today = new Date().toISOString().slice(0, 10);
+
+// --parse-only: print what would be written, per ad name, and stop. Needs no
+// .env and touches no database.
+if (parseOnly) {
+  const out = [...byName].map(([name, a]) => ({ name, ...metaRowFor(name, a, today) }));
+  console.log(JSON.stringify(out, null, 2));
+  process.exit(0);
 }
 
 // Your own brand name - rows are created/updated under this brand.
@@ -41,137 +78,6 @@ if (!url || !key) {
   process.exit(1);
 }
 
-const dryRun = process.argv.includes('--dry-run');
-const file = process.argv.slice(2).find((a) => !a.startsWith('--'));
-if (!file || !fs.existsSync(file)) {
-  console.error('Usage: node scripts/import-ads-csv.mjs <meta-export.csv> [--dry-run]');
-  process.exit(1);
-}
-
-// ---------------------- CSV parsing (no deps) -----------------------
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let cell = '';
-  let inQuotes = false;
-  // Strip BOM.
-  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"' && text[i + 1] === '"') {
-        cell += '"';
-        i++;
-      } else if (c === '"') {
-        inQuotes = false;
-      } else {
-        cell += c;
-      }
-    } else if (c === '"') {
-      inQuotes = true;
-    } else if (c === ',') {
-      row.push(cell);
-      cell = '';
-    } else if (c === '\n' || c === '\r') {
-      if (c === '\r' && text[i + 1] === '\n') i++;
-      row.push(cell);
-      cell = '';
-      if (row.some((v) => v !== '')) rows.push(row);
-      row = [];
-    } else {
-      cell += c;
-    }
-  }
-  row.push(cell);
-  if (row.some((v) => v !== '')) rows.push(row);
-  return rows;
-}
-
-// Meta renames columns depending on locale/metric setup, so match loosely.
-function findCol(headers, ...patterns) {
-  for (const p of patterns) {
-    const i = headers.findIndex((h) => p.test(h));
-    if (i !== -1) return i;
-  }
-  return -1;
-}
-
-const num = (v) => {
-  const n = parseFloat(String(v ?? '').replace(/[^0-9.-]/g, ''));
-  return Number.isFinite(n) ? n : 0;
-};
-
-const rows = parseCsv(fs.readFileSync(file, 'utf8'));
-if (rows.length < 2) {
-  console.error('CSV looks empty (no data rows).');
-  process.exit(1);
-}
-const headers = rows[0].map((h) => h.trim().toLowerCase());
-
-const col = {
-  name: findCol(headers, /^ad name$/, /ad name/),
-  spend: findCol(headers, /amount spent/, /^spend/),
-  impressions: findCol(headers, /^impressions$/),
-  clicks: findCol(headers, /^link clicks$/, /clicks \(all\)/, /^clicks$/),
-  results: findCol(headers, /^results$/),
-  roas: findCol(headers, /purchase roas/, /roas/),
-  currency: findCol(headers, /^currency$/),
-  // Ratio columns: some exports carry CTR/CPC/CPM directly instead of raw
-  // impressions/clicks. Read them too and spend-weight when summing rows.
-  ctr: findCol(headers, /ctr.*link click/, /^ctr/),
-  cpc: findCol(headers, /cpc \(cost per link click/, /^cpc/),
-  cpm: findCol(headers, /^cpm/),
-  reach: findCol(headers, /^reach$/),
-  lpv: findCol(headers, /landing page views/),
-  freq: findCol(headers, /^frequency$/),
-  plays3s: findCol(headers, /3-second video plays/),
-  delivery: findCol(headers, /^ad delivery$/),
-};
-if (col.name === -1) {
-  console.error(`No "Ad name" column found. Columns in this file:\n  ${rows[0].join('\n  ')}`);
-  process.exit(1);
-}
-
-// Sum rows per ad name (day/placement breakdowns collapse into totals).
-const byName = new Map();
-for (const r of rows.slice(1)) {
-  const name = (r[col.name] || '').trim();
-  if (!name) continue;
-  const a =
-    byName.get(name) ||
-    { spend: 0, impressions: 0, clicks: 0, results: 0, roasSpend: 0, roasSum: 0, currency: null,
-      reach: 0, lpv: 0, plays3s: 0, delivery: null, w: {} };
-  const rowSpend = col.spend !== -1 ? num(r[col.spend]) : 0;
-  a.spend += rowSpend;
-  a.impressions += col.impressions !== -1 ? num(r[col.impressions]) : 0;
-  a.clicks += col.clicks !== -1 ? num(r[col.clicks]) : 0;
-  a.results += col.results !== -1 ? num(r[col.results]) : 0;
-  a.reach += col.reach !== -1 ? num(r[col.reach]) : 0;
-  a.lpv += col.lpv !== -1 ? num(r[col.lpv]) : 0;
-  a.plays3s += col.plays3s !== -1 ? num(r[col.plays3s]) : 0;
-  if (col.delivery !== -1 && r[col.delivery]) {
-    // Active is the live truth: if ANY row for this ad name is active (e.g. a
-    // live ad plus an archived duplicate of the same name), the ad is active.
-    // Otherwise the last non-empty delivery wins.
-    const dlv = r[col.delivery].trim().toLowerCase();
-    if (a.delivery !== 'active') a.delivery = dlv;
-  }
-  if (col.roas !== -1 && r[col.roas] !== '') {
-    a.roasSum += num(r[col.roas]) * (rowSpend || 1);
-    a.roasSpend += rowSpend || 1;
-  }
-  // Spend-weighted averages for the ratio columns.
-  for (const k of ['ctr', 'cpc', 'cpm', 'freq']) {
-    if (col[k] !== -1 && r[col[k]] !== '') {
-      a.w[k] = a.w[k] || { sum: 0, spend: 0 };
-      a.w[k].sum += num(r[col[k]]) * (rowSpend || 1);
-      a.w[k].spend += rowSpend || 1;
-    }
-  }
-  if (col.currency !== -1 && r[col.currency]) a.currency = r[col.currency].trim();
-  byName.set(name, a);
-}
-
 const sb = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 
 // One fetch: every ad we already track by name (ours only).
@@ -183,41 +89,11 @@ const { data: existing, error: exErr } = await sb
 if (exErr) throw new Error(exErr.message);
 const byExistingName = new Map((existing || []).map((r) => [r.metrics.ad_name, r]));
 
-const today = new Date().toISOString().slice(0, 10);
 let updated = 0;
 let created = 0;
 
 for (const [name, a] of byName) {
-  const round2 = (n) => Math.round(n * 100) / 100;
-  const weighted = (k) => (a.w[k]?.spend ? round2(a.w[k].sum / a.w[k].spend) : null);
-  // Prefer raw counts; fall back to the export's own ratio columns, and
-  // estimate the counts back from them so sorting has numbers to work with.
-  const ctr = a.impressions ? round2((a.clicks / a.impressions) * 100) : weighted('ctr');
-  const cpc = a.clicks ? round2(a.spend / a.clicks) : weighted('cpc');
-  const cpm = weighted('cpm');
-  const clicks = a.clicks || (cpc ? Math.round(a.spend / cpc) : 0);
-  const impressions = a.impressions || (cpm ? Math.round((a.spend / cpm) * 1000) : 0);
-  const fresh = {
-    ad_name: name,
-    source: 'meta-csv',
-    spend: round2(a.spend),
-    impressions,
-    clicks,
-    results: a.results,
-    ctr,
-    cpc,
-    cpm: cpm ?? undefined,
-    reach: a.reach || undefined,
-    landing_page_views: a.lpv || undefined,
-    frequency: weighted('freq') ?? undefined,
-    video_plays_3s: a.plays3s || undefined,
-    delivery: a.delivery || undefined,
-    roas: a.roasSpend ? round2(a.roasSum / a.roasSpend) : null,
-    currency: a.currency || undefined,
-    last_csv_import: today,
-  };
-  // Meta's delivery column is the live truth for our own ads.
-  const status = a.delivery === 'active' ? 'running' : a.delivery ? 'dead' : undefined;
+  const { fresh, status } = metaRowFor(name, a, today);
 
   const found = byExistingName.get(name);
   if (dryRun) {
