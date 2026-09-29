@@ -1,0 +1,138 @@
+[
+  {
+    "lines": [
+      "Active",
+      "Library ID: 999900001234567",
+      "Started running on Jan 5, 2026",
+      "Platforms",
+      "See ad details",
+      "Lumen Loop",
+      "Sponsored",
+      "Your desk lamp is lying to you about the time.",
+      "Lumen Loop shifts from cool morning light to a warm evening glow on its own.",
+      "LUMENLOOP.EXAMPLE",
+      "Light that follows the sun",
+      "Ships in 2 days",
+      "Shop now"
+    ],
+    "links": [
+      {
+        "href": "https://www.facebook.com/ads/library/?id=999900001234567",
+        "text": "See ad details"
+      },
+      {
+        "href": "https://www.facebook.com/ads/library/?active_status=all&ad_type=all&view_all_page_id=999900000000011",
+        "text": ""
+      },
+      {
+        "href": "https://www.facebook.com/lumenloop/",
+        "text": "Lumen Loop"
+      },
+      {
+        "href": "https://l.facebook.com/l.php?u=https%3A%2F%2Flumenloop.example%2Flamp%3Fref%3Dadlib&h=AT1xyz",
+        "text": "LUMENLOOP.EXAMPLE Light that follows the sun Ships in 2 days Shop now"
+      }
+    ],
+    "labels": [
+      "Facebook",
+      "Instagram",
+      "Messenger"
+    ],
+    "media": [
+      {
+        "kind": "image",
+        "src": "https://scontent.example-cdn.test/v/t45/lumenloop_lamp_1080.jpg",
+        "poster": null
+      }
+    ]
+  },
+  {
+    "lines": [
+      "Inactive",
+      "Library ID: 999900002345678",
+      "Nov 2, 2025 - Dec 14, 2025",
+      "Platforms",
+      "See ad details",
+      "Copper Fern Tea",
+      "Sponsored",
+      "Three minutes, one cup, zero jitters.",
+      "COPPERFERN.EXAMPLE",
+      "The slow morning starter kit",
+      "Learn more"
+    ],
+    "links": [
+      {
+        "href": "https://www.facebook.com/ads/library/?id=999900002345678",
+        "text": "See ad details"
+      },
+      {
+        "href": "https://www.facebook.com/copperfern/",
+        "text": ""
+      },
+      {
+        "href": "https://www.facebook.com/copperfern/",
+        "text": "Copper Fern Tea"
+      },
+      {
+        "href": "https://copperfern.example/ritual",
+        "text": "COPPERFERN.EXAMPLE The slow morning starter kit Learn more"
+      }
+    ],
+    "labels": [
+      "Facebook",
+      "Audience Network"
+    ],
+    "media": [
+      {
+        "kind": "video",
+        "src": "https://scontent.example-cdn.test/v/t42/copperfern_ritual.mp4",
+        "poster": "https://scontent.example-cdn.test/v/t15/copperfern_ritual_poster.jpg"
+      }
+    ]
+  },
+  {
+    "lines": [
+      "Active",
+      "Library ID: 999900003456789",
+      "Started running on 12 Feb 2026",
+      "Platforms",
+      "This ad has multiple versions",
+      "See summary details",
+      "Orchard Sleep Co",
+      "Sponsored",
+      "We tested 40 pillow fillings so you do not have to.",
+      "ORCHARDSLEEP.EXAMPLE",
+      "The pillow that passed the test",
+      "Order now"
+    ],
+    "links": [
+      {
+        "href": "https://www.facebook.com/ads/library/?id=999900003456789",
+        "text": "See summary details"
+      },
+      {
+        "href": "https://www.facebook.com/orchardsleep/",
+        "text": ""
+      },
+      {
+        "href": "https://www.facebook.com/orchardsleep/",
+        "text": "Orchard Sleep Co"
+      },
+      {
+        "href": "https://l.facebook.com/l.php?u=https%3A%2F%2Forchardsleep.example%2Fpillow&h=AT2pqr",
+        "text": "ORCHARDSLEEP.EXAMPLE The pillow that passed the test Order now"
+      }
+    ],
+    "labels": [
+      "Instagram",
+      "Threads"
+    ],
+    "media": [
+      {
+        "kind": "image",
+        "src": "https://scontent.example-cdn.test/v/t45/orchard_pillow_a.jpg",
+        "poster": null
+      }
+    ]
+  }
+]

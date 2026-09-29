@@ -1,0 +1,23 @@
+[
+  {
+    "libraryId": "999900007654321",
+    "brand": "Tidewell Socks",
+    "pageId": null,
+    "started": "2026-03-03",
+    "stopped": null,
+    "active": true,
+    "platforms": [
+      "facebook",
+      "instagram"
+    ],
+    "title": "Warm socks for cold offices",
+    "text": "Cold feet at your desk by ten?\nMerino blend socks that stay warm and dry all day.",
+    "cta": "Shop now",
+    "link": "https://tidewell.example/winter?utm_source=fb",
+    "kind": "image",
+    "media": [
+      "https://scontent.example-cdn.test/v/t45/tidewell_winter_1080.jpg"
+    ],
+    "versions": false
+  }
+]

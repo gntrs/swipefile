@@ -1,0 +1,59 @@
+[
+  {
+    "lines": [
+      "Ad Library",
+      "Ad Library Report",
+      "Active",
+      "Library ID: 999900007654321",
+      "Started running on Mar 3, 2026",
+      "Platforms",
+      "See ad details",
+      "Tidewell Socks",
+      "Sponsored",
+      "Cold feet at your desk by ten?",
+      "Merino blend socks that stay warm and dry all day.",
+      "TIDEWELL.EXAMPLE",
+      "Warm socks for cold offices",
+      "Free returns within 60 days",
+      "Shop now",
+      "Advertising policies"
+    ],
+    "links": [
+      {
+        "href": "https://www.facebook.com/ads/library/",
+        "text": "Ad Library"
+      },
+      {
+        "href": "https://www.facebook.com/ads/library/?id=999900007654321",
+        "text": "See ad details"
+      },
+      {
+        "href": "https://www.facebook.com/tidewellsocks/",
+        "text": ""
+      },
+      {
+        "href": "https://www.facebook.com/tidewellsocks/",
+        "text": "Tidewell Socks"
+      },
+      {
+        "href": "https://l.facebook.com/l.php?u=https%3A%2F%2Ftidewell.example%2Fwinter%3Futm_source%3Dfb&h=AT0abcDEF",
+        "text": "TIDEWELL.EXAMPLE Warm socks for cold offices Free returns within 60 days Shop now"
+      },
+      {
+        "href": "https://www.facebook.com/policies/ads/",
+        "text": "Advertising policies"
+      }
+    ],
+    "labels": [
+      "Facebook",
+      "Instagram"
+    ],
+    "media": [
+      {
+        "kind": "image",
+        "src": "https://scontent.example-cdn.test/v/t45/tidewell_winter_1080.jpg",
+        "poster": null
+      }
+    ]
+  }
+]
