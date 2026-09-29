@@ -51,7 +51,8 @@ npm run build
 
 - **Env vars**: anything the browser needs is prefixed `VITE_`. Service keys and API tokens are script only and never imported by frontend code or set on a static host.
 - **Never commit `.env`** or any secret. `DB_SERVICE_KEY` bypasses row level security.
-- **Styling**: Tailwind only, using the tokens in `tailwind.config.js`. Dark only. Fonts are Inter and Geist Mono.
+- **Styling**: Tailwind only, using the tokens in `tailwind.config.js` (`canvas` page background, `card`, `ink`, `line`, one white `accent` with `accent-dim` and `accent-wash`). Dark only. Fonts are Inter and Geist Mono.
+- **Modules**: `src/lib/modules.js` reads `VITE_MODULES`. UI that belongs to a module checks `isOn(id)`; the sidebar, phone tabs and More sheet come from `src/lib/nav.js`. Off means hidden, never deleted.
 - **Mobile first**: every view works from 320 px wide and every control is at least 44 by 44 px. `scripts/responsive-probe.js` measures it; its header says how to run it.
 - **Schema changes** go into `db-setup.sql` and keep it idempotent (`if not exists`, `create or replace`, `drop policy if exists` then `create policy`, guarded `alter`s, `on conflict`), so anyone can re-run the whole file.
 - **Verdicts**: a person's verdict is written only through `humanVerdictPatch` in `src/lib/ads.js`. Importers use `nextImportVerdict`, scoring scripts use `isAutoVerdict`. Nothing overwrites a human verdict.

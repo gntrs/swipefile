@@ -7,6 +7,7 @@ import Layout from '@/components/Layout';
 import PageFallback from '@/components/PageFallback';
 import Login from '@/pages/Login';
 import Setup from '@/pages/Setup';
+import { isOn, TEAM_MODE } from '@/lib/modules';
 
 // Every page except Login and Setup loads on demand, so the first paint only
 // ships what the first screen needs.
@@ -25,6 +26,9 @@ const Briefs = lazy(() => import('@/pages/Briefs'));
 const Intel = lazy(() => import('@/pages/Intel'));
 const Availability = lazy(() => import('@/pages/Availability'));
 const Profile = lazy(() => import('@/pages/Profile'));
+const ImportPage = lazy(() => import('@/features/save/ImportPage'));
+const CapturePage = lazy(() => import('@/features/capture/CapturePage'));
+const CaptureSetup = lazy(() => import('@/features/capture/CaptureSetup'));
 
 function Loading() {
   return <div className="h-full flex items-center justify-center text-ink-soft">Loading...</div>;
@@ -50,6 +54,10 @@ function Protected({ children }) {
 
 const page = (el) => <Suspense fallback={<PageFallback />}>{el}</Suspense>;
 
+// A route whose module is off sends you to the library. Hidden, never deleted:
+// the data stays and the page comes back when the module is switched on.
+const gated = (module, el) => (isOn(module) ? page(el) : <Navigate to="/ads" replace />);
+
 export default function App() {
   return (
     <Routes>
@@ -72,25 +80,38 @@ export default function App() {
           </SetupGate>
         }
       >
-        <Route index element={page(<Dashboard />)} />
+        {/* Home: the dashboard for a team, the library for one person. */}
+        <Route index element={TEAM_MODE ? page(<Dashboard />) : <Navigate to="/ads" replace />} />
         <Route path="overview" element={page(<Dashboard />)} />
         <Route path="ads" element={page(<Library />)} />
+        <Route path="ads/import" element={page(<ImportPage />)} />
         <Route path="compare" element={page(<Compare />)} />
         <Route path="ads/add" element={page(<AddAd />)} />
         <Route path="ad/:id" element={page(<AdDetail />)} />
-        <Route path="posts" element={page(<Posts />)} />
-        <Route path="posts/add" element={page(<AddPost />)} />
-        <Route path="post/:id" element={page(<PostDetail />)} />
-        <Route path="outreach" element={page(<Outreach />)} />
-        <Route path="competitors" element={page(<Competitors />)} />
-        <Route path="hooks" element={page(<HookBank />)} />
-        <Route path="briefs" element={page(<Briefs />)} />
-        <Route path="intel" element={page(<Intel />)} />
-        <Route path="availability" element={page(<Availability />)} />
+        <Route path="posts" element={gated('team', <Posts />)} />
+        <Route path="posts/add" element={gated('team', <AddPost />)} />
+        <Route path="post/:id" element={gated('team', <PostDetail />)} />
+        <Route path="outreach" element={gated('team', <Outreach />)} />
+        <Route path="competitors" element={gated('competitors', <Competitors />)} />
+        <Route path="hooks" element={gated('hooks', <HookBank />)} />
+        <Route path="briefs" element={gated('briefs', <Briefs />)} />
+        <Route path="intel" element={gated('intel', <Intel />)} />
+        <Route path="availability" element={gated('team', <Availability />)} />
         <Route path="profile" element={page(<Profile />)} />
+        <Route path="capture/setup" element={page(<CaptureSetup />)} />
         {/* legacy v1 path */}
         <Route path="add" element={<Navigate to="/ads/add" replace />} />
       </Route>
+      {/* The capture page opens in its own tab from the bookmarklet or the
+          extension, so it sits outside the app shell but still needs a login. */}
+      <Route
+        path="/capture"
+        element={
+          <SetupGate>
+            <Protected>{page(<CapturePage />)}</Protected>
+          </SetupGate>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

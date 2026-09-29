@@ -53,11 +53,11 @@ export default function Login() {
   };
 
   return (
-    <div data-page="login" className="h-full overflow-y-auto overscroll-contain flex items-center justify-center bg-cream px-5">
+    <div data-page="login" className="h-full overflow-y-auto overscroll-contain flex items-center justify-center bg-canvas px-5">
       <div className="w-full max-w-sm bg-card rounded-xl3 border border-line shadow-card p-7 animate-materialize">
         <p className="font-semibold text-[15px] tracking-tight mb-7">
           {APP_NAME}
-          <span className="text-coral">.</span>
+          <span className="text-accent">.</span>
         </p>
 
         <h1 className="text-[24px] font-semibold tracking-tight mb-1">
@@ -72,7 +72,7 @@ export default function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@email.com"
-            className="w-full py-3 px-4 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream"
+            className="w-full py-3 px-4 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas"
           />
           <input
             type="password"
@@ -80,12 +80,12 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            className="w-full py-3 px-4 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream"
+            className="w-full py-3 px-4 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas"
           />
           <button
             type="submit"
             disabled={busy}
-            className="press w-full py-3 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
+            className="press w-full py-3 rounded-2xl bg-accent text-black font-semibold shadow-cta disabled:opacity-60"
           >
             {busy ? 'Please wait...' : mode === 'signin' ? 'Sign in' : 'Sign up'}
           </button>
@@ -96,7 +96,7 @@ export default function Login() {
         {ALLOW_SIGNUP ? (
           <button
             onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-            className="mt-4 min-h-[44px] text-[13px] text-coral-dark font-medium"
+            className="mt-4 min-h-[44px] text-[13px] text-accent-dim font-medium"
           >
             {mode === 'signin' ? 'Need an account? Sign up' : 'Have an account? Sign in'}
           </button>

@@ -10,11 +10,14 @@
 - `scripts/create-users.mjs --email you@example.com --password '...' --role admin` for a single account, next to the roster file mode.
 - First run empty state in the library, with Add your first ad and Import a CSV.
 - `/overview` route for the dashboard.
+- Modules. `VITE_MODULES` picks which parts of the app are on. The default is a solo swipe file: library, hook bank, briefs, competitors and market intel. `team` (chat, goals, organic posts, outreach, availability) and `ops` (revenue, ad performance, site funnel, celebrations) are opt in, and `all` turns on everything. A module that is off is hidden, never deleted.
 - Optional settings: `VITE_APP_NAME`, `VITE_FOCUS_COUNTRIES`, `VITE_FUNNEL_STAGES`, `CREATOR_QUERIES`, `CREATOR_NICHE_RE`, `DISCOVER_TERMS`, `DISCOVER_ANGLES`, `FUNNEL_EVENTS`. Scripts read `OWN_BRAND` and fall back to `VITE_OWN_BRAND`.
 - Tests: `npm test` (vitest) and `npm run test:sql` (runs `db-setup.sql` twice and the SQL tests on a local Postgres). CI runs both and the build on every pull request.
 
 ### Changed
 
+- Without `team` or `ops`, `/` opens the library, the sidebar is Ads, Hook bank, Briefs, Competitors, Market intel and Overview, and the phone tabs are Ads, Hooks, Briefs and Rivals. The overview's key numbers become Ads saved, Proven, Starred and Running now. With `team` or `ops` on, home, sidebar and tabs are what they were.
+- Theme colour tokens are named for what they do: `accent` (was `coral`), `accent-dim` (was `coral-dark`), `accent-wash` (was `coral-soft`) and `canvas` (was `cream`). Nothing looks different. Forks with their own components: rename those classes too, or the colours drop out.
 - Every page except Login and Setup loads on demand. The first download went from one 706 kB file to a 110 kB entry plus separate React and Supabase files.
 - Pinch zoom works on phones. The app paints dark before its CSS loads, so there is no white flash, and the status bar is dark.
 - Every control is at least 44 by 44 px at every size from 320 px phones to desktop.
@@ -41,3 +44,5 @@
 2. Optional: add the new settings above to `.env`. Nothing breaks without them.
 3. `scripts/create-users.mjs` takes `--email` and friends now; the roster file still works.
 4. If you ran `scrape-creators.mjs` or `discover-winners.mjs` on their built in search terms, set `CREATOR_QUERIES` and `DISCOVER_TERMS`.
+5. Team and ops features (chat, goals, availability, outreach, organic posts, revenue, funnel, celebrations) are now off by default. Your data is untouched. To get them back, set VITE_MODULES=all (or list the modules you want) and rebuild.
+6. If you added your own components, rename the old colour classes: `coral-dark` to `accent-dim`, `coral-soft` to `accent-wash`, `coral` to `accent`, `cream` to `canvas`.

@@ -7,7 +7,7 @@ import Sparkline from '@/components/Sparkline';
 // light. On the dark canvas only the meaningful accents pop; decorative ones
 // (blue/violet) read as neutral grayscale.
 const CHIP = {
-  coral: 'bg-white/[0.08] text-ink',
+  base: 'bg-white/[0.08] text-ink',
   emerald: 'bg-emerald-500/15 text-emerald-300',
   blue: 'bg-white/[0.06] text-ink-soft',
   violet: 'bg-white/[0.06] text-ink-soft',
@@ -18,7 +18,7 @@ const CHIP = {
 
 // Sparkline stroke follows the accent so the trend reads as part of the tile.
 const STROKE = {
-  coral: 'text-ink',
+  base: 'text-ink',
   emerald: 'text-emerald-400',
   blue: 'text-ink-soft',
   violet: 'text-ink-soft',
@@ -29,9 +29,9 @@ const STROKE = {
 
 // Hero-number stat tile. Pass `to` to make the whole tile a shortcut, `trend`
 // (array of numbers) for a sparkline, and `delta`/`deltaTone` for a status pill.
-export default function StatCard({ icon: Icon, label, value, sub, accent = 'coral', to, trend, delta, deltaTone = 'good' }) {
-  const chip = CHIP[accent] || CHIP.coral;
-  const stroke = STROKE[accent] || STROKE.coral;
+export default function StatCard({ icon: Icon, label, value, sub, accent = 'base', to, trend, delta, deltaTone = 'good' }) {
+  const chip = CHIP[accent] || CHIP.base;
+  const stroke = STROKE[accent] || STROKE.base;
   const inner = (
     <>
       <div className="flex items-start justify-between gap-2">

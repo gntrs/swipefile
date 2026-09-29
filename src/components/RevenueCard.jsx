@@ -153,7 +153,7 @@ export default function RevenueCard() {
       </div>
 
       {empty ? (
-        <div className="text-[13px] text-ink-soft bg-cream/60 rounded-2xl px-4 py-3">
+        <div className="text-[13px] text-ink-soft bg-canvas/60 rounded-2xl px-4 py-3">
           Waiting for Stripe. Add <span className="font-mono text-[12px]">STRIPE_API_KEY</span> to{' '}
           <span className="font-mono text-[12px]">.env</span> on your cron machine, apply{' '}
           <span className="font-mono text-[12px]">db-setup.sql</span>, then run{' '}
@@ -187,7 +187,7 @@ export default function RevenueCard() {
           </div>
           <div className="bg-card rounded-2xl border border-line px-3.5 py-3">
             <div className="flex items-center gap-1.5 mb-1">
-              <Sparkle size={14} weight="bold" className="text-coral-dark" />
+              <Sparkle size={14} weight="bold" className="text-accent-dim" />
               <p className="text-[12px] font-medium text-ink-soft">Today</p>
             </div>
             <p className="font-mono text-[19px] font-semibold tabular-nums tracking-tight leading-none">
@@ -213,7 +213,7 @@ export default function RevenueCard() {
             type="button"
             onClick={() => setExpanded(false)}
             aria-label="Close"
-            className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 w-10 h-10 rounded-full border border-line flex items-center justify-center text-ink-soft hover:bg-cream"
+            className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 w-10 h-10 rounded-full border border-line flex items-center justify-center text-ink-soft hover:bg-canvas"
           >
             <X size={18} weight="bold" />
           </button>

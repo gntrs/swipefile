@@ -47,7 +47,7 @@ export default function WelcomePopup() {
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-5 animate-fade">
       <div className="bg-card rounded-xl3 border border-line shadow-card w-full max-w-[400px] p-6 animate-materialize">
         <div className="flex items-center gap-2.5 mb-1.5">
-          <HandWaving size={24} weight="bold" className="text-coral" />
+          <HandWaving size={24} weight="bold" className="text-accent" />
           <h2 className="text-[18px] font-semibold tracking-tight">Welcome to the team</h2>
         </div>
         <p className="text-ink-soft text-[13px] mb-5">
@@ -64,7 +64,7 @@ export default function WelcomePopup() {
             placeholder="How the team sees you"
             maxLength={30}
             autoFocus
-            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
+            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]"
           />
 
           <label className="text-[13px] font-semibold text-ink-soft mb-1 mt-4 block">
@@ -76,18 +76,18 @@ export default function WelcomePopup() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 8 characters"
             autoComplete="new-password"
-            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
+            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]"
           />
           <p className="text-[12px] text-ink-soft mt-1.5">
             Replaces the temporary one you logged in with. Use it next time.
           </p>
 
-          {err && <p className="text-[13px] text-coral-dark mt-3">{err}</p>}
+          {err && <p className="text-[13px] text-accent-dim mt-3">{err}</p>}
 
           <button
             type="submit"
             disabled={busy}
-            className="press mt-5 w-full py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
+            className="press mt-5 w-full py-2.5 rounded-2xl bg-accent text-black font-semibold shadow-cta disabled:opacity-60"
           >
             {busy ? 'Saving...' : "Let's go"}
           </button>

@@ -100,7 +100,7 @@ export default function PostDetail() {
               href={post.url}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1 min-h-[44px] text-coral-dark text-[14px] font-semibold flex-shrink-0"
+              className="flex items-center gap-1 min-h-[44px] text-accent-dim text-[14px] font-semibold flex-shrink-0"
             >
               Open <ArrowSquareOut size={16} weight="bold" />
             </a>
@@ -113,7 +113,7 @@ export default function PostDetail() {
             <select
               value={post.verdict}
               onChange={(e) => patch({ verdict: e.target.value })}
-              className="w-full min-h-[44px] py-2 px-3 rounded-2xl border border-line bg-card focus:outline-none focus:border-coral text-[14px] capitalize"
+              className="w-full min-h-[44px] py-2 px-3 rounded-2xl border border-line bg-card focus:outline-none focus:border-accent text-[14px] capitalize"
             >
               {VERDICTS.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
@@ -124,7 +124,7 @@ export default function PostDetail() {
           <div className="grid grid-cols-3 sm:grid-cols-7 gap-2 mt-5">
             {METRIC_KEYS.map((k) =>
               metrics[k] != null ? (
-                <div key={k} className="bg-cream rounded-2xl px-2 py-2.5 text-center">
+                <div key={k} className="bg-canvas rounded-2xl px-2 py-2.5 text-center">
                   <p className="text-[17px] font-semibold tabular-nums leading-none">{metrics[k]}</p>
                   <p className="text-[11px] text-ink-soft mt-1 capitalize">{k}</p>
                 </div>
@@ -150,7 +150,7 @@ export default function PostDetail() {
         {Array.isArray(post.tags) && post.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-4">
             {post.tags.map((t) => (
-              <span key={t} className="text-[12px] px-2.5 py-1 rounded-full bg-cream text-ink-soft">{t}</span>
+              <span key={t} className="text-[12px] px-2.5 py-1 rounded-full bg-canvas text-ink-soft">{t}</span>
             ))}
           </div>
         )}
@@ -166,7 +166,7 @@ export default function PostDetail() {
         <div className="flex flex-col gap-3 mb-3">
           {comments.length === 0 && <p className="text-ink-soft text-[13px]">No notes yet.</p>}
           {comments.map((c) => (
-            <div key={c.id} className="bg-cream rounded-2xl px-3.5 py-2.5">
+            <div key={c.id} className="bg-canvas rounded-2xl px-3.5 py-2.5">
               <p className="text-[14px]">{c.body}</p>
               <p className="text-[11px] text-ink-soft mt-1">{displayName(c.author_email)}</p>
             </div>
@@ -177,9 +177,9 @@ export default function PostDetail() {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Add a note for the team..."
-            className="flex-1 min-w-0 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
+            className="flex-1 min-w-0 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]"
           />
-          <button aria-label="Add note" className="press w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta">
+          <button aria-label="Add note" className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0 shadow-cta">
             <PaperPlaneRight size={18} weight="fill" />
           </button>
         </form>

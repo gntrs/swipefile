@@ -12,8 +12,8 @@ import AvailabilityEditor from '@/components/AvailabilityEditor';
 // for the block on the grid, `dot` = legend dot.
 const STATUSES = [
   { key: 'in_office', label: 'In office', solid: 'bg-mint text-emerald-900', block: 'bg-mint/50 border-mint text-emerald-900', dot: 'bg-mint' },
-  { key: 'wfh', label: 'Home', full: 'Work from home', solid: 'bg-coral text-black', block: 'bg-coral-soft border-coral text-coral-dark', dot: 'bg-coral' },
-  { key: 'out', label: 'Out', solid: 'bg-ink text-black', block: 'bg-cream border-line text-ink-soft', dot: 'bg-line' },
+  { key: 'wfh', label: 'Home', full: 'Work from home', solid: 'bg-accent text-black', block: 'bg-accent-wash border-accent text-accent-dim', dot: 'bg-accent' },
+  { key: 'out', label: 'Out', solid: 'bg-ink text-black', block: 'bg-canvas border-line text-ink-soft', dot: 'bg-line' },
 ];
 const META = Object.fromEntries(STATUSES.map((s) => [s.key, s]));
 
@@ -190,7 +190,7 @@ export default function Availability() {
         <h1 className="text-[22px] font-semibold tracking-tight">Availability</h1>
         <button
           onClick={() => setEditor({ day: ymd(days[selDay]), start: 540 })}
-          className="press flex items-center gap-1.5 min-h-[44px] px-3.5 py-2 rounded-2xl bg-coral text-black text-[14px] font-semibold shadow-cta"
+          className="press flex items-center gap-1.5 min-h-[44px] px-3.5 py-2 rounded-2xl bg-accent text-black text-[14px] font-semibold shadow-cta"
         >
           <Plus size={16} weight="bold" /> Add
         </button>
@@ -200,13 +200,13 @@ export default function Availability() {
       {/* Week nav + legend */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-1">
-          <button onClick={() => setWeekStart((w) => addDays(w, -7))} aria-label="Previous week" className="w-11 h-11 rounded-2xl bg-card border border-line flex items-center justify-center text-ink-soft hover:bg-cream">
+          <button onClick={() => setWeekStart((w) => addDays(w, -7))} aria-label="Previous week" className="w-11 h-11 rounded-2xl bg-card border border-line flex items-center justify-center text-ink-soft hover:bg-canvas">
             <CaretLeft size={16} weight="bold" />
           </button>
-          <button onClick={() => { setWeekStart(mondayOf(new Date())); setSelDay(weekdayIdx(new Date())); }} className="px-3 h-11 rounded-2xl bg-card border border-line text-[13px] font-semibold text-ink-soft hover:bg-cream">
+          <button onClick={() => { setWeekStart(mondayOf(new Date())); setSelDay(weekdayIdx(new Date())); }} className="px-3 h-11 rounded-2xl bg-card border border-line text-[13px] font-semibold text-ink-soft hover:bg-canvas">
             Today
           </button>
-          <button onClick={() => setWeekStart((w) => addDays(w, 7))} aria-label="Next week" className="w-11 h-11 rounded-2xl bg-card border border-line flex items-center justify-center text-ink-soft hover:bg-cream">
+          <button onClick={() => setWeekStart((w) => addDays(w, 7))} aria-label="Next week" className="w-11 h-11 rounded-2xl bg-card border border-line flex items-center justify-center text-ink-soft hover:bg-canvas">
             <CaretRight size={16} weight="bold" />
           </button>
           <span className="ml-2 text-[14px] font-semibold tabular-nums">{weekLabel}</span>
@@ -229,7 +229,7 @@ export default function Availability() {
               key={ymd(d)}
               onClick={() => setSelDay(i)}
               className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold tabular-nums transition-colors ${
-                i === selDay ? 'bg-coral text-black shadow-cta' : isToday ? 'bg-coral-soft text-coral-dark' : 'bg-card border border-line text-ink-soft'
+                i === selDay ? 'bg-accent text-black shadow-cta' : isToday ? 'bg-accent-wash text-accent-dim' : 'bg-card border border-line text-ink-soft'
               }`}
             >
               {d.toLocaleDateString(undefined, { weekday: 'short' })} {d.getDate()}
@@ -247,9 +247,9 @@ export default function Availability() {
             {days.map((d) => {
               const isToday = ymd(d) === todayStr;
               return (
-                <div key={ymd(d)} className={`flex-1 min-w-[92px] text-center py-2 border-l border-line ${isToday ? 'bg-coral-soft' : ''}`}>
+                <div key={ymd(d)} className={`flex-1 min-w-[92px] text-center py-2 border-l border-line ${isToday ? 'bg-accent-wash' : ''}`}>
                   <div className="text-[11px] uppercase tracking-wide text-ink-soft">{d.toLocaleDateString(undefined, { weekday: 'short' })}</div>
-                  <div className={`text-[15px] font-semibold tabular-nums ${isToday ? 'text-coral-dark' : ''}`}>{d.getDate()}</div>
+                  <div className={`text-[15px] font-semibold tabular-nums ${isToday ? 'text-accent-dim' : ''}`}>{d.getDate()}</div>
                 </div>
               );
             })}

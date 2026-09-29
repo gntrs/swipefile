@@ -31,11 +31,11 @@ export default function LatestBrief() {
       className="block bg-card rounded-xl3 border border-line shadow-card hover:shadow-cardhover transition-all p-5 mb-4"
     >
       <div className="flex items-center gap-2 mb-1.5">
-        <span className="w-7 h-7 rounded-xl bg-coral-soft text-coral-dark flex items-center justify-center flex-shrink-0">
+        <span className="w-7 h-7 rounded-xl bg-accent-wash text-accent-dim flex items-center justify-center flex-shrink-0">
           <FileText size={15} weight="bold" />
         </span>
         <h2 className="font-semibold text-[15px] flex-1 min-w-0 truncate">Latest brief</h2>
-        <span className="flex items-center gap-0.5 text-[13px] font-semibold text-coral-dark flex-shrink-0">
+        <span className="flex items-center gap-0.5 text-[13px] font-semibold text-accent-dim flex-shrink-0">
           All briefs <CaretRight size={13} weight="bold" />
         </span>
       </div>

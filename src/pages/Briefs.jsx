@@ -9,8 +9,8 @@ import MigrationCard from '@/components/MigrationCard';
 function CopyButton({ text, label = 'Copy', icon: Icon = Copy, accent = false }) {
   const [copied, setCopied] = useState(false);
   const idle = accent
-    ? 'bg-coral/12 text-coral hover:bg-coral/20'
-    : 'bg-cream text-ink-soft hover:text-ink';
+    ? 'bg-accent/12 text-accent hover:bg-accent/20'
+    : 'bg-canvas text-ink-soft hover:text-ink';
   return (
     <button
       type="button"
@@ -120,7 +120,7 @@ export default function Briefs() {
                 key={b.id}
                 ref={highlight === b.id ? wantedRef : null}
                 className={`bg-card rounded-xl3 border shadow-card scroll-mt-6 transition-all duration-700 ${
-                  highlight === b.id ? 'border-coral ring-2 ring-coral/40' : 'border-line'
+                  highlight === b.id ? 'border-accent ring-2 ring-accent/40' : 'border-line'
                 }`}
               >
                 <div className="flex items-start gap-3 px-4 pt-4 pb-2">

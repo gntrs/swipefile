@@ -10,7 +10,7 @@ const TYPES = ['post', 'story', 'reel', 'video', 'other'];
 const VERDICTS = ['unsure', 'winner', 'testing', 'loser'];
 const METRIC_KEYS = ['views', 'likes', 'comments', 'shares', 'saves', 'clicks', 'signups'];
 
-const field = 'w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]';
+const field = 'w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]';
 const label = 'text-[13px] font-semibold text-ink-soft mb-1 block';
 
 export default function AddPost() {
@@ -200,7 +200,7 @@ export default function AddPost() {
         </div>
 
         {/* Optional screenshot */}
-        <label className="block bg-card border-2 border-dashed border-line rounded-xl3 p-4 text-center cursor-pointer hover:border-coral transition-colors">
+        <label className="block bg-card border-2 border-dashed border-line rounded-xl3 p-4 text-center cursor-pointer hover:border-accent transition-colors">
           {preview ? (
             <img src={preview} className="max-h-48 mx-auto rounded-2xl" alt="preview" />
           ) : (
@@ -217,7 +217,7 @@ export default function AddPost() {
         <button
           type="submit"
           disabled={busy}
-          className="press justify-self-start px-6 py-3 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
+          className="press justify-self-start px-6 py-3 rounded-2xl bg-accent text-black font-semibold shadow-cta disabled:opacity-60"
         >
           {busy ? 'Saving...' : 'Save post'}
         </button>

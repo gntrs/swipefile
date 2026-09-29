@@ -8,11 +8,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        // The single accent is white (winners, CTAs, active states). On white
-        // surfaces the foreground goes black (see text-black swaps). `soft` is
-        // a near-black tint used behind the accent on dark cards.
-        coral: { DEFAULT: '#FFFFFF', dark: '#D4D4D4', soft: '#1C1C1C' },
-        cream: '#0A0A0A', // page canvas + in-card track fills (near-black)
+        // The single accent is white: primary buttons, active states, focus
+        // rings, progress fills. On a white surface the foreground goes black
+        // (see the text-black swaps). `dim` is the softer accent for links and
+        // secondary emphasis; `wash` is a near black tint behind the accent on
+        // dark cards (active nav rows, selected chips).
+        accent: { DEFAULT: '#FFFFFF', dim: '#D4D4D4', wash: '#1C1C1C' },
+        canvas: '#0A0A0A', // page background and in-card track fills (near black)
         ink: { DEFAULT: '#F4F4F5', soft: '#8B8B8B' }, // light body / muted secondary
         mint: { DEFAULT: '#22C978', dark: '#63EFA6' }, // good/proven: vivid green
         line: '#262626', // dark hairline borders

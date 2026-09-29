@@ -92,7 +92,7 @@ export default function ProvenPlays({ ads }) {
                   <span className="font-mono text-[11px] text-ink-soft/60 tabular-nums w-4 flex-shrink-0">
                     {i + 1}
                   </span>
-                  <span className="text-[13px] font-semibold truncate group-hover:text-coral-dark transition-colors">
+                  <span className="text-[13px] font-semibold truncate group-hover:text-accent-dim transition-colors">
                     {a.brand || 'Untitled'}
                   </span>
                   {live && (

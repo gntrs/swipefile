@@ -28,7 +28,7 @@ const ROWS = [
 function AdThumb({ ad }) {
   const src = useMediaUrl(ad.media_path);
   return (
-    <div className="aspect-[4/5] w-full bg-cream rounded-xl overflow-hidden flex items-center justify-center">
+    <div className="aspect-[4/5] w-full bg-canvas rounded-xl overflow-hidden flex items-center justify-center">
       {src ? (
         ad.format === 'video' ? (
           <video src={src} muted loop playsInline className="w-full h-full object-cover" />
@@ -153,14 +153,14 @@ export default function Compare() {
       ) : ads.length < 2 ? (
         <div className="text-center py-20 text-ink-soft">
           <p className="mb-3">Pick at least 2 ads to compare.</p>
-          <Link to="/ads" className="inline-flex items-center min-h-[44px] text-coral-dark font-semibold">Back to the library</Link>
+          <Link to="/ads" className="inline-flex items-center min-h-[44px] text-accent-dim font-semibold">Back to the library</Link>
         </div>
       ) : (
         <div className="overflow-x-auto -mx-5 px-5 sm:mx-0 sm:px-0">
           <table className="border-collapse min-w-full">
             <thead>
               <tr>
-                <th className="sticky left-0 bg-cream z-10 w-28" />
+                <th className="sticky left-0 bg-canvas z-10 w-28" />
                 {ads.map((a) => (
                   <th key={a.id} className="p-2 align-top min-w-[160px]">
                     <div className="bg-card rounded-xl3 border border-line shadow-card p-2">
@@ -176,7 +176,7 @@ export default function Compare() {
                           <Star size={14} weight={isStarred(a) ? 'fill' : 'bold'} />
                         </button>
                       </div>
-                      <Link to={`/ad/${a.id}`} className="block min-h-[44px] leading-[44px] font-semibold text-[13px] truncate hover:text-coral-dark">
+                      <Link to={`/ad/${a.id}`} className="block min-h-[44px] leading-[44px] font-semibold text-[13px] truncate hover:text-accent-dim">
                         {a.brand || 'Untitled'}
                       </Link>
                       <p className="text-[11px] text-ink-soft truncate">{a.platform}</p>
@@ -190,7 +190,7 @@ export default function Compare() {
                 const best = bestIndex(row);
                 return (
                   <tr key={row.key} className="border-t border-line">
-                    <td className="sticky left-0 bg-cream z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-middle">
+                    <td className="sticky left-0 bg-canvas z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-middle">
                       {row.label}
                     </td>
                     {ads.map((a, i) => (
@@ -211,13 +211,13 @@ export default function Compare() {
               })}
               {/* Hook + copy rows, left-aligned text */}
               <tr className="border-t border-line">
-                <td className="sticky left-0 bg-cream z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-top">Hook</td>
+                <td className="sticky left-0 bg-canvas z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-top">Hook</td>
                 {ads.map((a) => (
                   <td key={a.id} className="px-2 py-2 text-[13px] align-top">{a.hook || '-'}</td>
                 ))}
               </tr>
               <tr className="border-t border-line">
-                <td className="sticky left-0 bg-cream z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-top">Copy</td>
+                <td className="sticky left-0 bg-canvas z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-top">Copy</td>
                 {ads.map((a) => (
                   <td key={a.id} className="px-2 py-2 text-[12px] text-ink-soft align-top whitespace-pre-wrap max-w-[240px]">
                     {a.ad_copy ? (a.ad_copy.length > 280 ? `${a.ad_copy.slice(0, 280)}...` : a.ad_copy) : '-'}

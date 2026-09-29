@@ -46,7 +46,7 @@ function CopyButton({ text }) {
       }}
       aria-label="Copy hook"
       className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-        copied ? 'bg-mint/40 text-emerald-700' : 'text-ink-soft hover:bg-cream'
+        copied ? 'bg-mint/40 text-emerald-700' : 'text-ink-soft hover:bg-canvas'
       }`}
     >
       {copied ? <Check size={16} weight="bold" /> : <Copy size={16} weight="bold" />}
@@ -180,7 +180,7 @@ export default function HookBank() {
               key={o.id}
               onClick={() => setOnly(o.id)}
               className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
-                only === o.id ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
+                only === o.id ? 'bg-accent text-black' : 'bg-card border border-line text-ink-soft'
               }`}
             >
               {o.label}
@@ -194,7 +194,7 @@ export default function HookBank() {
                 key={t}
                 onClick={() => setTag(tag === t ? null : t)}
                 className={`min-h-[44px] min-w-[44px] px-3 py-1 rounded-full text-[12px] font-medium transition-colors ${
-                  tag === t ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
+                  tag === t ? 'bg-accent text-black' : 'bg-card border border-line text-ink-soft'
                 }`}
               >
                 {t}
@@ -227,7 +227,7 @@ export default function HookBank() {
                     </span>
                   )}
                   {h.live && (
-                    <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cream text-emerald-700">
+                    <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-canvas text-emerald-700">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                       live{h.days > 0 && ` · ${h.days}d`}
                     </span>
@@ -237,8 +237,8 @@ export default function HookBank() {
                       key={b}
                       className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                         isOwnBrand(b)
-                          ? 'bg-coral-soft text-coral-dark'
-                          : 'bg-cream text-ink-soft'
+                          ? 'bg-accent-wash text-accent-dim'
+                          : 'bg-canvas text-ink-soft'
                       }`}
                     >
                       {b}
@@ -262,7 +262,7 @@ export default function HookBank() {
                 <Link
                   to={`/ad/${h.best.id}`}
                   aria-label="Open the ad"
-                  className="w-11 h-11 rounded-xl flex items-center justify-center text-ink-soft hover:bg-cream"
+                  className="w-11 h-11 rounded-xl flex items-center justify-center text-ink-soft hover:bg-canvas"
                 >
                   <ArrowSquareOut size={16} weight="bold" />
                 </Link>

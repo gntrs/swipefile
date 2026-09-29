@@ -131,6 +131,27 @@ A script whose variables are missing says which ones and stops. Features without
 
 ## 7. Optional features
 
+### Modules
+
+The app starts as a solo swipe file: library, hook bank, briefs, competitors and market intel. The team and ops features stay hidden until you turn them on with `VITE_MODULES` in `.env`, then restart `npm run dev` or rebuild.
+
+| Module | On by default | What it adds |
+|---|---|---|
+| `library` | always | Ads, add an ad, compare, the ad page, `/overview`, profile |
+| `hooks` | yes | Hook bank |
+| `briefs` | yes | Briefs, and the latest brief on the overview |
+| `competitors` | yes | Competitors, and rivals' proven plays on the overview |
+| `intel` | yes | Market intel, and its card on the overview |
+| `team` | no | Team chat and goals, organic posts, outreach, availability, the welcome popup, the team list on your profile, who added each ad |
+| `ops` | no | Revenue, ad performance, the site funnel, sale celebrations and party mode |
+
+- `VITE_MODULES=all` turns on every module.
+- A comma list turns on exactly those modules, and `library` is always on. `VITE_MODULES=team,ops` gives you the team and ops features but hides hooks, briefs, competitors and intel; to keep them, list them too: `VITE_MODULES=library,hooks,briefs,competitors,intel,team,ops` (the same as `all`).
+- Unknown names are ignored with a warning in the browser console.
+- With `team` or `ops` on, `/` opens the dashboard; otherwise it opens the library and the dashboard lives at `/overview`.
+
+Turning a module off hides it and nothing else: its data stays in the database.
+
 ### Meta Ad Library (rival ads and competitor tracking)
 
 1. Create an app at developers.facebook.com, complete identity verification, and generate a token with Ad Library API access.
@@ -151,7 +172,7 @@ Set `FOREPLAY_API_KEY`, then `node scripts/import-foreplay.mjs`. Long running ad
 
 ### Creator finder
 
-1. Set `BRAVE_API_KEY` (Brave Search API, free plan).
+1. Set `BRAVE_API_KEY` (Brave Search API, free plan). The results land in Outreach, which is part of the `team` module.
 2. Set `CREATOR_QUERIES` to searches that find the creators you want, for example `vegan recipes creator instagram,home workout coach instagram`.
 3. Optional: `CREATOR_NICHE_RE`, a regex a profile must match to be kept.
 4. `node scripts/scrape-creators.mjs` searches public Instagram profiles through Brave Search and fills the Outreach view. `scrape-emails.mjs` looks for their public contact emails.
@@ -168,11 +189,11 @@ Set `SEO_OWN_DOMAIN` (and `SEO_COMPETITOR_DOMAINS`), then `seo-rank-pull.mjs` fo
 
 ### Stripe
 
-Set `STRIPE_API_KEY` (a restricted read only key) and `REVENUE_TZ`. `stripe-pull.mjs` syncs sales; `revenue-alert.mjs` and `failed-payment-alert.mjs` send Telegram pings.
+Set `STRIPE_API_KEY` (a restricted read only key) and `REVENUE_TZ`. `stripe-pull.mjs` syncs sales; `revenue-alert.mjs` and `failed-payment-alert.mjs` send Telegram pings. The revenue card on the overview is part of the `ops` module.
 
 ### Product analytics and the site funnel
 
-Set `POSTHOG_API_KEY`, `POSTHOG_PROJECT_ID` and `POSTHOG_HOST`, then schedule `snapshot-kpis.mjs`. `FUNNEL_EVENTS` lists your funnel events in order (default `landing_cta_clicked,signup_started,signup_completed,user_registered,payment_initiated,payment_completed`); `VITE_FUNNEL_STAGES` gives the app the same stages with labels (`landing_cta_clicked:Landing CTA,...`).
+Set `POSTHOG_API_KEY`, `POSTHOG_PROJECT_ID` and `POSTHOG_HOST`, then schedule `snapshot-kpis.mjs`. `FUNNEL_EVENTS` lists your funnel events in order (default `landing_cta_clicked,signup_started,signup_completed,user_registered,payment_initiated,payment_completed`); `VITE_FUNNEL_STAGES` gives the app the same stages with labels (`landing_cta_clicked:Landing CTA,...`). The funnel card is part of the `ops` module.
 
 ### Health monitor
 
@@ -180,7 +201,7 @@ Set the `HEALTH_*` and `MAILJET_*` values from `.env.example`, then schedule `he
 
 ### Sale celebrations
 
-Drop your own short clips into `public/memes/` and list them in `src/lib/celebration.js`. The folder is gitignored, so nothing you add gets committed.
+Turn on the `ops` module, drop your own short clips into `public/memes/` and list them in `src/lib/celebration.js`. The folder is gitignored, so nothing you add gets committed.
 
 ## 8. Scheduling
 

@@ -4,6 +4,8 @@ import { CheckCircle, Info, Warning, XCircle, Copy, Check } from '@phosphor-icon
 import { DB_MODE } from '@/lib/db';
 import { APP_NAME } from '@/lib/brand';
 import { useSetup } from '@/lib/setup/SetupContext';
+import AiSetupRow from '@/features/ai/AiSetupRow';
+import CaptureSetupRow from '@/features/capture/CaptureSetupRow';
 
 const LEVELS = {
   ok: { icon: CheckCircle, label: 'OK', tone: 'text-emerald-600' },
@@ -57,7 +59,7 @@ function CheckRow({ check }) {
           {check.detail && <p className="text-[15px] text-ink-soft leading-relaxed mt-1.5">{check.detail}</p>}
           {check.fix && (
             <div className="mt-3 flex items-start gap-2">
-              <code className="flex-1 min-w-0 block bg-cream border border-line rounded-2xl px-3 py-2.5 font-mono text-[13px] leading-relaxed text-ink whitespace-pre-wrap">
+              <code className="flex-1 min-w-0 block bg-canvas border border-line rounded-2xl px-3 py-2.5 font-mono text-[13px] leading-relaxed text-ink whitespace-pre-wrap">
                 {check.fix}
               </code>
               <CopyButton text={check.fix} />
@@ -74,11 +76,11 @@ export default function Setup() {
   const blocking = status === 'blocking';
 
   return (
-    <div data-page="setup" className="h-full overflow-y-auto overscroll-contain bg-cream text-ink">
+    <div data-page="setup" className="h-full overflow-y-auto overscroll-contain bg-canvas text-ink">
       <div className="max-w-[720px] mx-auto px-5 sm:px-8 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
         <p className="font-semibold text-[18px] tracking-tight mb-8">
           {APP_NAME}
-          <span className="text-coral">.</span>
+          <span className="text-accent">.</span>
         </p>
 
         <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-ink-soft mb-2">Setup check</p>
@@ -95,7 +97,9 @@ export default function Setup() {
               {checks.map((c, i) => (
                 <CheckRow key={`${c.id}-${i}`} check={c} />
               ))}
-              {/* Phase B adds <AiSetupRow /> and <CaptureSetupRow /> here. */}
+              {/* Optional features report their own rows after the core checks. */}
+              <AiSetupRow />
+              <CaptureSetupRow />
             </ul>
           )}
         </div>
@@ -106,7 +110,7 @@ export default function Setup() {
               type="button"
               onClick={rerun}
               disabled={loading}
-              className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl bg-coral text-black font-semibold disabled:opacity-60"
+              className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl bg-accent text-black font-semibold disabled:opacity-60"
             >
               {loading ? 'Checking...' : 'Run again'}
             </button>

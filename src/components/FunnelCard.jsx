@@ -98,7 +98,7 @@ export default function FunnelCard() {
       {rows === null ? (
         <p className="text-ink-soft text-[13px]">Loading...</p>
       ) : rows.length === 0 ? (
-        <div className="text-[13px] text-ink-soft bg-cream/60 rounded-2xl px-4 py-3">
+        <div className="text-[13px] text-ink-soft bg-canvas/60 rounded-2xl px-4 py-3">
           No snapshots yet. Apply <span className="font-mono text-[12px]">db-setup.sql</span>,
           then the daily cron (or <span className="font-mono text-[12px]">node scripts/snapshot-kpis.mjs</span>)
           fills this in.
@@ -120,7 +120,7 @@ export default function FunnelCard() {
               </div>
               <div className="h-2.5 rounded-full bg-card overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-coral"
+                  className="h-full rounded-full bg-accent"
                   style={{ width: `${Math.max(2, s.width)}%` }}
                 />
               </div>

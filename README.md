@@ -41,9 +41,27 @@ The long version, with every optional feature, is [docs/SETUP.md](docs/SETUP.md)
 - **Briefs.** Briefs written from your ads, with a copyable prompt block for your editor.
 - **Competitors.** Rival brands and how long their ads have run, fed by the Meta Ad Library importer (`scripts/import-ad-library.mjs`).
 - **Intel.** Where rival ads run in the EU and how many people they reach, plus search ranks and Google Trends if you run those scripts.
-- **Team and ops.** Team chat, goals, organic posts, creator outreach, availability, revenue and a site funnel. These are optional and need their own scripts and keys.
+- **Team and ops.** Team chat, goals, organic posts, creator outreach, availability, revenue and a site funnel. They are off by default (see Modules) and need their own scripts and keys.
 
 Verdicts a person sets are never overwritten by an importer. Importers only move verdicts they set themselves.
+
+## Modules
+
+Out of the box Swipefile is a tool for one person: the library, hooks, briefs, competitors and intel. `/` opens the library and `/overview` shows the numbers. Team and ops features are there when you want them: set `VITE_MODULES` in `.env` and restart `npm run dev` (or rebuild).
+
+| Module | On by default | What it adds |
+|---|---|---|
+| `library` | always | Ads, add an ad, compare, the ad page, `/overview`, profile |
+| `hooks` | yes | Hook bank |
+| `briefs` | yes | Briefs, and the latest brief on the overview |
+| `competitors` | yes | Competitors, and rivals' proven plays on the overview |
+| `intel` | yes | Market intel, and its card on the overview |
+| `team` | no | Team chat and goals, organic posts, outreach, availability, the welcome popup, the team list on your profile, who added each ad |
+| `ops` | no | Revenue, ad performance, the site funnel, sale celebrations and party mode |
+
+`VITE_MODULES=all` turns on everything. A comma list turns on exactly those modules plus `library`, so to add the team features to the default set write `VITE_MODULES=library,hooks,briefs,competitors,intel,team`. With `team` or `ops` on, `/` opens the dashboard instead of the library.
+
+Turning a module off only hides it. Its pages send you to the library and its cards disappear, but its data stays in the database and comes back when you turn it on again.
 
 ## AI
 
@@ -72,6 +90,7 @@ Everything lives in `.env`. Only `VITE_` variables reach the browser, so nothing
 | `VITE_APP_NAME` | `Swipefile` | The name shown as the wordmark |
 | `VITE_FOCUS_COUNTRIES` | empty | Comma list of ISO codes (`ES,FR`) pinned first in country pickers and Intel |
 | `VITE_FUNNEL_STAGES` | six stages from landing to paid | `event:Label` pairs for the site funnel card |
+| `VITE_MODULES` | `library,hooks,briefs,competitors,intel` | Which parts of the app are on. `all` for everything, see Modules |
 
 With neither `VITE_DB_URL` nor `VITE_DB_ANON_KEY` set, the app runs in demo mode.
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Star, Check, ArrowSquareOut } from '@phosphor-icons/react';
 import { useTeam } from '@/contexts/TeamContext';
 import Pill from '@/components/Pill';
+import { TEAM_MODE } from '@/lib/modules';
 import { setStarred, isStarred, isRecent, RECENT_TAG, reachRating, fmtReach, fmtEuReach, adCountries, countryName } from '@/lib/ads';
 
 const VERDICT = {
@@ -99,7 +100,7 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
         className={`press-solo-face relative w-9 h-9 rounded-full flex items-center justify-center ${pop > 0 ? 'star-pop' : ''} ${
           starred
             ? 'bg-amber-400 text-black shadow-[0_0_0_3px_rgba(251,191,36,0.16)]'
-            : 'bg-cream text-ink-soft ring-1 ring-inset ring-line'
+            : 'bg-canvas text-ink-soft ring-1 ring-inset ring-line'
         }`}
       >
         <Star size={19} weight={starred ? 'fill' : 'bold'} />
@@ -117,7 +118,7 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
               {ad.brand || 'Untitled'}
             </p>
             {isRecent(ad) && (
-              <span className="flex-shrink-0 text-[10px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-coral text-black">
+              <span className="flex-shrink-0 text-[10px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-accent text-black">
                 New
               </span>
             )}
@@ -149,7 +150,7 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
       {stats.length > 0 && (
         <div className="flex gap-1.5 mt-3">
           {stats.map((s) => (
-            <div key={s.k} className="flex-1 min-w-0 rounded-xl2 bg-cream px-2.5 py-2">
+            <div key={s.k} className="flex-1 min-w-0 rounded-xl2 bg-canvas px-2.5 py-2">
               <p className="font-mono text-[17px] sm:text-[15px] font-semibold tabular-nums leading-none truncate">
                 {s.value}
               </p>
@@ -187,7 +188,7 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2.5">
           {tags.slice(0, 3).map((t) => (
-            <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-cream text-ink-soft max-w-full truncate">
+            <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-canvas text-ink-soft max-w-full truncate">
               {t}
             </span>
           ))}
@@ -199,7 +200,9 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
 
   // Kept out of the card link on purpose: an anchor cannot legally nest inside
   // another anchor, so the footer sits beside the Link rather than inside it.
-  const footer = (permalink || ad.added_by_email) && (
+  // Who added it only matters when several people share the library.
+  const byName = TEAM_MODE && ad.added_by_email ? displayName(ad.added_by_email) : null;
+  const footer = (permalink || byName) && (
     <div className="mx-4 sm:mx-3.5 mb-1 flex items-center justify-between gap-2 border-t border-line min-w-0">
       {/* Opens the exact ad, never the advertiser page. Rendered only when a
           real permalink exists on the row. */}
@@ -209,7 +212,7 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="press-solo -ml-1 inline-flex items-center gap-1.5 min-h-[44px] px-1 text-[13px] font-semibold text-coral-dark"
+          className="press-solo -ml-1 inline-flex items-center gap-1.5 min-h-[44px] px-1 text-[13px] font-semibold text-accent-dim"
         >
           <span className="press-solo-face inline-flex items-center gap-1.5">
             Open ad <ArrowSquareOut size={14} weight="bold" className="flex-shrink-0" />
@@ -218,16 +221,14 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
       ) : (
         <span />
       )}
-      {ad.added_by_email && (
-        <span className="text-[11px] text-ink-soft truncate">by {displayName(ad.added_by_email)}</span>
-      )}
+      {byName && <span className="text-[11px] text-ink-soft truncate">by {byName}</span>}
     </div>
   );
 
   const selectMark = selectable && (
     <span
       className={`absolute top-2 left-2 z-10 w-6 h-6 rounded-full flex items-center justify-center border-2 ${
-        selected ? 'bg-coral border-coral text-black' : 'bg-card/85 border-line text-transparent'
+        selected ? 'bg-accent border-accent text-black' : 'bg-card/85 border-line text-transparent'
       }`}
     >
       <Check size={14} weight="bold" />
@@ -244,7 +245,7 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
         tabIndex={0}
         onClick={() => onToggleSelect?.(ad)}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggleSelect?.(ad)}
-        className={`${shell} cursor-pointer ${selected ? 'border-coral ring-2 ring-coral/30' : 'border-line'}`}
+        className={`${shell} cursor-pointer ${selected ? 'border-accent ring-2 ring-accent/30' : 'border-line'}`}
       >
         {selectMark}
         {content}

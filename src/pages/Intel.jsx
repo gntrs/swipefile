@@ -283,7 +283,7 @@ export default function Intel() {
                             {term}
                           </p>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-coral-dark/60">
+                            <span className="text-accent-dim/60">
                               <RankSpark points={history} />
                             </span>
                             {placed ? (
@@ -357,12 +357,12 @@ export default function Intel() {
                     <Link
                       key={code}
                       to={`/ads?country=${code}`}
-                      className="flex items-center justify-between min-h-[44px] group -mx-1 px-1 rounded transition-colors duration-150 ease-swift hover:bg-cream/60 active:bg-cream"
+                      className="flex items-center justify-between min-h-[44px] group -mx-1 px-1 rounded transition-colors duration-150 ease-swift hover:bg-canvas/60 active:bg-canvas"
                     >
-                      <span className="text-[13px] transition-colors duration-150 group-hover:text-coral-dark">
+                      <span className="text-[13px] transition-colors duration-150 group-hover:text-accent-dim">
                         {label}
                         {FOCUS_COUNTRIES.includes(code) && (
-                          <span className="ml-1.5 text-[10px] font-bold uppercase text-coral-dark">focus</span>
+                          <span className="ml-1.5 text-[10px] font-bold uppercase text-accent-dim">focus</span>
                         )}
                       </span>
                       <span className="text-[13px] font-semibold tabular-nums">{count}</span>
@@ -422,8 +422,8 @@ export default function Intel() {
                         <span className="text-[12px] text-ink-soft truncate pr-2">{term}</span>
                         <span className="text-[12px] font-semibold tabular-nums">{hasData ? value : '-'}</span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-cream overflow-hidden">
-                        <div className="h-full bg-coral rounded-full" style={{ width: `${Math.max(value, hasData ? 2 : 0)}%` }} />
+                      <div className="h-1.5 rounded-full bg-canvas overflow-hidden">
+                        <div className="h-full bg-accent rounded-full" style={{ width: `${Math.max(value, hasData ? 2 : 0)}%` }} />
                       </div>
                     </div>
                   ))}

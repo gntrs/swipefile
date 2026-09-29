@@ -6,14 +6,15 @@ import { useTeam } from '@/contexts/TeamContext';
 import { useMediaUrl } from '@/lib/media';
 import { MEDIA_BUCKET, avatarPathFor, validateFile, friendlyStorageError, removeMedia } from '@/lib/saveAd';
 import { triggerCelebration, celebrationEnabled, setCelebrationEnabled } from '@/lib/celebration';
+import { isOn } from '@/lib/modules';
 
 function TeamMember({ member, isMe }) {
   const avatar = useMediaUrl(member.avatar_path);
   return (
     <div className="flex items-center gap-3 py-2.5">
       <span
-        className={`w-10 h-10 rounded-full bg-cream border flex items-center justify-center overflow-hidden flex-shrink-0 ${
-          isMe ? 'border-coral ring-2 ring-coral/30' : 'border-line'
+        className={`w-10 h-10 rounded-full bg-canvas border flex items-center justify-center overflow-hidden flex-shrink-0 ${
+          isMe ? 'border-accent ring-2 ring-accent/30' : 'border-line'
         }`}
       >
         {avatar ? (
@@ -110,7 +111,7 @@ export default function Profile() {
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="relative w-20 h-20 rounded-full bg-cream border border-line flex items-center justify-center overflow-hidden group"
+            className="relative w-20 h-20 rounded-full bg-canvas border border-line flex items-center justify-center overflow-hidden group"
             title="Change photo"
           >
             {avatar ? (
@@ -135,7 +136,7 @@ export default function Profile() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="inline-flex items-center min-h-[44px] text-coral-dark text-[13px] font-medium"
+              className="inline-flex items-center min-h-[44px] text-accent-dim text-[13px] font-medium"
             >
               Change photo
             </button>
@@ -151,7 +152,7 @@ export default function Profile() {
             onChange={(e) => setNickname(e.target.value)}
             placeholder="How the team sees you"
             maxLength={30}
-            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
+            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]"
           />
           <p className="text-[12px] text-ink-soft mt-1.5">
             Shown on everything you add and every note you leave.
@@ -159,7 +160,7 @@ export default function Profile() {
           <button
             type="submit"
             disabled={busy}
-            className="press mt-4 px-6 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
+            className="press mt-4 px-6 py-2.5 rounded-2xl bg-accent text-black font-semibold shadow-cta disabled:opacity-60"
           >
             {busy ? 'Saving...' : 'Save'}
           </button>
@@ -169,7 +170,8 @@ export default function Profile() {
 
       {/* Party mode: fullscreen celebration clip when a sale lands. Shows on
           phones too - Test taps count as user gestures, so playback works.
-          Clips are user-supplied: see public/memes/README.md. */}
+          Clips are user-supplied: see public/memes/README.md. Ops module. */}
+      {isOn('ops') && (
       <div className="bg-card rounded-xl3 border border-line shadow-card p-6 mt-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -215,8 +217,10 @@ export default function Profile() {
           <Confetti size={15} weight="bold" /> Test it
         </button>
       </div>
+      )}
 
-      {/* The whole team, everyone's face and name in one place. */}
+      {/* The whole team, everyone's face and name in one place. Team module. */}
+      {isOn('team') && (
       <div className="bg-card rounded-xl3 border border-line shadow-card p-6 mt-4">
         <h2 className="font-semibold text-[15px] mb-1">Team</h2>
         <p className="text-[13px] text-ink-soft mb-2">
@@ -232,6 +236,7 @@ export default function Profile() {
             ))}
         </div>
       </div>
+      )}
     </div>
   );
 }

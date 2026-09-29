@@ -6,7 +6,7 @@ import sharp from 'sharp';
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Same glyph as public/favicon.svg: cream T + dot on coral, shapes only.
+// Same glyph as public/favicon.svg: off white T + dot on orange, shapes only.
 const GLYPH = `
   <rect x="134" y="152" width="196" height="60" rx="30" fill="#FBF7F0"/>
   <rect x="202" y="152" width="60" height="210" rx="30" fill="#FBF7F0"/>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Images, Megaphone, PaperPlaneTilt, CalendarBlank, SquaresFour, SignOut, User, Binoculars, Quotes, NotePencil, ChartLineUp } from '@phosphor-icons/react';
+import { SignOut, User } from '@phosphor-icons/react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { useMediaUrl } from '@/lib/media';
@@ -11,18 +11,12 @@ import DemoBanner from '@/components/DemoBanner';
 import SetupBanner from '@/components/SetupBanner';
 import { IS_DEMO } from '@/lib/db';
 import { APP_NAME } from '@/lib/brand';
+import { isOn } from '@/lib/modules';
+import { sidebarItems } from '@/lib/nav';
+import AiBackground from '@/features/ai/AiBackground';
 
-const nav = [
-  { to: '/', label: 'Dashboard', short: 'Home', icon: SquaresFour, end: true },
-  { to: '/ads', label: 'Ads', icon: Images },
-  { to: '/hooks', label: 'Hook bank', short: 'Hooks', icon: Quotes },
-  { to: '/briefs', label: 'Briefs', icon: NotePencil },
-  { to: '/posts', label: 'Organic posts', short: 'Posts', icon: Megaphone },
-  { to: '/competitors', label: 'Competitors', short: 'Rivals', icon: Binoculars },
-  { to: '/intel', label: 'Market intel', short: 'Intel', icon: ChartLineUp },
-  { to: '/outreach', label: 'Outreach', short: 'Reach', icon: PaperPlaneTilt },
-  { to: '/availability', label: 'Availability', short: 'When', icon: CalendarBlank },
-];
+// Sidebar entries come from src/lib/nav.js, filtered by the modules that are on.
+const nav = sidebarItems();
 
 export default function Layout() {
   const { user, signOut } = useAuth();
@@ -31,12 +25,16 @@ export default function Layout() {
   const avatar = useMediaUrl(user ? avatarFor(user.email) : null);
 
   return (
-    <div className="h-full flex bg-cream text-ink">
-      {/* First-login setup: pick a nickname + replace the temporary password */}
-      <WelcomePopup />
+    <div className="h-full flex bg-canvas text-ink">
+      {/* First-login setup: pick a nickname + replace the temporary password.
+          Team module only: a solo install has nobody to introduce. */}
+      {isOn('team') && <WelcomePopup />}
 
-      {/* Fullscreen celebration on a new sale (desktop only). */}
-      <SaleCelebration />
+      {/* Fullscreen celebration on a new sale (desktop only), ops module. */}
+      {isOn('ops') && <SaleCelebration />}
+
+      {/* Background AI work after saves (renders nothing). */}
+      <AiBackground />
 
       {/* Sidebar - a translucent structural layer (content scrolls under the
           blur), not an opaque strip. `glass` lets reduced-transparency and
@@ -46,7 +44,7 @@ export default function Layout() {
         <div className="px-3 mb-7 pt-1">
           <span className="font-semibold text-[18px] tracking-tight">
             {APP_NAME}
-            <span className="text-coral">.</span>
+            <span className="text-accent">.</span>
           </span>
         </div>
 
@@ -58,7 +56,7 @@ export default function Layout() {
               end={end}
               className={({ isActive }) =>
                 `press flex items-center gap-3 min-h-[44px] px-3 py-2.5 rounded-2xl font-medium text-[15px] transition-colors ${
-                  isActive ? 'bg-coral-soft text-coral-dark' : 'text-ink-soft hover:bg-cream'
+                  isActive ? 'bg-accent-wash text-accent-dim' : 'text-ink-soft hover:bg-canvas'
                 }`
               }
             >
@@ -73,11 +71,11 @@ export default function Layout() {
             to="/profile"
             className={({ isActive }) =>
               `press flex items-center gap-2.5 px-3 py-2 rounded-2xl transition-colors ${
-                isActive ? 'bg-coral-soft' : 'hover:bg-cream'
+                isActive ? 'bg-accent-wash' : 'hover:bg-canvas'
               }`
             }
           >
-            <span className="w-8 h-8 rounded-full bg-cream border border-line overflow-hidden flex items-center justify-center flex-shrink-0">
+            <span className="w-8 h-8 rounded-full bg-canvas border border-line overflow-hidden flex items-center justify-center flex-shrink-0">
               {avatar ? (
                 <img src={avatar} alt="me" className="w-full h-full object-cover" />
               ) : (
@@ -101,7 +99,7 @@ export default function Layout() {
                 await signOut();
                 navigate('/login');
               }}
-              className="press mt-2 w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-2xl text-[14px] font-medium text-ink-soft hover:bg-cream transition-colors"
+              className="press mt-2 w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-2xl text-[14px] font-medium text-ink-soft hover:bg-canvas transition-colors"
             >
               <SignOut size={18} weight="bold" /> Sign out
             </button>

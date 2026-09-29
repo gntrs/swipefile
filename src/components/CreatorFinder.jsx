@@ -128,7 +128,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
         <button
           onClick={findCreators}
           disabled={active}
-          className="press flex items-center gap-1.5 min-h-[44px] py-2 px-3.5 rounded-2xl bg-coral text-black text-[13px] font-semibold shadow-cta disabled:opacity-40 disabled:shadow-none"
+          className="press flex items-center gap-1.5 min-h-[44px] py-2 px-3.5 rounded-2xl bg-accent text-black text-[13px] font-semibold shadow-cta disabled:opacity-40 disabled:shadow-none"
         >
           <MagnifyingGlass size={15} weight="bold" />
           {active ? 'Searching...' : tier === 'unknown' ? 'Find creators' : `Find ${TIERS.find((t) => t.key === tier).label}`}
@@ -148,7 +148,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
             key={t.key}
             onClick={() => setTier(t.key)}
             className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
-              tier === t.key ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
+              tier === t.key ? 'bg-accent text-black' : 'bg-card border border-line text-ink-soft'
             }`}
           >
             {t.label} {byTier[t.key].length > 0 && `(${byTier[t.key].length})`}
@@ -167,7 +167,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-semibold truncate flex items-center gap-1.5">
                   {l.name || `@${l.handle}`}
-                  <a href={l.url} target="_blank" rel="noreferrer" aria-label={`Open @${l.handle} on Instagram`} className="text-coral-dark flex-shrink-0">
+                  <a href={l.url} target="_blank" rel="noreferrer" aria-label={`Open @${l.handle} on Instagram`} className="text-accent-dim flex-shrink-0">
                     <ArrowSquareOut size={14} weight="bold" />
                   </a>
                 </p>
@@ -176,7 +176,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
                   {l.email && (
                     <>
                       {' · '}
-                      <a href={`mailto:${l.email}`} className="text-coral-dark font-medium">{l.email}</a>
+                      <a href={`mailto:${l.email}`} className="text-accent-dim font-medium">{l.email}</a>
                     </>
                   )}
                 </p>
@@ -192,7 +192,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
               <button
                 onClick={() => dismiss(l)}
                 aria-label={`Dismiss @${l.handle}`}
-                className="w-11 h-11 rounded-xl flex items-center justify-center text-ink-soft hover:bg-cream flex-shrink-0"
+                className="w-11 h-11 rounded-xl flex items-center justify-center text-ink-soft hover:bg-canvas flex-shrink-0"
               >
                 <X size={14} weight="bold" />
               </button>

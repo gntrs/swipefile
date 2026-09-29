@@ -1,47 +1,15 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import {
-  Binoculars,
-  CalendarBlank,
-  ChartLineUp,
-  DotsThreeOutline,
-  Images,
-  Megaphone,
-  NotePencil,
-  PaperPlaneTilt,
-  Quotes,
-  SquaresFour,
-  Star,
-  User,
-  X,
-} from '@phosphor-icons/react';
+import { DotsThreeOutline, X } from '@phosphor-icons/react';
+import { mobileTabs, moreItems } from '@/lib/nav';
 
 // Four primary tabs spread evenly across the bar, plus More for the rest.
-// A plain, tappable bottom nav - no hold-to-fan gesture. Everything is one tap.
-const TABS = [
-  { to: '/', label: 'Home', icon: SquaresFour, end: true },
-  { to: '/ads', label: 'Ads', icon: Images },
-  { to: '/posts', label: 'Posts', icon: Megaphone },
-  { to: '/competitors', label: 'Rivals', icon: Binoculars },
-];
+// A plain, tappable bottom nav, no hold to fan gesture. Everything is one tap.
+// Both lists come from src/lib/nav.js, filtered by the modules that are on.
+const TABS = mobileTabs();
 
 // Secondary destinations live in the More sheet.
-const MORE = [
-  // The shortlist is a destination, not a hidden chip state. It leads the sheet
-  // because it is the list people come back to.
-  {
-    to: '/ads?starred=1',
-    label: 'Starred ads',
-    icon: Star,
-    match: (loc) => loc.pathname === '/ads' && loc.search.includes('starred=1'),
-  },
-  { to: '/hooks', label: 'Hook bank', icon: Quotes },
-  { to: '/briefs', label: 'Briefs', icon: NotePencil },
-  { to: '/intel', label: 'Market intel', icon: ChartLineUp },
-  { to: '/outreach', label: 'Outreach', icon: PaperPlaneTilt },
-  { to: '/availability', label: 'Availability', icon: CalendarBlank },
-  { to: '/profile', label: 'Profile', icon: User },
-];
+const MORE = moreItems();
 
 const tabCls = ({ isActive }) =>
   `press flex-1 flex flex-col items-center gap-1 py-1.5 text-[11px] font-medium transition-colors ${
@@ -101,12 +69,12 @@ export default function MobileNav() {
       )}
 
       <nav className="glass sm:hidden fixed bottom-0 inset-x-0 z-[50] bg-card/80 backdrop-blur-xl backdrop-saturate-150 border-t border-line flex items-stretch px-1 pt-1 pb-[calc(0.4rem+env(safe-area-inset-bottom))]">
-        {TABS.map(({ to, label, icon: Icon, end }) => (
+        {TABS.map(({ to, short, icon: Icon, end }) => (
           <NavLink key={to} to={to} end={end} className={tabCls}>
             {({ isActive }) => (
               <>
                 <Icon size={23} weight={isActive ? 'fill' : 'bold'} />
-                {label}
+                {short}
               </>
             )}
           </NavLink>

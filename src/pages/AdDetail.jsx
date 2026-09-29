@@ -9,6 +9,9 @@ import { compactNum, formatNum, formatMoney } from '@/lib/format';
 import Pill from '@/components/Pill';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
+import { TEAM_MODE } from '@/lib/modules';
+import AdDetailKeys from '@/features/save/AdDetailKeys';
+import WhyItWorks from '@/features/ai/WhyItWorks';
 
 const VERDICT_TONE = { winner: 'good', loser: 'bad', testing: 'warn', unsure: 'neutral' };
 
@@ -62,6 +65,7 @@ export default function AdDetail() {
   };
 
   const setVerdict = (v) => patch(humanVerdictPatch(ad, v));
+  const toggleStar = () => patch({ metrics: { ...(ad.metrics || {}), starred: !ad.metrics?.starred } });
 
   const remove = async () => {
     if (!confirm('Delete this ad?')) return;
@@ -129,7 +133,7 @@ export default function AdDetail() {
         </button>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => patch({ metrics: { ...(ad.metrics || {}), starred: !ad.metrics?.starred } })}
+            onClick={toggleStar}
             aria-pressed={Boolean(ad.metrics?.starred)}
             className={`press flex items-center gap-1.5 min-h-[44px] px-3 py-1.5 rounded-xl text-[14px] font-medium transition-colors ${
               ad.metrics?.starred ? 'bg-amber-400 text-white' : 'border border-line text-ink-soft hover:bg-card'
@@ -157,7 +161,7 @@ export default function AdDetail() {
       <div className="grid md:grid-cols-2 gap-6">
         {/* Media */}
         <div className="bg-card rounded-xl3 border border-line shadow-card overflow-hidden">
-          <div className="aspect-[4/5] bg-cream flex items-center justify-center">
+          <div className="aspect-[4/5] bg-canvas flex items-center justify-center">
             {src ? (
               ad.format === 'video' ? (
                 <video src={src} controls playsInline className="w-full h-full object-contain" />
@@ -260,7 +264,7 @@ export default function AdDetail() {
             <Info
               label="Ad link"
               value={
-                <a href={ad.metrics.source_url} target="_blank" rel="noreferrer" className="text-coral-dark underline break-all inline-flex items-center gap-1 min-h-[44px]">
+                <a href={ad.metrics.source_url} target="_blank" rel="noreferrer" className="text-accent-dim underline break-all inline-flex items-center gap-1 min-h-[44px]">
                   {ad.metrics.source_url} <ArrowSquareOut size={14} className="flex-shrink-0" />
                 </a>
               }
@@ -279,13 +283,13 @@ export default function AdDetail() {
                 value={linkDraft}
                 onChange={(e) => setLinkDraft(e.target.value)}
                 placeholder="Paste the ad link (Ad Library, post url...)"
-                className="flex-1 min-w-0 min-h-[44px] py-2 px-3 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[16px] sm:text-[13px]"
+                className="flex-1 min-w-0 min-h-[44px] py-2 px-3 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[16px] sm:text-[13px]"
               />
               <button
                 type="submit"
                 disabled={!linkDraft.trim()}
                 aria-label="Save ad link"
-                className="press w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40"
+                className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40"
               >
                 <Check size={15} weight="bold" />
               </button>
@@ -295,7 +299,7 @@ export default function AdDetail() {
             <Info
               label="Ad Library"
               value={
-                <a href={ad.metrics.source_url} target="_blank" rel="noreferrer" className="text-coral-dark underline break-all inline-flex items-center gap-1 min-h-[44px]">
+                <a href={ad.metrics.source_url} target="_blank" rel="noreferrer" className="text-accent-dim underline break-all inline-flex items-center gap-1 min-h-[44px]">
                   See the creative <ArrowSquareOut size={14} className="flex-shrink-0" />
                 </a>
               }
@@ -304,7 +308,7 @@ export default function AdDetail() {
             <Info
               label="Ad Library"
               value={
-                <a href={creativeLink(ad)} target="_blank" rel="noreferrer" className="text-coral-dark underline break-all inline-flex items-center gap-1 min-h-[44px]">
+                <a href={creativeLink(ad)} target="_blank" rel="noreferrer" className="text-accent-dim underline break-all inline-flex items-center gap-1 min-h-[44px]">
                   Search this brand <ArrowSquareOut size={14} className="flex-shrink-0" />
                 </a>
               }
@@ -317,25 +321,27 @@ export default function AdDetail() {
           )}
           {ad.metrics?.transcription && <Info label="Transcript" value={ad.metrics.transcription} />}
           {ad.landing_url && (
-            <Info label="Landing" value={<a href={ad.landing_url} target="_blank" rel="noreferrer" className="text-coral-dark underline break-all inline-flex items-center min-h-[44px]">{ad.landing_url}</a>} />
+            <Info label="Landing" value={<a href={ad.landing_url} target="_blank" rel="noreferrer" className="text-accent-dim underline break-all inline-flex items-center min-h-[44px]">{ad.landing_url}</a>} />
           )}
           {Array.isArray(ad.tags) && ad.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {ad.tags.map((t) => (
-                <span key={t} className="text-[12px] px-2.5 py-1 rounded-full bg-cream text-ink-soft">{t}</span>
+                <span key={t} className="text-[12px] px-2.5 py-1 rounded-full bg-canvas text-ink-soft">{t}</span>
               ))}
             </div>
           )}
+          <AdDetailKeys ad={ad} onVerdict={setVerdict} onStar={toggleStar} onDelete={remove} />
+          <WhyItWorks ad={ad} onAdChange={setAd} />
         </div>
       </div>
 
-      {/* Comments (team CRM) */}
+      {/* Comments: shared team notes, or your own notes on a solo install */}
       <div className="mt-6 bg-card rounded-xl3 border border-line shadow-card p-4">
-        <h3 className="font-semibold text-[15px] mb-3">Team notes</h3>
+        <h3 className="font-semibold text-[15px] mb-3">{TEAM_MODE ? 'Team notes' : 'Notes'}</h3>
         <div className="flex flex-col gap-3 mb-3">
           {comments.length === 0 && <p className="text-ink-soft text-[13px]">No notes yet.</p>}
           {comments.map((c) => (
-            <div key={c.id} className="bg-cream rounded-2xl px-3.5 py-2.5">
+            <div key={c.id} className="bg-canvas rounded-2xl px-3.5 py-2.5">
               <p className="text-[14px]">{c.body}</p>
               <p className="text-[11px] text-ink-soft mt-1">{displayName(c.author_email)}</p>
             </div>
@@ -345,13 +351,13 @@ export default function AdDetail() {
           <input
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Add a note for the team..."
-            className="flex-1 min-w-0 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
+            placeholder={TEAM_MODE ? 'Add a note for the team...' : 'Add a note...'}
+            className="flex-1 min-w-0 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]"
           />
           <button
             disabled={sending || !newComment.trim()}
             aria-label="Add note"
-            className="press w-11 h-11 flex-shrink-0 rounded-2xl bg-coral text-black flex items-center justify-center shadow-cta disabled:opacity-40"
+            className="press w-11 h-11 flex-shrink-0 rounded-2xl bg-accent text-black flex items-center justify-center shadow-cta disabled:opacity-40"
           >
             <PaperPlaneRight size={18} weight="fill" />
           </button>
@@ -377,7 +383,7 @@ function Select({ label, value, options, onChange }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full min-h-[44px] py-2 px-3 rounded-2xl border border-line bg-card focus:outline-none focus:border-coral text-[14px] capitalize"
+        className="w-full min-h-[44px] py-2 px-3 rounded-2xl border border-line bg-card focus:outline-none focus:border-accent text-[14px] capitalize"
       >
         {options.map((o) => (
           <option key={o} value={o} className="capitalize">{o}</option>

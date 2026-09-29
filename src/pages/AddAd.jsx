@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const PLATFORMS = ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'Other'];
 
-const field = 'w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]';
+const field = 'w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]';
 const label = 'text-[13px] font-semibold text-ink-soft mb-1 block';
 
 export default function AddAd() {
@@ -83,7 +83,7 @@ export default function AddAd() {
 
       <form onSubmit={submit} className="grid gap-4">
         {/* Media */}
-        <label className="block bg-card border-2 border-dashed border-line rounded-xl3 p-5 text-center cursor-pointer hover:border-coral transition-colors">
+        <label className="block bg-card border-2 border-dashed border-line rounded-xl3 p-5 text-center cursor-pointer hover:border-accent transition-colors">
           {preview ? (
             formatFor(file) === 'video' ? (
               <video src={preview} className="max-h-64 mx-auto rounded-2xl" controls playsInline />
@@ -172,7 +172,7 @@ export default function AddAd() {
           <button
             type="submit"
             disabled={busy}
-            className="press min-h-[44px] px-6 py-3 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
+            className="press min-h-[44px] px-6 py-3 rounded-2xl bg-accent text-black font-semibold shadow-cta disabled:opacity-60"
           >
             {busy ? 'Saving...' : 'Save ad'}
           </button>

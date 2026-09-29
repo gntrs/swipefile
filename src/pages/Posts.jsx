@@ -60,13 +60,13 @@ export default function Posts() {
         </div>
         <Link
           to="/posts/add"
-          className="press flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta"
+          className="press flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-accent text-black font-semibold shadow-cta"
         >
           <PlusCircle size={20} weight="bold" /> Add post
         </Link>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+      <div className="flex flex-col lg:flex-row gap-3 mb-5">
         <div className="flex-1 flex items-center gap-2 bg-card border border-line rounded-2xl px-3">
           <MagnifyingGlass size={18} className="text-ink-soft" />
           <input
@@ -82,7 +82,7 @@ export default function Posts() {
               key={p}
               onClick={() => setPlatform(p)}
               className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
-                platform === p ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
+                platform === p ? 'bg-accent text-black' : 'bg-card border border-line text-ink-soft'
               }`}
             >
               {p === 'all' ? 'All' : p}
@@ -97,7 +97,7 @@ export default function Posts() {
         <div className="text-center py-20 text-ink-soft">
           <Megaphone size={32} className="mx-auto mb-2" />
           <p className="mb-2">No posts logged yet.</p>
-          <Link to="/posts/add" className="text-coral-dark font-semibold">Add your first post</Link>
+          <Link to="/posts/add" className="text-accent-dim font-semibold">Add your first post</Link>
         </div>
       ) : (
         <div className="flex flex-col gap-2.5">
@@ -110,7 +110,7 @@ export default function Posts() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   {p.brand && (
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-coral-soft text-coral-dark flex-shrink-0">
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent-wash text-accent-dim flex-shrink-0">
                       {p.brand}
                     </span>
                   )}

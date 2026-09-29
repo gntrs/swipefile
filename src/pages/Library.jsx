@@ -180,7 +180,7 @@ export default function Library() {
   // 44px tall minimum, never smaller, on every viewport.
   const pill = (active) =>
     `press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-2xl text-[13px] font-semibold transition-colors ${
-      active ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
+      active ? 'bg-accent text-black' : 'bg-card border border-line text-ink-soft'
     }`;
 
   return (
@@ -210,7 +210,7 @@ export default function Library() {
           <Link
             to="/ads/add"
             aria-label="Add ad"
-            className="press flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-3 sm:px-4 rounded-2xl bg-coral text-black font-semibold shadow-cta"
+            className="press flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-3 sm:px-4 rounded-2xl bg-accent text-black font-semibold shadow-cta"
           >
             <PlusCircle size={20} weight="bold" />
             <span className="hidden sm:inline">Add ad</span>
@@ -245,7 +245,7 @@ export default function Library() {
             value={sort}
             onChange={(e) => setSort(e.target.value)}
             aria-label="Sort ads"
-            className="flex-shrink-0 min-h-[44px] px-3 rounded-2xl text-[13px] font-semibold bg-card border border-line text-ink-soft focus:outline-none focus:border-coral"
+            className="flex-shrink-0 min-h-[44px] px-3 rounded-2xl text-[13px] font-semibold bg-card border border-line text-ink-soft focus:outline-none focus:border-accent"
           >
             {SORTS.map((s) => (
               <option key={s.id} value={s.id}>
@@ -258,7 +258,7 @@ export default function Library() {
 
       {/* Quick filters. Sticks to the top of the scroll on phones so the row you
           steer with never scrolls out of reach; static from sm up. */}
-      <div className="sticky top-0 z-30 sm:static flex gap-1.5 scroll-x -mx-5 px-5 py-2 sm:py-0 sm:mx-0 sm:px-0 mb-4 sm:mb-5 bg-cream/85 backdrop-blur-xl sm:bg-transparent sm:backdrop-blur-none">
+      <div className="sticky top-0 z-30 sm:static flex gap-1.5 scroll-x -mx-5 px-5 py-2 sm:py-0 sm:mx-0 sm:px-0 mb-4 sm:mb-5 bg-canvas/85 backdrop-blur-xl sm:bg-transparent sm:backdrop-blur-none">
         {/* Starred leads the row on purpose: it is the shortlist you actually
             come back for, so it is one tap from anywhere in the list. */}
         <button
@@ -295,7 +295,7 @@ export default function Library() {
             onClick={() => setVerdict(f)}
             aria-pressed={verdict === f}
             className={`press flex-shrink-0 flex items-center min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-2xl text-[13px] font-semibold capitalize transition-colors ${
-              verdict === f ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
+              verdict === f ? 'bg-accent text-black' : 'bg-card border border-line text-ink-soft'
             }`}
           >
             {f}
@@ -314,8 +314,8 @@ export default function Library() {
             aria-label="Filter by country"
             className={`flex-shrink-0 min-h-[44px] px-3 rounded-2xl text-[13px] font-semibold focus:outline-none ${
               country === 'all'
-                ? 'bg-card border border-line text-ink-soft focus:border-coral'
-                : 'bg-coral text-black'
+                ? 'bg-card border border-line text-ink-soft focus:border-accent'
+                : 'bg-accent text-black'
             }`}
           >
             <option value="all">All countries</option>
@@ -333,8 +333,8 @@ export default function Library() {
             aria-label="Filter by location data"
             className={`flex-shrink-0 min-h-[44px] px-3 rounded-2xl text-[13px] font-semibold focus:outline-none ${
               geo === 'all'
-                ? 'bg-card border border-line text-ink-soft focus:border-coral'
-                : 'bg-coral text-black'
+                ? 'bg-card border border-line text-ink-soft focus:border-accent'
+                : 'bg-accent text-black'
             }`}
           >
             <option value="all">Any geo</option>
@@ -367,7 +367,7 @@ export default function Library() {
           <div className="flex flex-col sm:flex-row gap-2 justify-center">
             <Link
               to="/ads/add"
-              className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl bg-coral text-black font-semibold"
+              className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl bg-accent text-black font-semibold"
             >
               Add your first ad
             </Link>
@@ -387,7 +387,7 @@ export default function Library() {
           {filtersActive && (
             <button
               onClick={clearFilters}
-              className="press inline-flex items-center min-h-[44px] px-4 rounded-2xl border border-line text-coral-dark font-semibold"
+              className="press inline-flex items-center min-h-[44px] px-4 rounded-2xl border border-line text-accent-dim font-semibold"
             >
               Clear filters
             </button>
@@ -409,7 +409,7 @@ export default function Library() {
 
       {/* Floating compare bar */}
       {compareMode && selected.length > 0 && (
-        <div className="fixed bottom-0 inset-x-0 z-40 px-5 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-cream via-cream to-transparent sm:pl-64">
+        <div className="fixed bottom-0 inset-x-0 z-40 px-5 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-canvas via-canvas to-transparent sm:pl-64">
           <div className="max-w-[900px] mx-auto flex items-center gap-3 bg-ink text-black rounded-2xl shadow-cardhover px-4 py-3">
             <div className="flex -space-x-2 flex-shrink-0">
               {selected.slice(0, 4).map((a) => (
@@ -435,7 +435,7 @@ export default function Library() {
             <button
               disabled={selected.length < 2}
               onClick={() => navigate(`/compare?ids=${selected.map((a) => a.id).join(',')}`)}
-              className="press inline-flex items-center min-h-[44px] px-4 rounded-xl bg-coral text-black text-[13px] font-semibold disabled:opacity-40 flex-shrink-0"
+              className="press inline-flex items-center min-h-[44px] px-4 rounded-xl bg-accent text-black text-[13px] font-semibold disabled:opacity-40 flex-shrink-0"
             >
               Compare {selected.length}
             </button>
