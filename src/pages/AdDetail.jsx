@@ -12,6 +12,7 @@ import { useTeam } from '@/contexts/TeamContext';
 import { TEAM_MODE } from '@/lib/modules';
 import AdDetailKeys from '@/features/save/AdDetailKeys';
 import WhyItWorks from '@/features/ai/WhyItWorks';
+import { readListContext } from '@/lib/library/listContext';
 
 const VERDICT_TONE = { winner: 'good', loser: 'bad', testing: 'warn', unsure: 'neutral' };
 
@@ -31,9 +32,18 @@ export default function AdDetail() {
   const [deleting, setDeleting] = useState(false);
   const [sending, setSending] = useState(false);
   const src = useMediaUrl(ad?.media_path);
+  // Back to the list this ad was opened from, with its filters and page.
+  const backToList = () => navigate(`/ads${readListContext()?.search || ''}`);
 
   useEffect(() => {
     let mounted = true;
+    // J and K change the id without remounting: drop the previous ad first, so
+    // nothing (a key press, a verdict) acts on it under the new id.
+    setLoading(true);
+    setAd(null);
+    setComments([]);
+    setImgBroken(false);
+    setActionError('');
     (async () => {
       const { data } = await db.from('ads').select('*').eq('id', id).single();
       if (mounted) {
@@ -78,7 +88,7 @@ export default function AdDetail() {
       return;
     }
     if (ad?.media_path) await removeMedia(ad.media_path);
-    navigate('/ads');
+    backToList();
   };
 
   const addComment = async (e) => {
@@ -126,7 +136,7 @@ export default function AdDetail() {
     <div data-page="ad-detail" className="px-5 sm:px-8 py-6 max-w-[1000px] mx-auto">
       <div className="flex items-center justify-between mb-4">
         <button
-          onClick={() => navigate('/ads')}
+          onClick={backToList}
           className="press flex items-center gap-1 min-h-[44px] text-ink-soft text-[14px] font-medium"
         >
           <CaretLeft size={16} weight="bold" /> Library

@@ -8,7 +8,7 @@ set local role anon;
 do $$
 declare h jsonb := public.swipefile_health();
 begin
-  assert (h ->> 'schema_version')::int = 2, format('schema_version is 2, got %s', h ->> 'schema_version');
+  assert (h ->> 'schema_version')::int = 3, format('schema_version is 3, got %s', h ->> 'schema_version');
   assert h ? 'bucket_exists', 'health has bucket_exists';
   assert h ? 'bucket_public', 'health has bucket_public';
   assert (h ->> 'bucket_exists')::boolean = true, 'bucket exists';

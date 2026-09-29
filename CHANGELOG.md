@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.3.0 (unreleased)
+
+### Added
+
+- The library searches, counts and pages on the server: 48 ads a page, with Previous and Next, so a library of thousands opens fast. New SQL functions `search_ads`, `library_facets` and `bulk_update_ads`.
+- Filters, sort and page live in the address bar, so a filtered view survives a reload and can be linked to. New filters by angle and by tag.
+- Select many ads and act once: verdict, star, add or remove a tag, compare, delete (asks for a second tap). On phones the actions open in a sheet.
+- Keys: `/` search, `J` `K` move, `Enter` open, `X` select, `W` `L` verdict, `S` star, `Esc`, `?` for the list. On the ad page `J` `K` walk the list you came from and `Esc` goes back to it.
+- Add an ad from its Ad Library link or id: the link is kept, an ad you already saved is pointed out, and the page says why the image or video still comes from you. Drop or paste several files and each becomes its own ad, saved one by one with a status per file. Optionally track the brand on Competitors in the same step.
+- CSV import in the browser at `/ads/import`, for a swipe file CSV (with a template to download) or a Meta Ads Manager export, with a preview and line numbered problems before anything is written.
+- Hook bank: select hooks for a brief, filter by angle, and each hook shows its angle.
+- `scripts/import-ads-csv.mjs --parse-only` prints the summed rows as JSON without a database.
+- AI in the app, optional, running as the `ai` edge function in your own Supabase project with your own Anthropic key. Why it works on the ad page; Tag angles in the hook bank, one batch of up to 20 per press with the count shown; Brief from these in the library and hook bank. New ads get their angle tagged in the background (at most 20 per save and 100 per page load; `VITE_AI_AUTO=0` turns it off). Without the function or the key the buttons stay and show the command that fixes it, and `/setup` has an AI row.
+- Briefs can be written, edited and deleted in the app. A brief made from a selection links back to its source ads and hooks. The overview's latest brief shows its source count and opens that brief.
+- `scripts/add-brief.mjs --ads id1,id2` links a brief to its source ads.
+- Capture from the Meta Ad Library. A bookmarklet and a small Chrome extension (also Edge and Brave) read the ad you click, in your own browser, and open your swipefile's new capture page with it filled in: brand, text, headline, call to action, landing page, running dates and platforms. Nothing saves until you press Save. An ad you already have shows `Already in your swipe file` and can update its running dates without touching its verdict. Set up at `/capture/setup`; details in docs/CAPTURE.md.
+- `fetch-media` edge function (optional). Copies a captured ad's image or video from Meta's CDN into your `ad-media` bucket as the signed in user. Only https, only the hosts in `FETCH_MEDIA_HOSTS`, at most 3 checked redirects, up to `FETCH_MEDIA_MAX_MB`. `/setup` shows whether it is deployed.
+- `scripts/track-longevity.mjs` (opt in, off by default) re-checks how long competitor ads keep running. It refuses to run without `--i-accept-the-terms` or `LONGEVITY_OPT_IN=1`, because loading Meta pages automatically is restricted by Meta's terms, and you run it at your own risk. `--fixture` parses a saved page offline.
+
+### Changed
+
+- The library's Compare button became Select; compare is one of the actions on the selection.
+- `scripts/import-ads-csv.mjs` checks its arguments before its settings and shares its parsing with the import page.
+- Model output never contains the two long dash characters: they are replaced before anything is saved.
+
+### Fixed
+
+- Starring an ad on a card changed the list's copy of the ad in place.
+- The ad page's Library button, and deleting an ad, went back to an unfiltered library. Both now return to the list you opened the ad from.
+- On the ad page, a key pressed right after `J` or `K` could act on the ad you just left: a verdict or star was saved to the next ad together with the previous ad's details. The page now clears the previous ad before it loads the next one.
+
+### Upgrading from 0.2
+
+1. Run `db-setup.sql` again in the Supabase SQL editor. It adds the library search functions (`search_ads`, `library_facets`, `bulk_update_ads`), the brief source columns and the angle and Ad Library id indexes, and raises the schema version to 3, so `/setup` asks for this run until it is done. Your data stays; old briefs get empty source lists. Until you run it, the library searches in the browser as before and briefs made by AI write their sources into the brief text.
+2. AI is optional. To turn it on, deploy the `ai` edge function and set `ANTHROPIC_API_KEY` (docs/SETUP.md, AI). Without it every AI button stays and shows the command that fixes it.
+3. Capture needs no database change. Load the bookmarklet or the extension from `/capture/setup`. Deploy the optional `fetch-media` function to keep creatives.
+4. `scripts/track-longevity.mjs` is new and off by default. Nothing runs unless you opt in.
+
 ## 0.2.0 (unreleased)
 
 ### Added

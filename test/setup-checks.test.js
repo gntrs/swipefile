@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { evaluate, statusOf, EXPECTED_SCHEMA_VERSION, FIX } from '../src/lib/setup/checks.js';
 
 const live = { mode: 'live', url: 'https://p.supabase.co', anonKey: 'k', reason: null, missing: [] };
@@ -123,5 +124,14 @@ describe('statusOf', () => {
     expect(statusOf([{ level: 'ok' }, { level: 'warn' }])).toBe('warn');
     expect(statusOf([{ level: 'warn' }, { level: 'fail' }])).toBe('blocking');
     expect(statusOf([])).toBe('ok');
+  });
+});
+
+describe('schema version', () => {
+  it('is 3, the same number db-setup.sql reports from swipefile_health()', () => {
+    const sql = readFileSync(new URL('../db-setup.sql', import.meta.url), 'utf8');
+    const found = [...sql.matchAll(/'schema_version',\s*(\d+)/g)].map((m) => Number(m[1]));
+    expect(found).toEqual([3]);
+    expect(EXPECTED_SCHEMA_VERSION).toBe(3);
   });
 });

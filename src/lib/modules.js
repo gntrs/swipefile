@@ -40,4 +40,4 @@ export const isOn = (id) => MODULES.has(id);
 export const TEAM_MODE = isTeamMode(MODULES);
 
 // Placeholders built ahead of their feature stay hidden until it is ready.
-export const FEATURE_READY = { capture: false };
+export const FEATURE_READY = { capture: true };

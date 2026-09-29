@@ -55,6 +55,7 @@ const ROUTES = [
   { label: 'library-filtered', path: '/ads?verdict=winner', page: 'library' },
   { label: 'ad-detail', path: `/ad/${AD_1}`, page: 'ad-detail' },
   { label: 'add-ad', path: '/ads/add', page: 'add-ad' },
+  { label: 'import', path: '/ads/import', page: 'import' },
   { label: 'hooks', path: '/hooks', page: 'hooks' },
   { label: 'briefs', path: '/briefs', page: 'briefs' },
   { label: 'competitors', path: '/competitors', page: 'competitors' },
@@ -63,6 +64,8 @@ const ROUTES = [
   { label: 'compare', path: `/compare?ids=${AD_1},${AD_2}`, page: 'compare' },
   { label: 'profile', path: '/profile', page: 'profile' },
   { label: 'setup', path: '/setup', page: 'setup' },
+  { label: 'capture-setup', path: '/capture/setup', page: 'capture-setup' },
+  { label: 'capture', path: '/capture?v=1&src=bookmarklet&id=999900001234567&brand=Lumen%20Loop&title=Sample', page: 'capture' },
   { label: 'more-sheet', path: '/ads', page: 'library', open: 'more' },
 ]
 

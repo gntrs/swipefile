@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parseModules, isTeamMode, MODULE_IDS, DEFAULT_MODULES } from '../src/lib/modules.js';
+import { parseModules, isTeamMode, MODULE_IDS, DEFAULT_MODULES, FEATURE_READY } from '../src/lib/modules.js';
 
 const sorted = (set) => [...set].sort();
 
@@ -74,5 +74,11 @@ describe('isTeamMode', () => {
     expect(isTeamMode(parseModules('library,team'))).toBe(true);
     expect(isTeamMode(parseModules('all'))).toBe(true);
     expect(isTeamMode(parseModules('hooks,briefs,competitors,intel'))).toBe(false);
+  });
+});
+
+describe('FEATURE_READY', () => {
+  it('capture is built and shown', () => {
+    expect(FEATURE_READY).toEqual({ capture: true });
   });
 });

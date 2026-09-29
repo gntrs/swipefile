@@ -7,7 +7,7 @@
 
 // Bump this together with the schema_version returned by
 // public.swipefile_health() in db-setup.sql.
-export const EXPECTED_SCHEMA_VERSION = 2;
+export const EXPECTED_SCHEMA_VERSION = 3;
 
 const RERUN_FIX =
   'Re-run db-setup.sql in the SQL editor. It is safe to run again and adds the storage bucket, its rules and newer features.';

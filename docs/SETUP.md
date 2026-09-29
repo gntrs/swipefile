@@ -27,6 +27,7 @@ Open the SQL editor in Supabase, paste all of `db-setup.sql` from the repo root 
 - every table, index, trigger and function the app uses,
 - the row level security rules,
 - a private storage bucket called `ad-media` (50 MB per file, images and video only) with its access rules: members read everything in the bucket, upload only into their own folder, and delete only their own files,
+- the library search functions (`search_ads`, `library_facets`, `bulk_update_ads`), so a large library is searched, counted and paged in the database,
 - `swipefile_health()`, a small function the setup check calls to see which version of the file you ran.
 
 Every statement is safe to run twice. When a new version of Swipefile ships, run the file again: that is the upgrade. It adds what is new and leaves your data alone. It also puts the bucket back to private if someone made it public.
@@ -92,19 +93,43 @@ Open `/setup`. Each line is green, a warning, or a blocker with the exact fix:
 - public sign ups are off,
 - the tables exist and `db-setup.sql` is current,
 - the `ad-media` bucket exists and is private,
-- who you are signed in as.
+- who you are signed in as,
+- whether the optional `ai` and `fetch-media` edge functions are deployed, and the command that fixes them if not.
 
 A blocker keeps every page on `/setup` until it is fixed. A warning shows a banner in the app that you can dismiss for the session.
 
+<a id="csv-import"></a>
 ## 4. CSV import
 
-Your own ads' numbers come from a Meta Ads Manager export:
+Open `/ads/import` (the Import button in the library). Pick or drop one `.csv` file. Nothing is written until you press Import: first you see which format it is, how many rows are new, already saved or have problems (with their line numbers), and the first 20 rows as they will be saved.
+
+**Swipe file format.** One ad per row. `Download a template` on the import page gives you a file with every column. Column names ignore case and spaces:
+
+| field | column names |
+|---|---|
+| brand | brand, advertiser, page, page name |
+| hook | hook, headline, title |
+| copy | copy, ad copy, body, primary text, text |
+| landing url | landing url, landing page, link, url, destination |
+| ad link | source url, ad link, ad library link, permalink |
+| Ad Library id | ad library id, library id (also read from an Ad Library ad link) |
+| platform, format, verdict, status | the same names |
+| tags | tags, split on commas, semicolons or pipes |
+| started | started, started running, start date, as `2026-09-29` |
+| days running | days running, days |
+| countries | countries, split like tags |
+
+A row needs a brand, hook, copy or ad link. A verdict other than unsure, winner, testing or loser is a problem, not a guess; a verdict written in the file counts as yours, so importers never change it. Rows whose Ad Library id is already saved, or appears twice in the file, are skipped.
+
+**Meta Ads Manager export** (your own ads):
 
 1. Meta Ads Manager, Reports, Export table data, `.csv`. Any breakdown works; rows with the same ad name are summed.
-2. `OWN_BRAND` (or `VITE_OWN_BRAND`) in `.env` set to your brand name as it appears on your ads.
-3. `node scripts/import-ads-csv.mjs path/to/export.csv` (add `--dry-run` to see what it would do).
+2. `VITE_OWN_BRAND` in `.env` set to your brand name as it appears on your ads (the import page asks for it).
+3. Import it on `/ads/import`.
 
-Rows are matched by ad name, so importing a newer export updates the same ads instead of adding copies. Verdicts, tags, media and notes stay as they are; only the numbers change.
+Rows are matched by ad name among your own brand's ads, so importing a newer export updates the same ads instead of adding copies. Verdicts, tags, media and notes stay as they are; only the numbers and the running status change. New names become new ads with verdict testing.
+
+**Limits.** The browser import takes up to 5,000 rows and 10 MB. For bigger Meta exports use the script, which has no limit: set `OWN_BRAND` (or `VITE_OWN_BRAND`), `VITE_DB_URL` and `DB_SERVICE_KEY` in `.env`, then `node scripts/import-ads-csv.mjs path/to/export.csv` (`--dry-run` shows what it would do, `--parse-only` prints the summed rows as JSON and needs no `.env`). Split a bigger swipe file into several files.
 
 ## 5. Deploying
 
@@ -137,7 +162,7 @@ The app starts as a solo swipe file: library, hook bank, briefs, competitors and
 
 | Module | On by default | What it adds |
 |---|---|---|
-| `library` | always | Ads, add an ad, compare, the ad page, `/overview`, profile |
+| `library` | always | Ads, add an ad, CSV import, compare, the ad page, capture, `/overview`, profile |
 | `hooks` | yes | Hook bank |
 | `briefs` | yes | Briefs, and the latest brief on the overview |
 | `competitors` | yes | Competitors, and rivals' proven plays on the overview |
@@ -152,6 +177,31 @@ The app starts as a solo swipe file: library, hook bank, briefs, competitors and
 
 Turning a module off hides it and nothing else: its data stays in the database.
 
+### AI (optional)
+
+Why it works on the ad page, angle tags in the hook bank and briefs from a selection run in the `ai` edge function in your own Supabase project, with your own Anthropic key. The key stays in Supabase; the browser never sees it.
+
+1. Install the [Supabase CLI](https://supabase.com/docs/guides/cli) and log in: `supabase login`.
+2. In this folder, link your project (the ref is in your project URL, `https://<ref>.supabase.co`):
+   ```sh
+   supabase link --project-ref your-ref
+   ```
+3. Deploy the function:
+   ```sh
+   supabase functions deploy ai
+   ```
+4. Give it your key:
+   ```sh
+   supabase secrets set ANTHROPIC_API_KEY=your-key
+   ```
+5. Open `/setup`. The AI row says `AI ready` with the model and the batch size.
+
+Optional secrets, set the same way: `AI_MODEL` (default `claude-sonnet-5-5`) and `AI_BATCH_LIMIT` (hooks tagged per press, default 20, 1 to 50). In `.env`, `VITE_AI_AUTO=0` stops the background tagging of newly saved ads.
+
+Cost: one model call per analysis or brief, one per batch of up to 20 hooks tagged, and at most 100 ads tagged in the background per page load. Nothing runs until you press a button or save an ad.
+
+Re-run `db-setup.sql` once for brief sources and the angle index. Before that, briefs still save; their sources are written into the brief text instead.
+
 ### Meta Ad Library (rival ads and competitor tracking)
 
 1. Create an app at developers.facebook.com, complete identity verification, and generate a token with Ad Library API access.
@@ -161,6 +211,23 @@ Turning a module off hides it and nothing else: its data stays in the database.
 5. `node scripts/sync-geo.mjs` fills in EU countries and reach for the Intel view.
 
 Limits worth knowing: the API returns commercial ads only when they reached the EU or the UK, tokens expire about every 60 days, and you get reach, not spend.
+
+### Capture (optional)
+
+Capture saves ads from the Meta Ad Library with a bookmarklet or a small browser extension. Both are set up from `/capture/setup` in the app; [docs/CAPTURE.md](CAPTURE.md) has the details.
+
+To keep the creatives (Meta's image and video links expire), deploy the fetch-media edge function. It copies the creative into your `ad-media` bucket when you save a capture, as the signed in user:
+
+```bash
+supabase functions deploy fetch-media
+# optional, these are the defaults:
+supabase secrets set FETCH_MEDIA_HOSTS=fbcdn.net,cdninstagram.com
+supabase secrets set FETCH_MEDIA_MAX_MB=50
+```
+
+`FETCH_MEDIA_HOSTS` is the comma list of hosts it may download from (each host and its subdomains). `FETCH_MEDIA_MAX_MB` is the largest file it copies, 1 to 50. Without the function, captured ads still save and you add the file on the ad page. `/setup` shows whether it answers.
+
+`scripts/track-longevity.mjs` re-checks how long competitor ads keep running by loading their public Ad Library pages automatically. Meta's terms restrict that, so it is off by default: it runs only with `--i-accept-the-terms` or `LONGEVITY_OPT_IN=1`, and you run it at your own risk. [docs/CAPTURE.md](CAPTURE.md#re-checking-how-long-ads-run-opt-in-off-by-default) has the flags.
 
 ### Your own ads from the Marketing API
 
@@ -237,4 +304,7 @@ Start at `/setup`. It covers most first run problems and gives the fix in words.
 - **Uploads fail with "Upload refused by storage policy".** Same fix: run `db-setup.sql` again.
 - **A script exits right away.** It prints which variable it needs. Scripts without their variables are meant to stop.
 - **Chat and goals do not update live.** `db-setup.sql` adds the tables to Supabase realtime; run it again if you created the project before those tables existed.
+- **`/setup` says "Some features need the latest db-setup.sql".** Your database runs an older version of the file. Run `db-setup.sql` again; your data stays.
+- **The library says "Searching in the browser".** The library search functions are missing, so the same rules run in the browser, which gets slow past a few thousand ads. Run `db-setup.sql` again.
+- **An AI button shows a command instead of a result.** The `ai` edge function is not deployed or has no key. Run the command it shows; see AI (optional) above.
 - **A list says "Showing N items. The rest failed to load".** The database stopped answering part way through. Press Retry; if it keeps happening, check the project in Supabase.
