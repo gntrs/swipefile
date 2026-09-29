@@ -275,9 +275,10 @@ export function reachRating(ad) {
   const reach = +m.reach || 0;
   const ctr = +m.ctr || 0;
   if (!reach && !ctr) return null;
-  if (ctr >= 5 || reach >= 3000) return { label: 'AMAZING', tone: 'bg-emerald-500 text-black' };
-  if (ctr >= 2 || reach >= 800) return { label: 'GOOD', tone: 'bg-amber-400 text-black' };
-  return { label: 'BAD', tone: 'bg-rose-500 text-white' };
+  // tone is a text colour: green good, plain ink in the middle, red bad.
+  if (ctr >= 5 || reach >= 3000) return { label: 'AMAZING', tone: 'text-emerald-600' };
+  if (ctr >= 2 || reach >= 800) return { label: 'GOOD', tone: 'text-ink' };
+  return { label: 'BAD', tone: 'text-red-600' };
 }
 
 // Short human reach, e.g. 4125 -> "4.1k". Empty string when unknown.

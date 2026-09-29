@@ -57,12 +57,12 @@ export default function BriefFromSelection({ adIds = [], hooks = [], label = 'Br
         onClick={run}
         disabled={Boolean(blocker) || running}
         aria-describedby={blocker ? whyId : undefined}
-        className="press inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-4 rounded-2xl border border-line text-[14px] font-semibold text-ink hover:bg-card disabled:opacity-60 disabled:text-ink-soft"
+        className="press inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-4 rounded-xl bg-white/[0.06] text-[14px] font-semibold text-ink hover:bg-white/[0.1] transition-colors disabled:opacity-60 disabled:text-ink-soft"
       >
         {running ? 'Writing brief...' : label}
       </button>
       {blocker && (
-        <p id={whyId} className="mt-1 text-[12px] leading-snug text-ink-soft">
+        <p id={whyId} className="mt-1 text-[13px] leading-snug text-ink-soft">
           {blocker}
         </p>
       )}

@@ -65,16 +65,16 @@ export default function AiSetupRow() {
   const level = LEVELS[check.level] || LEVELS.info;
   const Icon = level.icon;
   return (
-    <li className="py-4 border-b border-line last:border-b-0" data-check="ai">
+    <li className="py-5 border-b border-line last:border-b-0" data-check="ai">
       <div className="flex items-start gap-3">
         <Icon size={22} weight="bold" className={`${level.tone} flex-shrink-0 mt-0.5`} aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <p className="text-[16px] font-semibold leading-snug">{check.title}</p>
-          <p className={`font-mono text-[11px] uppercase tracking-[0.12em] mt-1 ${level.tone}`}>{level.label}</p>
-          {check.detail && <p className="text-[15px] text-ink-soft leading-relaxed mt-1.5">{check.detail}</p>}
+          <p className={`font-mono text-[11px] uppercase tracking-[0.12em] mt-1.5 ${level.tone}`}>{level.label}</p>
+          {check.detail && <p className="text-[15px] text-ink-soft leading-relaxed mt-2">{check.detail}</p>}
           {check.fix && (
             <div className="mt-3 flex items-start gap-2">
-              <code className="flex-1 min-w-0 block bg-canvas border border-line rounded-2xl px-3 py-2.5 font-mono text-[13px] leading-relaxed text-ink whitespace-pre-wrap break-all">
+              <code className="flex-1 min-w-0 block bg-canvas rounded-lg px-3 py-2.5 font-mono text-[13px] leading-relaxed text-ink whitespace-pre-wrap break-all">
                 {check.fix}
               </code>
               <CopyCommand text={check.fix} />

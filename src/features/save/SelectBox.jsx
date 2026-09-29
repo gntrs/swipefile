@@ -20,7 +20,7 @@ export default function SelectBox({ checked, onChange, label, className = '', di
     >
       <span
         className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${
-          checked ? 'bg-accent border-accent text-black' : 'border-line text-transparent'
+          checked ? 'bg-accent border-accent text-black' : 'border-ink-soft/50 text-transparent'
         }`}
       >
         <Check size={13} weight="bold" />

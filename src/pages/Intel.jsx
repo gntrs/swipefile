@@ -86,7 +86,7 @@ function SectionHead({ icon: Icon, title, status, live }) {
 // needs them.
 function NotSetUp({ summary, steps }) {
   return (
-    <details className="group rounded-xl3 border border-line bg-card/60 overflow-hidden">
+    <details className="group rounded-xl3 bg-card overflow-hidden">
       <summary className="flex items-center gap-2 min-h-[44px] px-4 py-3 cursor-pointer list-none select-none text-[13px] text-ink-soft transition-colors duration-150 ease-swift hover:text-ink [&::-webkit-details-marker]:hidden">
         <span className="flex-1 min-w-0">{summary}</span>
         <span className="flex items-center gap-1 text-[12px] flex-shrink-0">
@@ -115,7 +115,7 @@ const Cmd = ({ children }) => (
 );
 
 const Card = ({ children }) => (
-  <div className="bg-card rounded-xl3 border border-line shadow-card p-5">{children}</div>
+  <div className="bg-card rounded-xl3 shadow-card p-5">{children}</div>
 );
 
 export default function Intel() {
@@ -237,15 +237,15 @@ export default function Intel() {
     );
 
   return (
-    <div data-page="intel" className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
-      <header className="mb-7 animate-rise">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">Market intel</p>
-        <h1 className="text-[26px] sm:text-[30px] font-semibold tracking-tight mt-1">Where we stand</h1>
-        <p className="text-ink-soft text-[14px] mt-1">Search rank, EU ad geography and demand trends for the markets we chase.</p>
+    <div data-page="intel" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1100px] mx-auto">
+      <header className="mb-7">
+        <p className="kicker">Market intel</p>
+        <h1 className="text-[28px] sm:text-[32px] font-semibold tracking-[-0.02em] leading-[1.1] mt-3">Where we stand</h1>
+        <p className="text-ink-soft text-[15px] leading-relaxed mt-2">Search rank, EU ad geography and demand trends for the markets we chase.</p>
       </header>
 
       {/* ============ SEO ============ */}
-      <section className="mb-7 animate-rise" style={{ animationDelay: '40ms' }}>
+      <section className="mb-7">
         <SectionHead
           icon={MagnifyingGlass}
           title="Search rank"
@@ -317,7 +317,7 @@ export default function Intel() {
       </section>
 
       {/* ============ GEO / EU reach ============ */}
-      <section className="mb-7 animate-rise" style={{ animationDelay: '80ms' }}>
+      <section className="mb-7">
         <SectionHead
           icon={GlobeHemisphereWest}
           title="EU ad geography"
@@ -391,7 +391,7 @@ export default function Intel() {
       </section>
 
       {/* ============ TRENDS ============ */}
-      <section className="mb-7 animate-rise" style={{ animationDelay: '120ms' }}>
+      <section className="mb-7">
         <SectionHead
           icon={TrendUp}
           title="Demand trends"

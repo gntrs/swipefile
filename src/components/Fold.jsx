@@ -34,7 +34,7 @@ export default function Fold({ id, title, children, defaultOpen = true }) {
         aria-expanded={open}
         className="sm:hidden w-full min-h-[44px] flex items-center justify-between px-1 pt-1 pb-2 select-none"
       >
-        <span className="text-[12px] font-semibold uppercase tracking-wider text-ink-soft">
+        <span className="kicker">
           {title}
         </span>
         <CaretDown

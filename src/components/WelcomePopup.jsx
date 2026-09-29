@@ -44,8 +44,8 @@ export default function WelcomePopup() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-5 animate-fade">
-      <div className="bg-card rounded-xl3 border border-line shadow-card w-full max-w-[400px] p-6 animate-materialize">
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-5 animate-fade">
+      <div className="bg-card rounded-xl3 shadow-card w-full max-w-[400px] p-6 animate-materialize">
         <div className="flex items-center gap-2.5 mb-1.5">
           <HandWaving size={24} weight="bold" className="text-accent" />
           <h2 className="text-[18px] font-semibold tracking-tight">Welcome to the team</h2>
@@ -87,7 +87,7 @@ export default function WelcomePopup() {
           <button
             type="submit"
             disabled={busy}
-            className="press mt-5 w-full py-2.5 rounded-2xl bg-accent text-black font-semibold shadow-cta disabled:opacity-60"
+            className="press mt-5 w-full py-2.5 rounded-2xl bg-accent text-black font-semibold disabled:opacity-60"
           >
             {busy ? 'Saving...' : "Let's go"}
           </button>

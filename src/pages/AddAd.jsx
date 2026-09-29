@@ -14,8 +14,8 @@ import SelectBox from '@/features/save/SelectBox';
 
 const PLATFORMS = ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'Other'];
 
-const field = 'w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[16px] sm:text-[14px]';
-const label = 'text-[13px] font-semibold text-ink-soft mb-1 block';
+const field = 'w-full min-h-[44px] py-2.5 px-3.5 rounded-xl border border-line focus:outline-none focus:border-accent bg-card text-[16px] sm:text-[15px] placeholder:text-ink-soft/70';
+const label = 'kicker mb-1.5 block';
 
 let fileKey = 0;
 
@@ -204,17 +204,17 @@ export default function AddAd() {
       : 'Save ad';
 
   return (
-    <div data-page="add-ad" onPaste={onPaste} className="px-5 sm:px-8 py-6 max-w-[720px] mx-auto">
+    <div data-page="add-ad" onPaste={onPaste} className="px-5 sm:px-8 pt-4 sm:pt-6 pb-10 max-w-[720px] mx-auto">
       <button
         type="button"
         onClick={() => navigate('/ads')}
-        className="press flex items-center gap-1 min-h-[44px] text-ink-soft text-[14px] font-medium mb-2"
+        className="press flex items-center gap-1 min-h-[44px] -ml-2 px-2 rounded-xl text-ink-soft hover:text-ink text-[15px] font-medium mb-3"
       >
         <CaretLeft size={16} weight="bold" /> Library
       </button>
-      <h1 className="text-[22px] font-semibold tracking-tight mb-5">Add an ad</h1>
+      <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mb-6">Add an ad</h1>
 
-      <form onSubmit={submit} className="grid gap-4">
+      <form onSubmit={submit} className="grid gap-5">
         <LinkPaste value={link} onChange={setLink} />
 
         {/* Media */}
@@ -222,15 +222,15 @@ export default function AddAd() {
           {single && (
             <div className="relative p-3 pb-0">
               {formatFor(single.file) === 'video' ? (
-                <video src={single.url} className="max-h-64 mx-auto rounded-2xl" controls playsInline />
+                <video src={single.url} className="max-h-64 mx-auto rounded-xl" controls playsInline />
               ) : (
-                <img src={single.url} className="max-h-64 mx-auto rounded-2xl" alt="Preview of the ad" />
+                <img src={single.url} className="max-h-64 mx-auto rounded-xl" alt="Preview of the ad" />
               )}
               <button
                 type="button"
                 onClick={() => removeItem(single)}
                 aria-label="Remove file"
-                className="press absolute top-4 right-4 w-11 h-11 rounded-full bg-canvas/85 border border-line flex items-center justify-center text-ink"
+                className="press absolute top-4 right-4 w-11 h-11 rounded-full bg-canvas/90 flex items-center justify-center text-ink"
               >
                 <X size={16} weight="bold" />
               </button>
@@ -238,7 +238,7 @@ export default function AddAd() {
           )}
           {batch && (
             <div className="p-3 pb-0">
-              <p className="text-[14px] text-ink-soft mb-2">
+              <p className="text-[15px] leading-relaxed text-ink-soft mb-3">
                 {items.length} files, one ad each. The fields below apply to all of them; each ad gets an empty hook to fill in later.
               </p>
               <BatchSave items={items} status={status} onRemove={removeItem} onRetry={(item) => submitBatch(item)} running={running} />
@@ -247,7 +247,7 @@ export default function AddAd() {
         </DropZone>
 
         {rejected.length > 0 && (
-          <ul role="alert" className="grid gap-1 text-[14px] text-red-400">
+          <ul role="alert" className="grid gap-1 text-[15px] text-red-600">
             {rejected.map((r, i) => (
               <li key={`${r.name}-${i}`}>{r.message.includes(r.name) ? r.message : `${r.name}: ${r.message}`}</li>
             ))}
@@ -332,14 +332,14 @@ export default function AddAd() {
         </div>
 
         {error && (
-          <p role="alert" className="text-red-400 text-[15px]">
+          <p role="alert" className="text-red-600 text-[15px]">
             {error}
           </p>
         )}
         {notice && (
-          <p role="status" className="text-amber-400 text-[15px]">
+          <p role="status" className="text-amber-600 text-[15px]">
             {notice.text}{' '}
-            <Link to={`/ad/${notice.adId}`} className="underline underline-offset-2 text-accent-dim">
+            <Link to={`/ad/${notice.adId}`} className="underline underline-offset-4 decoration-ink-soft hover:decoration-ink text-ink">
               Open the ad
             </Link>
           </p>
@@ -347,14 +347,14 @@ export default function AddAd() {
 
         <div>
           {allSaved ? (
-            <Link to="/ads" className="press inline-flex items-center min-h-[44px] px-6 py-3 rounded-2xl bg-accent text-black font-semibold">
+            <Link to="/ads" className="press inline-flex items-center min-h-[44px] px-6 py-3 rounded-xl bg-accent text-black text-[15px] font-semibold hover:bg-accent-dim transition-colors">
               Open library
             </Link>
           ) : (
             <button
               type="submit"
               disabled={busy || running}
-              className="press min-h-[44px] px-6 py-3 rounded-2xl bg-accent text-black font-semibold shadow-cta disabled:opacity-60"
+              className="press w-full sm:w-auto min-h-[44px] px-6 py-3 rounded-xl bg-accent text-black text-[15px] font-semibold hover:bg-accent-dim transition-colors disabled:opacity-60"
             >
               {busy || running ? 'Saving...' : saveLabel}
             </button>
@@ -363,13 +363,13 @@ export default function AddAd() {
             <p role="status" className="mt-3 text-[15px] text-ink">
               {summary}{' '}
               {!allSaved && (
-                <Link to="/ads" className="underline underline-offset-2 text-accent-dim">
+                <Link to="/ads" className="underline underline-offset-4 decoration-ink-soft hover:decoration-ink text-ink">
                   Open library
                 </Link>
               )}
             </p>
           )}
-          {IS_DEMO && <p className="mt-2 text-[13px] text-ink-soft">Demo: saved until you reload.</p>}
+          {IS_DEMO && <p className="mt-3 font-mono text-[12px] text-ink-soft">Demo: saved until you reload.</p>}
         </div>
       </form>
     </div>

@@ -30,8 +30,15 @@ const ImportPage = lazy(() => import('@/features/save/ImportPage'));
 const CapturePage = lazy(() => import('@/features/capture/CapturePage'));
 const CaptureSetup = lazy(() => import('@/features/capture/CaptureSetup'));
 
+// The app mark, quiet, while auth and the setup check answer. The words stay
+// for screen readers.
 function Loading() {
-  return <div className="h-full flex items-center justify-center text-ink-soft">Loading...</div>;
+  return (
+    <div className="h-full flex items-center justify-center bg-canvas" aria-busy="true">
+      <span className="sr-only">Loading...</span>
+      <img src="/favicon.svg" alt="" aria-hidden="true" width="40" height="40" className="w-10 h-10 opacity-60" />
+    </div>
+  );
 }
 
 // Keeps every route behind /setup while the setup check has found something

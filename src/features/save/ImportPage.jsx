@@ -11,7 +11,7 @@ import { invalidateLocalCache } from '@/lib/library/query';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 const plural = (n, one, many) => `${fmt(n)} ${n === 1 ? one : many}`;
-const btn = 'press inline-flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-4 rounded-2xl font-semibold text-[14px]';
+const btn = 'press inline-flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-4 rounded-xl font-semibold text-[14px] transition-colors';
 
 function downloadTemplate() {
   const blob = new Blob([SAMPLE_CSV], { type: 'text/csv;charset=utf-8' });
@@ -170,21 +170,21 @@ export default function ImportPage() {
   const canImport = plan && !plan.blocked && newCount + plan.updates.length > 0 && !busy && !result;
 
   return (
-    <div data-page="import" className="px-5 sm:px-8 py-6 max-w-[860px] mx-auto">
+    <div data-page="import" className="px-5 sm:px-8 pt-4 sm:pt-6 pb-10 max-w-[860px] mx-auto">
       <button
         type="button"
         onClick={() => navigate('/ads')}
-        className="press flex items-center gap-1 min-h-[44px] text-ink-soft text-[14px] font-medium mb-2"
+        className="press flex items-center gap-1 min-h-[44px] -ml-2 px-2 rounded-xl text-ink-soft hover:text-ink text-[15px] font-medium mb-3"
       >
         <CaretLeft size={16} weight="bold" /> Library
       </button>
-      <h1 className="text-[26px] sm:text-[22px] font-semibold tracking-[-0.02em] leading-tight">Import ads</h1>
+      <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Import ads</h1>
       <p className="text-[16px] text-ink-soft leading-relaxed mt-2 max-w-[68ch]">
         A CSV in the swipe file format (brand, hook, copy, links, verdict, tags), or a Meta Ads Manager export of your own
         ads. Up to {fmt(LIMITS.rows)} rows and 10 MB; for bigger Meta exports use scripts/import-ads-csv.mjs.
       </p>
-      <div className="mt-4 mb-5">
-        <button type="button" onClick={downloadTemplate} className={`${btn} border border-line text-ink`}>
+      <div className="mt-5 mb-6">
+        <button type="button" onClick={downloadTemplate} className={`${btn} bg-white/[0.06] hover:bg-white/[0.1] text-ink`}>
           <DownloadSimple size={16} weight="bold" /> Download a template
         </button>
       </div>
@@ -196,17 +196,17 @@ export default function ImportPage() {
         }}
         onDragLeave={() => setOver(false)}
         onDrop={onDrop}
-        className={`bg-card border-2 border-dashed rounded-xl3 transition-colors ${over ? 'border-accent' : 'border-line'}`}
+        className={`bg-card border border-dashed rounded-xl3 transition-colors ${over ? 'border-accent bg-card-hi' : 'border-ink-soft/40 hover:border-ink-soft'}`}
       >
         <button
           type="button"
           onClick={() => input.current?.click()}
           disabled={busy}
-          className="press w-full flex flex-col items-center justify-center text-center min-h-[44px] py-8 px-5 text-ink-soft disabled:opacity-60"
+          className="press w-full flex flex-col items-center justify-center text-center min-h-[44px] py-10 px-5 rounded-xl3 text-ink-soft disabled:opacity-60"
         >
-          {fileName ? <FileCsv size={28} className="mb-2" /> : <UploadSimple size={28} className="mb-2" />}
-          <span className="font-medium text-[15px] text-ink break-all">{fileName || 'Drop a .csv file here, or tap to pick'}</span>
-          <span className="text-[13px] mt-1">{fileName ? 'Tap to pick another file' : 'One file at a time'}</span>
+          {fileName ? <FileCsv size={28} weight="bold" className="mb-3" /> : <UploadSimple size={28} weight="bold" className="mb-3" />}
+          <span className="font-medium text-[16px] text-ink break-all">{fileName || 'Drop a .csv file here, or tap to pick'}</span>
+          <span className="text-[14px] mt-1.5">{fileName ? 'Tap to pick another file' : 'One file at a time'}</span>
         </button>
         <input
           ref={input}
@@ -222,21 +222,21 @@ export default function ImportPage() {
 
       {reading && <p className="mt-4 text-[15px] text-ink-soft">Reading the file...</p>}
       {error && (
-        <p role="alert" className="mt-4 text-[15px] text-red-400">
+        <p role="alert" className="mt-4 text-[15px] text-red-600">
           {error}
         </p>
       )}
 
       {plan && (
         <section className="mt-6" aria-label="Preview">
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft">{FORMAT_LABELS[plan.format]}</p>
+          <p className="kicker">{FORMAT_LABELS[plan.format]}</p>
           {plan.blocked ? (
-            <p role="alert" className="mt-2 text-[16px] text-amber-400">
+            <p role="alert" className="mt-2 text-[16px] text-amber-600">
               Set VITE_OWN_BRAND first: your own ads are stored under that brand name.
             </p>
           ) : (
             <>
-              <p className="mt-2 text-[18px] text-ink tabular-nums">
+              <p className="mt-2 text-[20px] font-semibold tracking-[-0.01em] text-ink tabular-nums">
                 {fmt(newCount)} new, {fmt(knownCount)} already saved, {plural(problemCount, 'with problems', 'with problems')}
               </p>
               {plan.format === 'meta' && plan.updates.length > 0 && (
@@ -260,7 +260,7 @@ export default function ImportPage() {
               )}
               {plan.errors.length > 0 && (
                 <div className="mt-3">
-                  <p className="text-[15px] text-red-400">These rows will not be imported:</p>
+                  <p className="text-[15px] text-red-600">These rows will not be imported:</p>
                   <ul className="mt-1 grid gap-1 text-[14px] text-ink-soft max-h-64 overflow-y-auto overscroll-contain">
                     {plan.errors.map((e) => (
                       <li key={e.line}>
@@ -273,12 +273,12 @@ export default function ImportPage() {
 
               {plan.preview.length > 0 && (
                 <>
-                  <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft">
+                  <p className="mt-6 kicker">
                     First {plan.preview.length} as they will be saved
                   </p>
                   <ul className="mt-2 grid gap-2">
                     {plan.preview.map((a, i) => (
-                      <li key={i} className="bg-card border border-line rounded-2xl px-4 py-3 min-w-0">
+                      <li key={i} className="bg-card rounded-xl px-4 py-3 min-w-0">
                         <p className="text-[15px] text-ink font-semibold truncate">{a.brand || 'Untitled'}</p>
                         <p className="text-[15px] text-ink-soft break-words line-clamp-2">{a.hook || a.ad_copy || 'No hook'}</p>
                         <p className="font-mono text-[12px] text-ink-soft mt-1 break-words">
@@ -297,12 +297,12 @@ export default function ImportPage() {
           {!plan.blocked && (
             <div className="mt-6 flex flex-wrap items-center gap-3">
               {!result && (
-                <button type="button" onClick={run} disabled={!canImport} className={`${btn} bg-accent text-black disabled:opacity-40`}>
+                <button type="button" onClick={run} disabled={!canImport} className={`${btn} bg-accent hover:bg-accent-dim text-black disabled:opacity-40`}>
                   {progress ? 'Importing...' : `Import ${plural(newCount + plan.updates.length, 'ad', 'ads')}`}
                 </button>
               )}
               {progress && (
-                <button type="button" onClick={() => (cancel.current = true)} className={`${btn} border border-line text-ink`}>
+                <button type="button" onClick={() => (cancel.current = true)} className={`${btn} bg-white/[0.06] hover:bg-white/[0.1] text-ink`}>
                   Cancel
                 </button>
               )}
@@ -334,7 +334,7 @@ export default function ImportPage() {
                 {result.updated > 0 && ` Refreshed ${plural(result.updated, 'ad', 'ads')}.`}
               </p>
               {result.failed.length > 0 && (
-                <ul className="mt-2 grid gap-1 text-[14px] text-red-400">
+                <ul className="mt-2 grid gap-1 text-[15px] text-red-600">
                   {result.failed.map((f, i) => (
                     <li key={i}>
                       {f.rows} failed: {f.message}
@@ -342,7 +342,7 @@ export default function ImportPage() {
                   ))}
                 </ul>
               )}
-              <Link to="/ads" className={`${btn} mt-4 bg-accent text-black`}>
+              <Link to="/ads" className={`${btn} mt-4 bg-accent hover:bg-accent-dim text-black`}>
                 Open library
               </Link>
             </div>
@@ -350,7 +350,7 @@ export default function ImportPage() {
         </section>
       )}
 
-      {IS_DEMO && <p className="mt-6 text-[13px] text-ink-soft">Demo: imported ads stay until you reload.</p>}
+      {IS_DEMO && <p className="mt-6 font-mono text-[12px] text-ink-soft">Demo: imported ads stay until you reload.</p>}
     </div>
   );
 }

@@ -46,10 +46,10 @@ export default function ProvenPlays({ ads }) {
   }, [ads, scope]);
 
   return (
-    <div className="bg-card rounded-xl3 border border-line shadow-card p-5 mb-4">
+    <div className="bg-card rounded-xl3 shadow-card p-5 mb-4">
       <div className="flex items-start justify-between gap-3 mb-1">
         <div className="flex items-center gap-2">
-          <span className="w-8 h-8 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center flex-shrink-0">
+          <span className="w-8 h-8 rounded-xl bg-white/[0.06] text-ink-soft flex items-center justify-center flex-shrink-0">
             <Trophy size={17} weight="bold" />
           </span>
           <div>
@@ -68,7 +68,7 @@ export default function ProvenPlays({ ads }) {
               key={id}
               onClick={() => setScope(id)}
               className={`min-h-[44px] min-w-[44px] px-2.5 py-1.5 rounded-xl text-[12px] font-semibold transition-colors ${
-                scope === id ? 'bg-ink text-black' : 'bg-card border border-line text-ink-soft'
+                scope === id ? 'bg-ink text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
               }`}
             >
               {label}
@@ -96,8 +96,8 @@ export default function ProvenPlays({ ads }) {
                     {a.brand || 'Untitled'}
                   </span>
                   {live && (
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-blue-600 flex-shrink-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> live
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-600 flex-shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> live
                     </span>
                   )}
                   <span className="font-mono text-[12px] font-semibold text-ink tabular-nums ml-auto flex-shrink-0">

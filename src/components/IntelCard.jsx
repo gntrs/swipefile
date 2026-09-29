@@ -65,7 +65,7 @@ export default function IntelCard({ ads = [] }) {
   return (
     <Link
       to="/intel"
-      className="block bg-card rounded-xl3 border border-line shadow-card p-5 hover:border-accent/50 transition-colors group mb-4"
+      className="block bg-card rounded-xl3 shadow-card p-5 hover:bg-card-hi transition-colors group mb-4"
     >
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-[15px]">Market intel</h2>

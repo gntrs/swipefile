@@ -140,14 +140,14 @@ export default function Dashboard() {
     );
 
   return (
-    <div data-page="dashboard" className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
+    <div data-page="dashboard" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1100px] mx-auto">
       {/* Reference-style header: quiet dated eyebrow, then a big greeting. */}
-      <header className="mb-6 animate-rise">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">{dateLabel}</p>
-        <h1 className="text-[26px] sm:text-[30px] font-semibold tracking-tight mt-1">
+      <header className="mb-6">
+        <p className="kicker">{dateLabel}</p>
+        <h1 className="text-[28px] sm:text-[32px] font-semibold tracking-[-0.02em] leading-[1.1] mt-3">
           {greetingFor()}{myName ? `, ${myName}` : ''}
         </h1>
-        <p className="text-ink-soft text-[14px] mt-1">
+        <p className="text-ink-soft text-[15px] leading-relaxed mt-2">
           {TEAM_MODE ? 'Ads, posts and what the team thinks of them.' : 'Your swipe file at a glance.'}
         </p>
       </header>
@@ -221,7 +221,7 @@ export default function Dashboard() {
       <Fold id="breakdown" title="Verdicts and tags">
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Verdict breakdown - labeled segmented bar (status colors + labels) */}
-        <div className="bg-card rounded-xl3 border border-line shadow-card p-5">
+        <div className="bg-card rounded-xl3 shadow-card p-5">
           <h2 className="font-semibold text-[15px] mb-3">Ad verdicts</h2>
           {ads.length === 0 ? (
             <p className="text-ink-soft text-[13px]">No ads yet. <Link to="/ads/add" className="text-accent-dim font-medium">Add the first one</Link>.</p>
@@ -249,7 +249,7 @@ export default function Dashboard() {
         </div>
 
         {/* Top tags */}
-        <div className="bg-card rounded-xl3 border border-line shadow-card p-5">
+        <div className="bg-card rounded-xl3 shadow-card p-5">
           <h2 className="font-semibold text-[15px] mb-3">Top tags</h2>
           {topTags.length === 0 ? (
             <p className="text-ink-soft text-[13px]">Tags will show up here as the library grows.</p>
@@ -268,7 +268,7 @@ export default function Dashboard() {
 
       {/* Recent activity */}
       <Fold id="recent" title="Recent activity" defaultOpen={false}>
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-5 mt-4">
+      <div className="bg-card rounded-xl3 shadow-card p-5 mt-4">
         <h2 className="font-semibold text-[15px] mb-3">Recent activity</h2>
         {recent.length === 0 ? (
           <p className="text-ink-soft text-[13px]">{TEAM_MODE ? 'Nothing yet. Add an ad or a post to get rolling.' : 'Nothing yet. Add an ad to get rolling.'}</p>

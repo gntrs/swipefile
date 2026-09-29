@@ -10,7 +10,7 @@ import SaleCelebration from '@/components/SaleCelebration';
 import DemoBanner from '@/components/DemoBanner';
 import SetupBanner from '@/components/SetupBanner';
 import { IS_DEMO } from '@/lib/db';
-import { APP_NAME } from '@/lib/brand';
+import Wordmark from '@/components/Wordmark';
 import { isOn } from '@/lib/modules';
 import { sidebarItems } from '@/lib/nav';
 import AiBackground from '@/features/ai/AiBackground';
@@ -36,27 +36,23 @@ export default function Layout() {
       {/* Background AI work after saves (renders nothing). */}
       <AiBackground />
 
-      {/* Sidebar - a translucent structural layer (content scrolls under the
-          blur), not an opaque strip. `glass` lets reduced-transparency and
-          high-contrast users get a solid fallback. */}
-      <aside className="glass hidden sm:flex w-60 flex-col border-r border-line bg-card/60 backdrop-blur-xl backdrop-saturate-150 px-4 py-5">
-        {/* Wordmark only, no icon. One accent dot, nothing else. */}
-        <div className="px-3 mb-7 pt-1">
-          <span className="font-semibold text-[18px] tracking-tight">
-            {APP_NAME}
-            <span className="text-accent">.</span>
-          </span>
+      {/* Sidebar: a solid strip on the canvas, split from the content by one
+          hairline. */}
+      <aside className="hidden sm:flex w-60 flex-shrink-0 flex-col border-r border-line bg-canvas px-4 py-5">
+        {/* The mark and the name, with the accent dot. */}
+        <div className="px-3 mb-8 pt-1">
+          <Wordmark />
         </div>
 
-        <nav className="flex flex-col gap-1">
+        <nav className="flex flex-col gap-0.5">
           {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
               className={({ isActive }) =>
-                `press flex items-center gap-3 min-h-[44px] px-3 py-2.5 rounded-2xl font-medium text-[15px] transition-colors ${
-                  isActive ? 'bg-accent-wash text-accent-dim' : 'text-ink-soft hover:bg-canvas'
+                `press flex items-center gap-3 min-h-[44px] px-3 py-2.5 rounded-xl font-medium text-[15px] transition-colors ${
+                  isActive ? 'bg-card text-ink' : 'text-ink-soft hover:text-ink hover:bg-card'
                 }`
               }
             >
@@ -70,12 +66,12 @@ export default function Layout() {
           <NavLink
             to="/profile"
             className={({ isActive }) =>
-              `press flex items-center gap-2.5 px-3 py-2 rounded-2xl transition-colors ${
-                isActive ? 'bg-accent-wash' : 'hover:bg-canvas'
+              `press flex items-center gap-2.5 min-h-[44px] px-3 py-2 rounded-xl transition-colors ${
+                isActive ? 'bg-card' : 'hover:bg-card'
               }`
             }
           >
-            <span className="w-8 h-8 rounded-full bg-canvas border border-line overflow-hidden flex items-center justify-center flex-shrink-0">
+            <span className="w-8 h-8 rounded-full bg-card-hi overflow-hidden flex items-center justify-center flex-shrink-0">
               {avatar ? (
                 <img src={avatar} alt="me" className="w-full h-full object-cover" />
               ) : (
@@ -90,16 +86,14 @@ export default function Layout() {
             </span>
           </NavLink>
           {IS_DEMO ? (
-            <p className="mt-2 px-3 min-h-[44px] flex items-center font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft">
-              Demo mode
-            </p>
+            <p className="kicker mt-2 px-3 min-h-[44px] flex items-center">Demo mode</p>
           ) : (
             <button
               onClick={async () => {
                 await signOut();
                 navigate('/login');
               }}
-              className="press mt-2 w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-2xl text-[14px] font-medium text-ink-soft hover:bg-canvas transition-colors"
+              className="press mt-2 w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-xl text-[14px] font-medium text-ink-soft hover:text-ink hover:bg-card transition-colors"
             >
               <SignOut size={18} weight="bold" /> Sign out
             </button>

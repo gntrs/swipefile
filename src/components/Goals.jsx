@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { isMissingTable } from '@/lib/db';
 import MigrationCard from '@/components/MigrationCard';
+import { RowsSkeleton } from '@/components/Skeleton';
 
 const POLL_MS = 15000; // fallback when realtime is off
 
@@ -202,7 +203,7 @@ export default function Goals() {
   if (missing) return <MigrationCard title="Goals" />;
 
   return (
-    <div className="bg-card rounded-xl3 border border-line shadow-card p-5 flex flex-col">
+    <div className="bg-card rounded-xl3 shadow-card p-5 flex flex-col">
       <div className="flex items-center justify-between mb-2">
         <h2 className="font-semibold text-[15px]">Goals</h2>
         {isAdmin && (
@@ -213,7 +214,7 @@ export default function Goals() {
             }}
             aria-label="Toggle goal editing"
             className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
-              editing ? 'bg-accent text-black shadow-cta' : 'text-ink-soft hover:bg-canvas'
+              editing ? 'bg-accent text-black' : 'text-ink-soft hover:bg-canvas'
             }`}
           >
             <PencilSimple size={15} weight="bold" />
@@ -226,7 +227,7 @@ export default function Goals() {
           overflow scroll never engaged and the card ate the whole page. */}
       <div className="h-[380px] overflow-y-auto -mx-1 px-1">
         {loading ? (
-          <p className="text-ink-soft text-[13px] py-2">Loading...</p>
+          <RowsSkeleton rows={3} className="py-1" />
         ) : groups.length === 0 ? (
           <p className="text-ink-soft text-[13px] py-2">
             No goals yet. Add the first one for this week.
@@ -234,7 +235,7 @@ export default function Goals() {
         ) : (
           groups.map((h) => (
             <div key={h.key} className="mb-3 last:mb-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft/80 mb-1">
+              <p className="kicker mb-1">
                 {h.label}
               </p>
               {h.items.map((g) =>
@@ -429,7 +430,7 @@ export default function Goals() {
               type="submit"
               disabled={!title.trim()}
               aria-label="Add goal"
-              className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0 shadow-cta disabled:opacity-40 disabled:shadow-none"
+              className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40 disabled:shadow-none"
             >
               <Plus size={17} weight="bold" />
             </button>

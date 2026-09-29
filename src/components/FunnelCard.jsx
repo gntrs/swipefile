@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { fetchAll, isMissingTable } from '@/lib/db';
 import PartialNotice from '@/components/PartialNotice';
 import { parseFunnelStages, DEFAULT_FUNNEL_STAGES } from '@/lib/funnel';
+import { RowsSkeleton } from '@/components/Skeleton';
 
 // Site funnel + traffic, read from kpi_snapshots (one row per day, written by
 // scripts/snapshot-kpis.mjs from the daily PostHog pull; the browser can't
@@ -78,7 +79,7 @@ export default function FunnelCard() {
   }, [spark]);
 
   return (
-    <div className="bg-card rounded-xl3 border border-line shadow-card p-5 mb-4">
+    <div className="bg-card rounded-xl3 shadow-card p-5 mb-4">
       <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="font-semibold text-[15px]">Site funnel</h2>
@@ -96,7 +97,7 @@ export default function FunnelCard() {
 
       <PartialNotice rows={partial} noun="days" onRetry={() => setReload((n) => n + 1)} className="mb-3" />
       {rows === null ? (
-        <p className="text-ink-soft text-[13px]">Loading...</p>
+        <RowsSkeleton rows={2} />
       ) : rows.length === 0 ? (
         <div className="text-[13px] text-ink-soft bg-canvas/60 rounded-2xl px-4 py-3">
           No snapshots yet. Apply <span className="font-mono text-[12px]">db-setup.sql</span>,

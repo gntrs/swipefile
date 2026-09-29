@@ -8,6 +8,7 @@ import { TEAM_MODE } from '@/lib/modules';
 import MigrationCard from '@/components/MigrationCard';
 import { shortDate } from '@/features/ai/dates';
 import { sourceIdsOf, sourceLabel, briefAuthor, checkDraft } from '@/features/ai/briefs';
+import { RowsSkeleton } from '@/components/Skeleton';
 
 // A brief can carry a ready-to-paste prompt for an AI video editor, fenced off
 // from the prose so it survives the round trip to the tool intact. Everything
@@ -24,14 +25,14 @@ export function extractPrompt(body = '') {
   return block || null;
 }
 
-const kicker = 'font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft';
+const kicker = 'kicker';
 const actionBase =
-  'press inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 rounded-2xl border text-[13px] font-semibold disabled:opacity-60';
-const actionBtn = `${actionBase} border-line text-ink-soft hover:text-ink`;
+  'press inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 rounded-xl text-[14px] font-semibold transition-colors disabled:opacity-60';
+const actionBtn = `${actionBase} bg-white/[0.06] hover:bg-white/[0.1] text-ink`;
 const primaryBtn =
-  'press inline-flex items-center justify-center min-h-[44px] px-4 rounded-2xl bg-accent text-black text-[14px] font-semibold disabled:opacity-60';
+  'press inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-accent text-black text-[14px] font-semibold hover:bg-accent-dim transition-colors disabled:opacity-60';
 const inputCls =
-  'w-full min-h-[44px] px-3 py-2.5 rounded-2xl border border-line bg-canvas text-[16px] focus:outline-none focus:border-accent';
+  'w-full min-h-[44px] px-3 py-2.5 rounded-xl border border-line bg-canvas text-[16px] focus:outline-none focus:border-accent';
 
 function CopyButton({ text, label, icon: Icon = Copy }) {
   const [state, setState] = useState('idle');
@@ -45,7 +46,7 @@ function CopyButton({ text, label, icon: Icon = Copy }) {
     }
   };
   return (
-    <button type="button" onClick={copy} className={state === 'copied' ? `${actionBase} border-line text-emerald-600` : actionBtn}>
+    <button type="button" onClick={copy} className={state === 'copied' ? `${actionBase} bg-emerald-500/15 text-emerald-300` : actionBtn}>
       {state === 'copied' ? <Check size={14} weight="bold" /> : <Icon size={14} weight="bold" />}
       {state === 'copied' ? 'Copied' : state === 'failed' ? 'Copy failed, select the text' : label}
     </button>
@@ -78,7 +79,7 @@ function BriefForm({ initial, saving, error, onSave, onCancel, saveLabel = 'Save
         />
       </label>
       {error && (
-        <p role="alert" className="text-[14px] text-red-600 leading-relaxed">
+        <p role="alert" className="text-[15px] text-red-600 leading-relaxed">
           {error}
         </p>
       )}
@@ -108,7 +109,7 @@ function Sources({ brief, sourceAds, sourcesLoaded }) {
             const ad = sourceAds.get(id);
             if (sourcesLoaded && !ad) {
               return (
-                <span key={id} className="inline-flex items-center min-h-[44px] px-3 rounded-2xl border border-dashed border-line text-[13px] text-ink-soft">
+                <span key={id} className="inline-flex items-center min-h-[44px] px-3 rounded-xl border border-dashed border-line text-[14px] text-ink-soft">
                   Deleted ad
                 </span>
               );
@@ -117,7 +118,7 @@ function Sources({ brief, sourceAds, sourcesLoaded }) {
               <Link
                 key={id}
                 to={`/ad/${id}`}
-                className="press inline-flex items-center min-h-[44px] max-w-full px-3 rounded-2xl bg-canvas border border-line text-[13px] text-ink hover:border-accent"
+                className="press inline-flex items-center min-h-[44px] max-w-full px-3 rounded-xl bg-canvas hover:bg-white/[0.06] text-[14px] text-ink transition-colors"
               >
                 <span className="truncate">{ad ? sourceLabel(ad) : 'Source ad'}</span>
               </Link>
@@ -131,14 +132,14 @@ function Sources({ brief, sourceAds, sourcesLoaded }) {
             type="button"
             onClick={() => setShowHooks((v) => !v)}
             aria-expanded={showHooks}
-            className="press inline-flex items-center min-h-[44px] px-3 -ml-3 rounded-2xl text-[13px] font-semibold text-ink-soft hover:text-ink"
+            className="press inline-flex items-center min-h-[44px] px-3 -ml-3 rounded-xl text-[14px] font-semibold text-ink-soft hover:text-ink"
           >
             {hooks.length === 1 ? '1 hook' : `${hooks.length} hooks`}
           </button>
           {showHooks && (
             <ul className="mt-1 flex flex-col gap-1.5">
               {hooks.map((h, i) => (
-                <li key={i} className="text-[15px] leading-relaxed">
+                <li key={i} className="text-[16px] leading-relaxed">
                   {h}
                 </li>
               ))}
@@ -317,18 +318,18 @@ export default function Briefs() {
 
   if (missing) {
     return (
-      <div data-page="briefs" className="px-5 sm:px-8 py-6 max-w-[720px] mx-auto">
+      <div data-page="briefs" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[720px] mx-auto">
         <MigrationCard title="Briefs" />
       </div>
     );
   }
 
   return (
-    <div data-page="briefs" className="px-5 sm:px-8 py-6 max-w-[720px] mx-auto">
-      <div className="mb-5 flex items-start gap-3">
+    <div data-page="briefs" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[720px] mx-auto">
+      <div className="mb-6 flex items-start gap-3">
         <div className="flex-1 min-w-0">
-          <h1 className="text-[22px] font-semibold tracking-tight">Briefs</h1>
-          <p className="text-ink-soft text-[15px] leading-relaxed">
+          <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Briefs</h1>
+          <p className="text-ink-soft text-[15px] leading-relaxed mt-2">
             What to make next. Write one here, or select ads or hooks and build one from them.
           </p>
         </div>
@@ -349,7 +350,7 @@ export default function Briefs() {
       </div>
 
       {creating && (
-        <div className="bg-card rounded-xl3 border border-line p-4 mb-4">
+        <div className="bg-card rounded-xl3 shadow-card p-4 sm:p-5 mb-4">
           <p className={`${kicker} mb-3`}>New brief</p>
           <BriefForm saving={saving} error={formError} onSave={create} onCancel={() => setCreating(false)} saveLabel="Save brief" />
         </div>
@@ -362,16 +363,16 @@ export default function Briefs() {
       )}
 
       {loading ? (
-        <p className="text-ink-soft">Loading...</p>
+        <RowsSkeleton rows={3} />
       ) : briefs.length === 0 ? (
         !creating && !loadError && (
           <div className="text-center py-20 text-ink-soft">
-            <FileText size={32} className="mx-auto mb-2" />
-            <p className="text-[15px]">No briefs yet. Write one, or select ads in the library and build one.</p>
+            <FileText size={32} weight="bold" className="mx-auto mb-4" />
+            <p className="text-[16px]">No briefs yet. Write one, or select ads in the library and build one.</p>
           </div>
         )
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {briefs.map((b) => {
             const expanded = open === b.id || editing === b.id;
             const prompt = extractPrompt(b.body || '');
@@ -382,12 +383,12 @@ export default function Briefs() {
               <div
                 key={b.id}
                 ref={highlight === b.id ? wantedRef : null}
-                className={`bg-card rounded-xl3 border shadow-card scroll-mt-6 transition-all duration-700 ${
-                  highlight === b.id ? 'border-accent ring-2 ring-accent/40' : 'border-line'
+                className={`bg-card rounded-xl3 shadow-card scroll-mt-6 transition-shadow duration-700 ${
+                  highlight === b.id ? 'ring-2 ring-accent' : ''
                 }`}
               >
                 {editing === b.id ? (
-                  <div className="p-4">
+                  <div className="p-4 sm:p-5">
                     <p className={`${kicker} mb-3`}>Edit brief</p>
                     <BriefForm
                       initial={b}
@@ -406,18 +407,18 @@ export default function Briefs() {
                       type="button"
                       onClick={() => setOpen(expanded ? null : b.id)}
                       aria-expanded={expanded}
-                      className="block w-full min-h-[44px] text-left px-4 pt-4 pb-2"
+                      className="block w-full min-h-[44px] text-left px-4 sm:px-5 pt-4 sm:pt-5 pb-2 rounded-xl3"
                     >
-                      <p className="font-semibold text-[17px] leading-snug tracking-tight">{b.title}</p>
-                      <p className="font-mono text-[12px] text-ink-soft mt-1">
+                      <p className="font-semibold text-[18px] leading-snug tracking-[-0.01em]">{b.title}</p>
+                      <p className="font-mono text-[12px] text-ink-soft mt-1.5">
                         {[date, who, edited ? `edited ${edited}` : null].filter(Boolean).join(' · ')}
                       </p>
                     </button>
                     {expanded ? (
-                      <div className="px-4 pb-4">
-                        <p className="text-[15px] leading-relaxed whitespace-pre-wrap select-text">{b.body}</p>
+                      <div className="px-4 sm:px-5 pb-4 sm:pb-5">
+                        <p className="text-[16px] leading-relaxed whitespace-pre-wrap select-text max-w-[68ch]">{b.body}</p>
                         <Sources brief={b} sourceAds={sourceAds} sourcesLoaded={sourcesLoaded} />
-                        <div className="mt-4 flex flex-wrap gap-2">
+                        <div className="mt-5 flex flex-wrap gap-2">
                           <CopyButton text={`${b.title}\n\n${b.body}`} label="Copy brief" />
                           {prompt && <CopyButton text={prompt} label="Copy prompt" icon={FilmSlate} />}
                           <button type="button" onClick={() => startEdit(b)} className={actionBtn}>
@@ -427,14 +428,14 @@ export default function Briefs() {
                           <button
                             type="button"
                             onClick={() => remove(b)}
-                            className={armed === b.id ? `${actionBase} border-red-600 text-red-600` : actionBtn}
+                            className={armed === b.id ? `${actionBase} bg-red-500 text-white` : `${actionBase} bg-white/[0.06] hover:bg-white/[0.1] text-red-600`}
                           >
                             <Trash size={14} weight="bold" />
                             {armed === b.id ? 'Tap again to delete' : 'Delete'}
                           </button>
                         </div>
                         {rowError?.id === b.id && (
-                          <p role="alert" className="mt-2 text-[14px] text-red-600">
+                          <p role="alert" className="mt-2 text-[15px] text-red-600">
                             {rowError.message}
                           </p>
                         )}
@@ -443,9 +444,9 @@ export default function Briefs() {
                       <button
                         type="button"
                         onClick={() => setOpen(b.id)}
-                        className="block w-full min-h-[44px] text-left px-4 pb-4"
+                        className="block w-full min-h-[44px] text-left px-4 sm:px-5 pb-4 sm:pb-5 rounded-xl3"
                       >
-                        <p className="text-[15px] text-ink-soft line-clamp-2 whitespace-pre-wrap">{b.body}</p>
+                        <p className="text-[15px] leading-relaxed text-ink-soft line-clamp-2 whitespace-pre-wrap">{b.body}</p>
                       </button>
                     )}
                   </>

@@ -6,6 +6,7 @@ import { useTeam } from '@/contexts/TeamContext';
 import { useMediaUrl } from '@/lib/media';
 import { isMissingColumn, isMissingTable } from '@/lib/db';
 import MigrationCard from '@/components/MigrationCard';
+import { RowsSkeleton } from '@/components/Skeleton';
 
 const MAX_MESSAGES = 80; // plenty for a quick team ping board
 const POLL_MS = 15000; // fallback when realtime is off
@@ -414,13 +415,13 @@ export default function TeamChat() {
   if (missing) return <MigrationCard title="Team chat" />;
 
   return (
-    <div className="bg-card rounded-xl3 border border-line shadow-card p-5 flex flex-col">
+    <div className="bg-card rounded-xl3 shadow-card p-5 flex flex-col">
       <h2 className="font-semibold text-[15px] mb-2">Team chat</h2>
 
       <div className="relative flex-1">
         <div ref={listRef} onScroll={onScroll} className="h-[380px] overflow-y-auto -mx-1 px-1">
           {loading ? (
-            <p className="text-ink-soft text-[13px] py-2">Loading...</p>
+            <RowsSkeleton rows={3} className="py-1" />
           ) : messages.length === 0 ? (
             <p className="text-ink-soft text-[13px] py-2">
               Quiet in here. Say hi, drop a link, @mention the team.
@@ -446,7 +447,7 @@ export default function TeamChat() {
           <button
             type="button"
             onClick={jumpToLatest}
-            className="press absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 rounded-full bg-ink text-black text-[12px] font-semibold shadow-cta"
+            className="press absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 rounded-full bg-ink text-black text-[12px] font-semibold"
           >
             {newCount} new <ArrowDown size={13} weight="bold" />
           </button>
@@ -492,7 +493,7 @@ export default function TeamChat() {
           type="submit"
           disabled={!text.trim()}
           aria-label="Send"
-          className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0 shadow-cta disabled:opacity-40 disabled:shadow-none"
+          className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40 disabled:shadow-none"
         >
           <PaperPlaneRight size={17} weight="bold" />
         </button>

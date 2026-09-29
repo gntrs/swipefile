@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
+import { RowsSkeleton } from '@/components/Skeleton';
 
 const VERDICTS = ['unsure', 'winner', 'testing', 'loser'];
 const METRIC_KEYS = ['views', 'likes', 'comments', 'shares', 'saves', 'clicks', 'signups'];
@@ -64,7 +65,13 @@ export default function PostDetail() {
     setNewComment('');
   };
 
-  if (loading) return <div className="p-8 text-ink-soft">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="px-5 sm:px-8 pt-6 sm:pt-8 max-w-[720px] mx-auto">
+        <RowsSkeleton rows={2} />
+      </div>
+    );
+  }
   if (!post) return <div data-page="post-detail" className="p-8 text-ink-soft">Post not found.</div>;
 
   
@@ -72,7 +79,7 @@ export default function PostDetail() {
   const hasMetrics = METRIC_KEYS.some((k) => metrics[k] != null);
 
   return (
-    <div data-page="post-detail" className="px-5 sm:px-8 py-6 max-w-[860px] mx-auto">
+    <div data-page="post-detail" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[860px] mx-auto">
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => navigate('/posts')} className="flex items-center gap-1 min-h-[44px] text-ink-soft text-[14px] font-medium">
           <CaretLeft size={16} weight="bold" /> Posts
@@ -82,10 +89,10 @@ export default function PostDetail() {
         </button>
       </div>
 
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-5">
+      <div className="bg-card rounded-xl3 shadow-card p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-[22px] font-semibold tracking-tight">{post.title || 'Untitled post'}</h1>
+            <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">{post.title || 'Untitled post'}</h1>
             <p className="text-ink-soft text-[14px] mt-0.5">
               {[post.brand && `by ${post.brand} (competitor)`, post.platform, post.post_type, post.posted_at]
                 .filter(Boolean)
@@ -161,7 +168,7 @@ export default function PostDetail() {
       </div>
 
       {/* Team notes */}
-      <div className="mt-4 bg-card rounded-xl3 border border-line shadow-card p-4">
+      <div className="mt-4 bg-card rounded-xl3 shadow-card p-4">
         <h3 className="font-semibold text-[15px] mb-3">Team notes</h3>
         <div className="flex flex-col gap-3 mb-3">
           {comments.length === 0 && <p className="text-ink-soft text-[13px]">No notes yet.</p>}
@@ -179,7 +186,7 @@ export default function PostDetail() {
             placeholder="Add a note for the team..."
             className="flex-1 min-w-0 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]"
           />
-          <button aria-label="Add note" className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0 shadow-cta">
+          <button aria-label="Add note" className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0">
             <PaperPlaneRight size={18} weight="fill" />
           </button>
         </form>

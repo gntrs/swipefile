@@ -50,7 +50,7 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
       onClick={onClose}
     >
       <div
@@ -131,7 +131,7 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
             <button
               type="submit"
               disabled={busy}
-              className="press flex-1 py-2.5 rounded-2xl bg-accent text-black font-semibold shadow-cta disabled:opacity-60"
+              className="press flex-1 py-2.5 rounded-2xl bg-accent text-black font-semibold disabled:opacity-60"
             >
               {busy ? 'Saving...' : editing ? 'Save' : 'Add'}
             </button>

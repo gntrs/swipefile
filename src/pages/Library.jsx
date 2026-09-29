@@ -21,7 +21,7 @@ import { loadPage, loadFacets, invalidateLocalCache, computeFacets, PAGE_SIZE, L
 import { saveListContext } from '@/lib/library/listContext';
 import { MAX_SELECT } from '@/lib/library/bulk';
 import AdCard from '@/components/AdCard';
-import { Skeleton } from '@/components/Skeleton';
+import { CardSkeleton } from '@/components/Skeleton';
 import BulkBar from '@/features/save/BulkBar';
 import KeyHelp from '@/features/save/KeyHelp';
 import useLibraryKeys from '@/features/save/useLibraryKeys';
@@ -38,16 +38,16 @@ const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 // Every chip in the filter rows is a thumb target first and a label second:
 // 44px tall minimum, never smaller, on every viewport.
 const pill = (active) =>
-  `press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-2xl text-[13px] font-semibold transition-colors ${
-    active ? 'bg-accent text-black' : 'bg-card border border-line text-ink-soft'
+  `press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-xl text-[14px] font-medium transition-colors ${
+    active ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
   }`;
 const selectCls = (active) =>
-  `flex-shrink-0 min-h-[44px] px-3 rounded-2xl text-[13px] font-semibold focus:outline-none ${
-    active ? 'bg-accent text-black' : 'bg-card border border-line text-ink-soft focus:border-accent'
+  `flex-shrink-0 min-h-[44px] pl-3 pr-2 rounded-xl text-[14px] font-medium focus:outline-none ${
+    active ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
   }`;
 const headerBtn = (active) =>
-  `press flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-3 sm:px-3.5 rounded-2xl font-semibold transition-colors ${
-    active ? 'bg-ink text-black' : 'bg-card border border-line text-ink-soft'
+  `press flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-3 sm:px-3.5 rounded-xl text-[14px] font-semibold transition-colors ${
+    active ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink hover:bg-white/[0.1]'
   }`;
 
 // The ad library. Filters, sort and page live in the URL, so a view survives a
@@ -294,18 +294,11 @@ export default function Library() {
   const selected = [...selection.values()];
 
   return (
-    <div data-page="library" className={`px-5 sm:px-8 py-6 max-w-[1200px] mx-auto ${selectMode || selection.size ? 'pb-72 sm:pb-48' : 'pb-24'}`}>
-      <div className="flex items-start justify-between gap-3 mb-5">
-        <div className="min-w-0">
-          <h1 className="text-[26px] sm:text-[22px] font-semibold tracking-[-0.02em] leading-tight">
-            {filters.starred ? 'Starred ads' : 'Ad library'}
-          </h1>
-          <p className="font-mono text-ink-soft text-[12px] sm:text-[13px] tabular-nums mt-0.5">
-            {filters.starred
-              ? `${fmt(facets.starred)} starred`
-              : `${fmt(facets.total)} saved · ${fmt(facets.proven)} proven · ${fmt(facets.starred)} starred`}
-          </p>
-        </div>
+    <div data-page="library" className={`px-5 sm:px-8 pt-6 sm:pt-8 max-w-[1220px] mx-auto ${selectMode || selection.size ? 'pb-72 sm:pb-48' : 'pb-24'}`}>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="min-w-0 text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">
+          {filters.starred ? 'Starred ads' : 'Ad library'}
+        </h1>
         <div className="flex flex-shrink-0 items-center gap-2">
           <button
             type="button"
@@ -315,7 +308,7 @@ export default function Library() {
             className={headerBtn(selectMode)}
           >
             <CheckSquare size={18} weight="bold" />
-            <span className="hidden sm:inline">{selectMode ? 'Done' : 'Select'}</span>
+            <span className="hidden lg:inline">{selectMode ? 'Done' : 'Select'}</span>
           </button>
           <button
             type="button"
@@ -328,28 +321,33 @@ export default function Library() {
           </button>
           <Link to="/ads/import" aria-label="Import ads" className={headerBtn(false)}>
             <DownloadSimple size={18} weight="bold" />
-            <span className="hidden sm:inline">Import</span>
+            <span className="hidden lg:inline">Import</span>
           </Link>
           <Link
             to="/ads/add"
             aria-label="Add ad"
-            className="press flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-3 sm:px-4 rounded-2xl bg-accent text-black font-semibold shadow-cta"
+            className="press flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-3 sm:px-4 rounded-xl bg-accent text-black text-[14px] font-semibold hover:bg-accent-dim transition-colors"
           >
             <PlusCircle size={20} weight="bold" />
             <span className="hidden sm:inline">Add ad</span>
           </Link>
         </div>
       </div>
+      <p className="font-mono text-ink-soft text-[12px] tabular-nums mt-2 mb-6">
+        {filters.starred
+          ? `${fmt(facets.starred)} starred`
+          : `${fmt(facets.total)} saved · ${fmt(facets.proven)} proven · ${fmt(facets.starred)} starred`}
+      </p>
 
       {showLocalHint && (
-        <p className="text-[13px] text-ink-soft -mt-3 mb-4">
+        <p className="text-[14px] text-ink-soft -mt-3 mb-4">
           Searching in the browser. Re-run db-setup.sql to search on the server.
         </p>
       )}
 
       {/* Controls */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="flex-1 flex items-center gap-2 min-h-[44px] bg-card border border-line rounded-2xl px-3">
+      <div className="flex flex-col lg:flex-row gap-2 mb-2">
+        <div className="flex-1 flex items-center gap-2 min-h-[44px] bg-card border border-line rounded-xl px-3 focus-within:border-ink-soft transition-colors">
           <MagnifyingGlass size={18} className="text-ink-soft flex-shrink-0" />
           <input
             ref={searchRef}
@@ -358,19 +356,17 @@ export default function Library() {
             placeholder="Search brand, hook, copy, tags..."
             aria-label="Search ads"
             maxLength={200}
-            className="w-full min-w-0 min-h-[44px] py-2.5 bg-transparent focus:outline-none text-[16px] sm:text-[14px]"
+            className="w-full min-w-0 min-h-[44px] py-2.5 bg-transparent focus:outline-none focus-visible:shadow-none text-[16px] sm:text-[15px] placeholder:text-ink-soft"
           />
         </div>
-        <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0">
+        <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 flex-shrink-0">
           {WHO.map((w) => (
             <button
               key={w.id}
               type="button"
               onClick={() => change('who', w.id)}
               aria-pressed={filters.who === w.id}
-              className={`press flex-shrink-0 min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-2xl text-[13px] font-semibold transition-colors ${
-                filters.who === w.id ? 'bg-ink text-black' : 'bg-card border border-line text-ink-soft'
-              }`}
+              className={pill(filters.who === w.id)}
             >
               {w.label}
             </button>
@@ -392,30 +388,30 @@ export default function Library() {
 
       {/* Quick filters. Sticks to the top of the scroll on phones so the row you
           steer with never scrolls out of reach; static from sm up. */}
-      <div className="sticky top-0 z-30 sm:static flex gap-1.5 scroll-x -mx-5 px-5 py-2 sm:py-0 sm:mx-0 sm:px-0 mb-4 sm:mb-5 bg-canvas/85 backdrop-blur-xl sm:bg-transparent sm:backdrop-blur-none">
+      <div className="sticky top-0 z-30 sm:static flex gap-1.5 scroll-x lg:flex-wrap lg:overflow-visible -mx-5 px-5 py-2 sm:mx-0 sm:px-0 mb-4 sm:mb-6 bg-canvas/95 sm:bg-transparent">
         <button
           type="button"
           onClick={() => change('starred', !filters.starred)}
           aria-pressed={filters.starred}
-          className={`press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-2xl text-[13px] font-semibold transition-colors ${
-            filters.starred ? 'bg-amber-400 text-black' : 'bg-card border border-line text-ink-soft'
+          className={`press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-xl text-[14px] font-medium transition-colors ${
+            filters.starred ? 'bg-amber-400 text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
           }`}
         >
-          <Star size={16} weight={filters.starred ? 'fill' : 'bold'} />
+          <Star size={16} weight={filters.starred ? 'fill' : 'bold'} className={filters.starred ? '' : 'text-amber-400'} />
           Starred
           {facets.starred > 0 && (
-            <span className={`tabular-nums ${filters.starred ? 'text-black/60' : 'text-ink-soft/70'}`}>{fmt(facets.starred)}</span>
+            <span className={`font-mono text-[12px] tabular-nums ${filters.starred ? 'text-black/60' : 'text-ink-soft/70'}`}>{fmt(facets.starred)}</span>
           )}
         </button>
         {(facets.recent > 0 || filters.recent) && (
           <button type="button" onClick={() => change('recent', !filters.recent)} aria-pressed={filters.recent} className={pill(filters.recent)}>
-            <ClockCounterClockwise size={15} weight="bold" /> New <span className="tabular-nums">{fmt(facets.recent)}</span>
+            <ClockCounterClockwise size={15} weight="bold" /> New <span className={`font-mono text-[12px] tabular-nums ${filters.recent ? 'text-black/60' : 'text-ink-soft/70'}`}>{fmt(facets.recent)}</span>
           </button>
         )}
         <button type="button" onClick={() => change('proven', !filters.proven)} aria-pressed={filters.proven} className={pill(filters.proven)}>
           <Trophy size={15} weight="bold" /> Proven
         </button>
-        <span className="w-px bg-line flex-shrink-0 mx-1 my-1.5" />
+        <span className="lg:hidden w-px bg-line flex-shrink-0 mx-1.5 my-2.5" />
         {['all', ...VERDICTS.filter((v) => v !== 'unsure'), 'unsure'].map((v) => (
           <button
             key={v}
@@ -428,7 +424,7 @@ export default function Library() {
           </button>
         ))}
         {(countries.length > 0 || facets.geo_checked > 0 || angles.length > 0 || tags.length > 0) && (
-          <span className="w-px bg-line flex-shrink-0 mx-1 my-1.5" />
+          <span className="lg:hidden w-px bg-line flex-shrink-0 mx-1.5 my-2.5" />
         )}
         {angles.length > 0 && (
           <select value={filters.angle} onChange={(e) => change('angle', e.target.value)} aria-label="Filter by angle" className={selectCls(filters.angle !== 'all')}>
@@ -476,15 +472,15 @@ export default function Library() {
       </div>
 
       {selectMode && !selection.size && (
-        <p className="text-[14px] text-ink-soft mb-3">Tap ads to select them, up to {MAX_SELECT} at a time.</p>
+        <p className="text-[15px] text-ink-soft mb-4">Tap ads to select them, up to {MAX_SELECT} at a time.</p>
       )}
 
       {result?.partial && (
-        <div role="alert" className="flex items-center gap-3 bg-card border border-line rounded-2xl pl-4 pr-1.5 py-1.5 mb-4">
-          <p className="flex-1 min-w-0 text-[14px] text-ink leading-snug">
+        <div role="alert" className="flex items-center gap-3 bg-amber-50 rounded-xl pl-4 pr-1.5 py-1.5 mb-4">
+          <p className="flex-1 min-w-0 text-[15px] text-ink leading-snug">
             Some ads failed to load: {result.error?.message}. The list may be incomplete.
           </p>
-          <button type="button" onClick={reloadAll} className="press min-h-[44px] min-w-[44px] px-4 rounded-xl border border-line text-[13px] font-semibold">
+          <button type="button" onClick={reloadAll} className="press min-h-[44px] min-w-[44px] px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold">
             Retry
           </button>
         </div>
@@ -495,43 +491,44 @@ export default function Library() {
       </p>
 
       {loading && !result ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4" aria-busy="true">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 min-[1360px]:grid-cols-4 gap-3 sm:gap-4" aria-busy="true">
           {Array.from({ length: 8 }, (_, i) => (
-            <Skeleton key={i} className="h-40 rounded-xl3" />
+            <CardSkeleton key={i} />
           ))}
         </div>
       ) : result?.error && !result.partial ? (
-        <div role="alert" className="max-w-[480px] mx-auto my-12 text-center">
-          <p className="text-[16px] text-ink mb-1">Could not load the ads.</p>
-          <p className="text-[14px] text-ink-soft mb-4 break-words">{result.error.message}</p>
-          <button type="button" onClick={reloadAll} className="press inline-flex items-center min-h-[44px] px-5 rounded-2xl border border-line font-semibold">
+        <div role="alert" className="max-w-[480px] mx-auto my-16 text-center">
+          <p className="text-[17px] font-semibold text-ink mb-1">Could not load the ads.</p>
+          <p className="text-[15px] text-ink-soft mb-5 break-words">{result.error.message}</p>
+          <button type="button" onClick={reloadAll} className="press inline-flex items-center min-h-[44px] px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold">
             Retry
           </button>
         </div>
       ) : firstRun ? (
-        <div className="max-w-[440px] mx-auto my-12 bg-card border border-line rounded-xl3 p-6 text-center">
-          <Tray size={28} weight="bold" className="mx-auto mb-3 text-ink-soft" />
-          <h2 className="text-[20px] font-semibold tracking-tight mb-2">Your swipe file is empty</h2>
-          <p className="text-[15px] text-ink-soft leading-relaxed mb-5">
+        <div className="max-w-[440px] mx-auto my-16 text-center">
+          <Tray size={32} weight="bold" className="mx-auto mb-4 text-ink-soft" />
+          <h2 className="text-[22px] font-semibold tracking-[-0.02em] mb-2">Your swipe file is empty</h2>
+          <p className="text-[16px] text-ink-soft leading-relaxed mb-6">
             Save an ad you liked, or bring in a batch from a CSV export.
           </p>
           <div className="flex flex-col sm:flex-row gap-2 justify-center">
-            <Link to="/ads/add" className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl bg-accent text-black font-semibold">
+            <Link to="/ads/add" className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-accent text-black text-[14px] font-semibold hover:bg-accent-dim transition-colors">
               Add your first ad
             </Link>
-            <Link to="/ads/import" className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl border border-line font-semibold text-ink">
+            <Link to="/ads/import" className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold text-ink">
               Import a CSV
             </Link>
           </div>
         </div>
       ) : !rows.length ? (
-        <div className="text-center py-20 text-ink-soft">
-          <p className="mb-3 text-[16px]">No ads match.</p>
+        <div className="text-center py-20">
+          <MagnifyingGlass size={32} weight="bold" className="mx-auto mb-4 text-ink-soft" />
+          <p className="mb-5 text-[17px] font-semibold text-ink">No ads match.</p>
           {filtered && (
             <button
               type="button"
               onClick={() => setFilters(clearFilters(filters))}
-              className="press inline-flex items-center min-h-[44px] px-4 rounded-2xl border border-line text-accent-dim font-semibold"
+              className="press inline-flex items-center min-h-[44px] px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold text-ink"
             >
               Clear filters
             </button>
@@ -539,7 +536,7 @@ export default function Library() {
         </div>
       ) : (
         <>
-          <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 transition-opacity ${loading ? 'opacity-60' : ''}`} aria-busy={loading}>
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 min-[1360px]:grid-cols-4 gap-3 sm:gap-4 transition-opacity ${loading ? 'opacity-60' : ''}`} aria-busy={loading}>
             {rows.map((ad, i) => (
               <AdCard
                 key={ad.id}
@@ -557,8 +554,8 @@ export default function Library() {
             ))}
           </div>
 
-          <nav aria-label="Pages" className="mt-6 flex flex-wrap items-center justify-between gap-3">
-            <p className="font-mono text-[12px] sm:text-[13px] text-ink-soft tabular-nums">
+          <nav aria-label="Pages" className="mt-8 flex flex-wrap items-center justify-between gap-3">
+            <p className="font-mono text-[12px] text-ink-soft tabular-nums">
               Showing {fmt(from)} to {fmt(to)} of {fmt(total)}
             </p>
             {pages > 1 && (
@@ -567,18 +564,18 @@ export default function Library() {
                   type="button"
                   onClick={() => goPage(page - 1)}
                   disabled={page <= 1 || loading}
-                  className="press inline-flex items-center gap-1 min-h-[44px] min-w-[44px] px-3 rounded-2xl border border-line text-[13px] font-semibold disabled:opacity-40"
+                  className="press inline-flex items-center gap-1 min-h-[44px] min-w-[44px] px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold disabled:opacity-40"
                 >
                   <CaretLeft size={14} weight="bold" /> Previous
                 </button>
-                <span className="font-mono text-[12px] sm:text-[13px] text-ink-soft tabular-nums whitespace-nowrap">
+                <span className="font-mono text-[12px] text-ink-soft tabular-nums whitespace-nowrap px-1">
                   Page {fmt(page)} of {fmt(pages)}
                 </span>
                 <button
                   type="button"
                   onClick={() => goPage(page + 1)}
                   disabled={page >= pages || loading}
-                  className="press inline-flex items-center gap-1 min-h-[44px] min-w-[44px] px-3 rounded-2xl border border-line text-[13px] font-semibold disabled:opacity-40"
+                  className="press inline-flex items-center gap-1 min-h-[44px] min-w-[44px] px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold disabled:opacity-40"
                 >
                   Next <CaretRight size={14} weight="bold" />
                 </button>

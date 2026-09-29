@@ -128,7 +128,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
         <button
           onClick={findCreators}
           disabled={active}
-          className="press flex items-center gap-1.5 min-h-[44px] py-2 px-3.5 rounded-2xl bg-accent text-black text-[13px] font-semibold shadow-cta disabled:opacity-40 disabled:shadow-none"
+          className="press flex items-center gap-1.5 min-h-[44px] py-2 px-3.5 rounded-2xl bg-accent text-black text-[13px] font-semibold disabled:opacity-40 disabled:shadow-none"
         >
           <MagnifyingGlass size={15} weight="bold" />
           {active ? 'Searching...' : tier === 'unknown' ? 'Find creators' : `Find ${TIERS.find((t) => t.key === tier).label}`}
@@ -148,7 +148,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
             key={t.key}
             onClick={() => setTier(t.key)}
             className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
-              tier === t.key ? 'bg-accent text-black' : 'bg-card border border-line text-ink-soft'
+              tier === t.key ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
             }`}
           >
             {t.label} {byTier[t.key].length > 0 && `(${byTier[t.key].length})`}
@@ -161,7 +161,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
           {leads.length === 0 ? 'No leads yet. Hit Find creators to run a search.' : 'Nothing in this band right now.'}
         </p>
       ) : (
-        <div className="bg-card rounded-xl3 border border-line shadow-card divide-y divide-line">
+        <div className="bg-card rounded-xl3 shadow-card divide-y divide-line">
           {shown.map((l) => (
             <div key={l.id} className="flex items-center gap-3 px-4 py-3">
               <div className="flex-1 min-w-0">
@@ -185,7 +185,7 @@ export default function CreatorFinder({ onOutreachAdded }) {
               <button
                 onClick={() => addToOutreach(l)}
                 aria-label={`Add @${l.handle} to outreach`}
-                className="press flex items-center gap-1 py-1.5 px-2.5 rounded-xl bg-mint/30 text-emerald-700 text-[12px] font-semibold flex-shrink-0"
+                className="press flex items-center gap-1 py-1.5 px-2.5 rounded-xl bg-emerald-500/15 text-emerald-300 text-[12px] font-semibold flex-shrink-0"
               >
                 <Plus size={13} weight="bold" /> Outreach
               </button>

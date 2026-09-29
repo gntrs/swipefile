@@ -9,16 +9,16 @@ import CopyButton from './CopyButton';
 export const TERMS_NOTE =
   "Meta's terms do not allow automated collection from its sites. Capture only reads the ad you click, in your own browser, and sends it only to your swipefile. It never crawls and never sees your Facebook login.";
 
-const kicker = 'font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft';
+const kicker = 'kicker';
 const body = 'text-[16px] leading-relaxed text-ink-soft';
 const codeBox =
-  'block w-full bg-canvas border border-line rounded-2xl px-3 py-2.5 font-mono text-[13px] leading-relaxed text-ink break-all';
+  'block w-full bg-card border border-line rounded-lg px-3 py-2.5 font-mono text-[13px] leading-relaxed text-ink break-all focus:outline-none';
 
 function Section({ n, title, children }) {
   return (
     <section className="py-8 border-t border-line first:border-t-0 first:pt-0">
       <p className={kicker}>Step {n}</p>
-      <h2 className="text-[20px] font-semibold tracking-tight leading-tight mt-1 mb-3">{title}</h2>
+      <h2 className="text-[20px] font-semibold tracking-[-0.02em] leading-tight mt-2 mb-3">{title}</h2>
       {children}
     </section>
   );
@@ -41,9 +41,9 @@ export default function CaptureSetup() {
   const sample = capturePath(SAMPLE_CAPTURE, 'bookmarklet');
 
   return (
-    <div data-page="capture-setup" className="px-5 sm:px-8 py-6 max-w-[720px] mx-auto">
+    <div data-page="capture-setup" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[720px] mx-auto">
       <p className={kicker}>Capture</p>
-      <h1 className="text-[26px] font-semibold tracking-tight leading-tight mt-1">Save ads from the Meta Ad Library</h1>
+      <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mt-3">Save ads from the Meta Ad Library</h1>
       <p className={`${body} mt-3`}>
         One click on an ad in the Ad Library opens your swipefile with the ad filled in. You check it, then save. Use the
         bookmarklet, the extension, or both.
@@ -62,7 +62,7 @@ export default function CaptureSetup() {
                 e.preventDefault();
                 setClicked(true);
               }}
-              className="press inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-2xl bg-accent text-black font-semibold cursor-grab active:cursor-grabbing"
+              className="press inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-xl bg-accent text-black text-[15px] font-semibold hover:bg-accent-dim transition-colors cursor-grab active:cursor-grabbing"
             >
               <BookmarkSimple size={18} weight="bold" aria-hidden="true" />
               Save to swipefile
@@ -126,7 +126,7 @@ export default function CaptureSetup() {
           <p className={body}>Open the capture page with a sample ad to see what a capture looks like before you save.</p>
           <Link
             to={sample}
-            className="press mt-4 inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl border border-line font-semibold text-ink hover:bg-card"
+            className="press mt-4 inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[15px] font-semibold text-ink transition-colors"
           >
             Try it with a sample
           </Link>

@@ -7,16 +7,16 @@ import { shortDate } from './dates';
 function Field({ label, children }) {
   return (
     <div>
-      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft mb-1">{label}</p>
-      <div className="text-[15px] leading-relaxed whitespace-pre-wrap">{children}</div>
+      <p className="kicker mb-1">{label}</p>
+      <div className="text-[16px] leading-relaxed whitespace-pre-wrap">{children}</div>
     </div>
   );
 }
 
 const primary =
-  'press inline-flex items-center justify-center min-h-[44px] px-4 rounded-2xl bg-accent text-black text-[14px] font-semibold disabled:opacity-60';
+  'press inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-accent text-black text-[14px] font-semibold hover:bg-accent-dim transition-colors disabled:opacity-60';
 const secondary =
-  'press inline-flex items-center justify-center min-h-[44px] px-4 rounded-2xl border border-line text-[14px] font-semibold text-ink hover:bg-canvas disabled:opacity-60';
+  'press inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-white/[0.06] text-[14px] font-semibold text-ink hover:bg-white/[0.1] transition-colors disabled:opacity-60';
 
 // "Why it works" on the ad page: the AI read of one ad, or a button to get it.
 // When AI is not ready the button stays and pressing it shows the fix.
@@ -55,13 +55,13 @@ export default function WhyItWorks({ ad, onAdChange }) {
     : null;
 
   return (
-    <section aria-labelledby="why-it-works" className="pt-4 border-t border-line">
-      <p id="why-it-works" className="font-mono text-[12px] uppercase tracking-[0.16em] text-ink-soft mb-3">
+    <section aria-labelledby="why-it-works" className="pt-6 mt-1 border-t border-line">
+      <h2 id="why-it-works" className="text-[20px] font-semibold tracking-[-0.02em] leading-tight mb-5">
         Why it works
-      </p>
+      </h2>
 
       {ai ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           {ai.hook && <Field label="Hook">{ai.hook}</Field>}
           {ai.angle && <Field label="Angle">{angleLabel(ai.angle) || ai.angle}</Field>}
           {ai.format && <Field label="Format">{ai.format}</Field>}
@@ -73,14 +73,14 @@ export default function WhyItWorks({ ad, onAdChange }) {
               <ol className="flex flex-col gap-1.5">
                 {ideas.map((idea, i) => (
                   <li key={i} className="flex gap-2">
-                    <span className="font-mono text-[13px] text-ink-soft tabular-nums pt-0.5">{i + 1}.</span>
+                    <span className="font-mono text-[13px] text-ink-soft tabular-nums pt-[3px]">{i + 1}.</span>
                     <span className="min-w-0">{idea}</span>
                   </li>
                 ))}
               </ol>
             </Field>
           )}
-          {byLine && <p className="font-mono text-[12px] text-ink-soft">{byLine}</p>}
+          {byLine && <p className="font-mono text-[12px] text-ink-soft pt-1">{byLine}</p>}
           <div>
             <button type="button" onClick={run} disabled={running} className={secondary}>
               {running ? 'Analyzing...' : 'Analyze again'}
@@ -89,7 +89,7 @@ export default function WhyItWorks({ ad, onAdChange }) {
         </div>
       ) : (
         <div>
-          <p className="text-[15px] leading-relaxed text-ink-soft mb-3">
+          <p className="text-[16px] leading-relaxed text-ink-soft mb-4">
             Get a plain read of this ad: its hook, angle, audience, why it could work, where it is weak, and ideas to remix it.
           </p>
           <button type="button" onClick={run} disabled={running} className={primary}>

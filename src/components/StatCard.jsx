@@ -35,15 +35,15 @@ export default function StatCard({ icon: Icon, label, value, sub, accent = 'base
   const inner = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <span className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${chip}`}>
+        <span className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${chip}`}>
           <Icon size={20} weight="bold" />
         </span>
         {delta != null && <Pill tone={deltaTone}>{delta}</Pill>}
       </div>
       <div className="min-w-0 mt-3">
-        <p className="font-mono text-[30px] font-semibold leading-none tabular-nums tracking-tight">{value}</p>
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft mt-2 truncate">{label}</p>
-        {sub && <p className="text-[12px] text-ink-soft/70 mt-0.5 truncate">{sub}</p>}
+        <p className="font-mono text-[30px] font-medium leading-none tabular-nums">{value}</p>
+        <p className="kicker mt-2.5 truncate">{label}</p>
+        {sub && <p className="text-[13px] text-ink-soft mt-1 truncate">{sub}</p>}
       </div>
       {trend && trend.length > 1 && (
         <span className={`block mt-3 -mb-1 ${stroke}`}>
@@ -53,10 +53,10 @@ export default function StatCard({ icon: Icon, label, value, sub, accent = 'base
     </>
   );
   const cls =
-    'bg-card rounded-xl3 border border-line shadow-card p-5 flex flex-col transition-all duration-300 ease-swift animate-rise';
+    'bg-card rounded-xl3 shadow-card p-5 flex flex-col transition-all duration-300 ease-swift';
   if (to) {
     return (
-      <Link to={to} className={`${cls} press hover:shadow-cardhover hover:-translate-y-0.5`}>
+      <Link to={to} className={`${cls} press hover:bg-card-hi`}>
         {inner}
       </Link>
     );

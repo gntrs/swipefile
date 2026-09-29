@@ -24,28 +24,28 @@ export default function KeyHelp({ open, onClose, keys = LIBRARY_HELP, title = 'K
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center">
-      <div aria-hidden="true" className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div aria-hidden="true" className="absolute inset-0 bg-black/60 animate-fade" onClick={onClose} />
       <section
         data-sheet="keys"
         aria-label={title}
-        className="relative w-full sm:w-[380px] bg-card border border-line rounded-t-3xl sm:rounded-2xl px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:pb-5 animate-materialize"
+        className="relative w-full sm:w-[400px] bg-card sm:border sm:border-line rounded-t-3xl sm:rounded-3xl sm:shadow-cardhover px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:pb-5 animate-sheet-up sm:animate-materialize"
       >
         <div className="flex items-center justify-between mb-2">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft">{title}</h2>
+          <h2 className="kicker">{title}</h2>
           <button
             ref={closeRef}
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="press w-11 h-11 -mr-1.5 rounded-full border border-line flex items-center justify-center text-ink-soft"
+            className="press w-11 h-11 -mr-1.5 rounded-full bg-white/[0.06] flex items-center justify-center text-ink-soft hover:text-ink"
           >
             <X size={16} weight="bold" />
           </button>
         </div>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[15px]">
+        <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2.5 text-[15px]">
           {keys.map(([k, label]) => (
             <React.Fragment key={k}>
-              <dt className="font-mono text-[13px] text-ink tabular-nums whitespace-nowrap">{k}</dt>
+              <dt className="justify-self-start font-mono text-[12px] text-ink tabular-nums whitespace-nowrap px-1.5 py-0.5 rounded bg-white/[0.08]">{k}</dt>
               <dd className="text-ink-soft">{label}</dd>
             </React.Fragment>
           ))}

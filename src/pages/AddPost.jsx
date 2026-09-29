@@ -107,11 +107,11 @@ export default function AddPost() {
   };
 
   return (
-    <div data-page="add-post" className="px-5 sm:px-8 py-6 max-w-[720px] mx-auto">
+    <div data-page="add-post" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[720px] mx-auto">
       <button onClick={() => navigate('/posts')} className="flex items-center gap-1 min-h-[44px] text-ink-soft text-[14px] font-medium mb-4">
         <CaretLeft size={16} weight="bold" /> Posts
       </button>
-      <h1 className="text-[22px] font-semibold tracking-tight mb-5">
+      <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mb-5">
         {fromCompetitors ? 'Log a competitor post' : 'Log an organic post'}
       </h1>
 
@@ -217,7 +217,7 @@ export default function AddPost() {
         <button
           type="submit"
           disabled={busy}
-          className="press justify-self-start px-6 py-3 rounded-2xl bg-accent text-black font-semibold shadow-cta disabled:opacity-60"
+          className="press justify-self-start px-6 py-3 rounded-2xl bg-accent text-black font-semibold disabled:opacity-60"
         >
           {busy ? 'Saving...' : 'Save post'}
         </button>

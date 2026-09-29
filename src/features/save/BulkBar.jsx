@@ -12,12 +12,17 @@ const VERDICT_ACTIONS = [
   { id: 'unsure', label: 'Unsure' },
 ];
 
-const btn =
-  'press inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 rounded-2xl border border-line text-[13px] font-semibold text-ink disabled:opacity-40';
-const row =
-  'press w-full flex items-center gap-3 min-h-[48px] px-4 rounded-2xl border border-line text-[15px] font-medium text-ink text-left disabled:opacity-40';
+// Colour lives apart from shape, so the delete button can swap it whole.
+const btnShape =
+  'press inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 rounded-xl text-[14px] font-semibold transition-colors disabled:opacity-40';
+const rowShape =
+  'press w-full flex items-center gap-3 min-h-[48px] px-4 rounded-xl text-[15px] font-medium text-left disabled:opacity-40';
+const quiet = 'bg-white/[0.06] hover:bg-white/[0.1] text-ink';
+const danger = (armed) => (armed ? 'bg-red-500 text-white' : 'bg-white/[0.06] hover:bg-white/[0.1] text-red-600');
+const btn = `${btnShape} ${quiet}`;
+const row = `${rowShape} ${quiet}`;
 const input =
-  'min-h-[44px] min-w-0 px-3 rounded-2xl border border-line bg-canvas text-[14px] focus:outline-none focus:border-accent';
+  'min-h-[44px] min-w-0 px-3 rounded-xl border border-line bg-canvas text-[14px] focus:outline-none focus:border-accent';
 
 // What a finished action says. failed lists { id, message }.
 function resultText(kind, arg, done, failed) {
@@ -119,7 +124,7 @@ export default function BulkBar({ selected = [], active = false, pageCount = 0, 
   return (
     <>
       <div data-bulk-bar className="fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] sm:bottom-0 sm:left-60 z-40 px-3 sm:px-6 pb-2 sm:pb-[calc(1rem+env(safe-area-inset-bottom))] pointer-events-none">
-        <div className="pointer-events-auto max-w-[1100px] mx-auto bg-card border border-line rounded-2xl shadow-cardhover p-2">
+        <div className="pointer-events-auto max-w-[1100px] mx-auto bg-card border border-line rounded-xl3 shadow-cardhover p-2">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-mono text-[13px] tabular-nums text-ink px-2 min-h-[44px] flex items-center">
               {count.toLocaleString('en-US')} selected
@@ -187,7 +192,7 @@ export default function BulkBar({ selected = [], active = false, pageCount = 0, 
               type="button"
               disabled={disabled}
               onClick={onDelete}
-              className={`${btn} ${armed ? 'bg-red-500 border-red-500 text-white' : 'text-red-400'}`}
+              className={`${btnShape} ${danger(armed)}`}
             >
               <Trash size={15} weight="bold" /> {deleteLabel}
             </button>
@@ -211,20 +216,18 @@ export default function BulkBar({ selected = [], active = false, pageCount = 0, 
       {/* Phone sheet with the same actions as full width rows. */}
       {sheet && (
         <div className="sm:hidden fixed inset-0 z-[60] flex items-end">
-          <div aria-hidden="true" className="absolute inset-0 bg-black/50" onClick={() => setSheet(false)} />
+          <div aria-hidden="true" className="absolute inset-0 bg-black/60 animate-fade" onClick={() => setSheet(false)} />
           <div
             data-sheet="bulk"
-            className="relative w-full max-h-[85%] overflow-y-auto overscroll-contain bg-card border-t border-line rounded-t-3xl px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] animate-sheet-up"
+            className="relative w-full max-h-[85%] overflow-y-auto overscroll-contain bg-card rounded-t-3xl px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] animate-sheet-up"
           >
             <div className="flex items-center justify-between mb-3">
-              <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft">
-                {count.toLocaleString('en-US')} selected
-              </span>
+              <span className="kicker">{count.toLocaleString('en-US')} selected</span>
               <button
                 type="button"
                 onClick={() => setSheet(false)}
                 aria-label="Close"
-                className="press w-11 h-11 -mr-1.5 rounded-full border border-line flex items-center justify-center text-ink-soft"
+                className="press w-11 h-11 -mr-1.5 rounded-full bg-white/[0.06] flex items-center justify-center text-ink-soft hover:text-ink"
               >
                 <X size={16} weight="bold" />
               </button>
@@ -280,7 +283,7 @@ export default function BulkBar({ selected = [], active = false, pageCount = 0, 
                 <Scales size={18} weight="bold" /> Compare {canCompare ? count : '(2 to 4 ads)'}
               </button>
               <BriefFromSelection adIds={ids} label="Brief from these" className="w-full min-h-[48px]" />
-              <button type="button" disabled={disabled} onClick={onDelete} className={`${row} ${armed ? 'bg-red-500 border-red-500 text-white' : 'text-red-400'}`}>
+              <button type="button" disabled={disabled} onClick={onDelete} className={`${rowShape} ${danger(armed)}`}>
                 <Trash size={18} weight="bold" /> {deleteLabel}
               </button>
             </div>

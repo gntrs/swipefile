@@ -33,7 +33,7 @@ export default function LatestBrief() {
   return (
     <Link
       to={`/briefs?open=${encodeURIComponent(brief.id)}`}
-      className="block bg-card rounded-xl3 border border-line shadow-card hover:shadow-cardhover transition-all p-5 mb-4"
+      className="block bg-card rounded-xl3 shadow-card hover:shadow-cardhover transition-all p-5 mb-4"
     >
       <div className="flex items-center gap-2 mb-1.5">
         <span className="w-7 h-7 rounded-xl bg-accent-wash text-accent-dim flex items-center justify-center flex-shrink-0">

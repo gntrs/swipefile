@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
 import { setStarred, isStarred } from '@/lib/ads';
 import { parseCompareIds, MAX_COMPARE } from '@/lib/compare';
+import { RowsSkeleton } from '@/components/Skeleton';
 
 const num = (a, k) => {
   const v = Number(a?.metrics?.[k]);
@@ -114,13 +115,13 @@ export default function Compare() {
   };
 
   return (
-    <div data-page="compare" className="px-5 sm:px-8 py-6 max-w-[1200px] mx-auto">
+    <div data-page="compare" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1200px] mx-auto">
       <div className="flex items-center gap-3 mb-5">
-        <Link to="/ads" aria-label="Back to the library" className="press w-11 h-11 flex-shrink-0 rounded-xl border border-line flex items-center justify-center text-ink-soft hover:bg-card">
+        <Link to="/ads" aria-label="Back to the library" className="press w-11 h-11 flex-shrink-0 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] flex items-center justify-center text-ink-soft">
           <ArrowLeft size={18} weight="bold" />
         </Link>
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Compare</h1>
+          <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Compare</h1>
           <p className="text-ink-soft text-[14px]">{ads.length} ads side by side · best in each row highlighted</p>
         </div>
       </div>
@@ -137,7 +138,7 @@ export default function Compare() {
       )}
 
       {loading ? (
-        <p className="text-ink-soft">Loading...</p>
+        <RowsSkeleton rows={3} />
       ) : error ? (
         <div role="alert" className="text-center py-16">
           <p className="text-[15px] text-ink mb-1">Could not load these ads.</p>
@@ -145,7 +146,7 @@ export default function Compare() {
           <button
             type="button"
             onClick={() => setReload((n) => n + 1)}
-            className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl border border-line font-semibold"
+            className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] font-semibold"
           >
             Retry
           </button>
@@ -163,14 +164,14 @@ export default function Compare() {
                 <th className="sticky left-0 bg-canvas z-10 w-28" />
                 {ads.map((a) => (
                   <th key={a.id} className="p-2 align-top min-w-[160px]">
-                    <div className="bg-card rounded-xl3 border border-line shadow-card p-2">
+                    <div className="bg-card rounded-xl3 shadow-card p-2">
                       <div className="relative">
                         <AdThumb ad={a} />
                         <button
                           onClick={() => toggleStar(a)}
                           aria-label="Star"
-                          className={`absolute top-1 right-1 w-11 h-11 rounded-full flex items-center justify-center backdrop-blur ${
-                            isStarred(a) ? 'bg-amber-400 text-white' : 'bg-card/85 text-ink-soft'
+                          className={`absolute top-1 right-1 w-11 h-11 rounded-full flex items-center justify-center ${
+                            isStarred(a) ? 'bg-amber-400 text-black' : 'bg-canvas/90 text-ink-soft hover:text-ink'
                           }`}
                         >
                           <Star size={14} weight={isStarred(a) ? 'fill' : 'bold'} />
@@ -198,7 +199,7 @@ export default function Compare() {
                         <span
                           className={`font-mono text-[14px] tabular-nums ${
                             i === best
-                              ? 'font-bold text-emerald-700 bg-mint/25 px-2 py-0.5 rounded-lg'
+                              ? 'font-bold text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded-lg'
                               : 'text-ink'
                           }`}
                         >

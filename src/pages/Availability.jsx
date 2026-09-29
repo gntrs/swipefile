@@ -135,7 +135,7 @@ export default function Availability() {
 
   if (missing) {
     return (
-      <div data-page="availability" className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
+      <div data-page="availability" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1100px] mx-auto">
         <MigrationCard title="Team availability" migration="db-setup.sql" />
       </div>
     );
@@ -185,12 +185,12 @@ export default function Availability() {
   };
 
   return (
-    <div data-page="availability" className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
+    <div data-page="availability" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1100px] mx-auto">
       <div className="flex items-center justify-between gap-3 mb-1">
-        <h1 className="text-[22px] font-semibold tracking-tight">Availability</h1>
+        <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Availability</h1>
         <button
           onClick={() => setEditor({ day: ymd(days[selDay]), start: 540 })}
-          className="press flex items-center gap-1.5 min-h-[44px] px-3.5 py-2 rounded-2xl bg-accent text-black text-[14px] font-semibold shadow-cta"
+          className="press flex items-center gap-1.5 min-h-[44px] px-3.5 py-2 rounded-2xl bg-accent text-black text-[14px] font-semibold"
         >
           <Plus size={16} weight="bold" /> Add
         </button>
@@ -229,7 +229,7 @@ export default function Availability() {
               key={ymd(d)}
               onClick={() => setSelDay(i)}
               className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold tabular-nums transition-colors ${
-                i === selDay ? 'bg-accent text-black shadow-cta' : isToday ? 'bg-accent-wash text-accent-dim' : 'bg-card border border-line text-ink-soft'
+                i === selDay ? 'bg-accent text-black' : isToday ? 'bg-accent-wash text-accent-dim' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
               }`}
             >
               {d.toLocaleDateString(undefined, { weekday: 'short' })} {d.getDate()}
@@ -242,7 +242,7 @@ export default function Availability() {
       <div ref={scrollRef} className="overflow-auto overscroll-contain max-h-[64vh] border border-line rounded-xl3 bg-card shadow-card">
         <div className="min-w-0 sm:min-w-[680px]">
           {/* Day headers (desktop only - phone uses the picker above) */}
-          <div className="hidden sm:flex sticky top-0 z-20 bg-card/95 backdrop-blur border-b border-line">
+          <div className="hidden sm:flex sticky top-0 z-20 bg-card border-b border-line">
             <div className="w-12 flex-shrink-0 sticky left-0 z-10 bg-card/95" />
             {days.map((d) => {
               const isToday = ymd(d) === todayStr;

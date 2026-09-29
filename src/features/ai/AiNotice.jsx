@@ -52,7 +52,7 @@ export function CopyCommand({ text }) {
       type="button"
       onClick={copy}
       aria-label={copied ? 'Copied' : 'Copy the command'}
-      className="press flex-shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 rounded-2xl border border-line text-[13px] font-medium text-ink-soft hover:text-ink"
+      className="press flex-shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-medium text-ink-soft hover:text-ink transition-colors"
     >
       {copied ? <Check size={16} weight="bold" /> : <Copy size={16} weight="bold" />}
       <span>{failed ? 'Select it' : copied ? 'Copied' : 'Copy'}</span>
@@ -67,7 +67,7 @@ export default function AiNotice({ problem, onRecheck, checking = false, onDismi
   if (!problem) return null;
   const command = AI_FIX_COMMAND[problem.code];
   return (
-    <div role="alert" className="mt-3 bg-canvas border border-line rounded-2xl p-3">
+    <div role="alert" className="mt-3 bg-white/[0.05] rounded-xl p-3 pl-4">
       <div className="flex items-start gap-2">
         <p className="flex-1 min-w-0 text-[15px] leading-relaxed text-ink pt-2.5">{problem.message}</p>
         {onDismiss && (
@@ -75,7 +75,7 @@ export default function AiNotice({ problem, onRecheck, checking = false, onDismi
             type="button"
             onClick={onDismiss}
             aria-label="Dismiss"
-            className="press flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center text-ink-soft hover:text-ink"
+            className="press flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-ink-soft hover:text-ink"
           >
             <X size={16} weight="bold" />
           </button>
@@ -83,7 +83,7 @@ export default function AiNotice({ problem, onRecheck, checking = false, onDismi
       </div>
       {command && (
         <div className="mt-2 flex items-start gap-2">
-          <code className="flex-1 min-w-0 block bg-card border border-line rounded-2xl px-3 py-2.5 font-mono text-[13px] leading-relaxed text-ink whitespace-pre-wrap break-all">
+          <code className="flex-1 min-w-0 block bg-canvas rounded-lg px-3 py-2.5 font-mono text-[13px] leading-relaxed text-ink whitespace-pre-wrap break-all">
             {command}
           </code>
           <CopyCommand text={command} />
@@ -95,7 +95,7 @@ export default function AiNotice({ problem, onRecheck, checking = false, onDismi
             <button
               type="button"
               onClick={onRetry}
-              className="press inline-flex items-center justify-center min-h-[44px] px-4 rounded-2xl border border-line text-[14px] font-semibold text-ink hover:bg-card"
+              className="press inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-white/[0.06] text-[14px] font-semibold text-ink hover:bg-white/[0.1] transition-colors"
             >
               {retryLabel}
             </button>
@@ -105,7 +105,7 @@ export default function AiNotice({ problem, onRecheck, checking = false, onDismi
               type="button"
               onClick={onRecheck}
               disabled={checking}
-              className="press inline-flex items-center justify-center min-h-[44px] px-4 rounded-2xl border border-line text-[14px] font-semibold text-ink-soft hover:text-ink disabled:opacity-60"
+              className="press inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-white/[0.06] text-[14px] font-semibold text-ink-soft hover:text-ink transition-colors disabled:opacity-60"
             >
               {checking ? 'Checking...' : 'Check again'}
             </button>

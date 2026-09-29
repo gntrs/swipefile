@@ -66,10 +66,10 @@ export default function LinkPaste({ value, onChange, client = db }) {
 
   return (
     <div>
-      <label htmlFor="ad-link" className="text-[13px] font-semibold text-ink-soft mb-1 block">
+      <label htmlFor="ad-link" className="kicker mb-1.5 block">
         Paste an Ad Library link or ad id
       </label>
-      <div className="flex items-center gap-2 min-h-[44px] bg-canvas border border-line rounded-2xl px-3 focus-within:border-accent">
+      <div className="flex items-center gap-2 min-h-[44px] bg-card border border-line rounded-xl px-3 focus-within:border-accent transition-colors">
         <LinkSimple size={18} weight="bold" className="text-ink-soft flex-shrink-0" />
         <input
           id="ad-link"
@@ -86,7 +86,7 @@ export default function LinkPaste({ value, onChange, client = db }) {
           inputMode="url"
           autoComplete="off"
           placeholder="https://www.facebook.com/ads/library/?id=..."
-          className="w-full min-w-0 min-h-[44px] py-2.5 bg-transparent focus:outline-none text-[16px] sm:text-[14px]"
+          className="w-full min-w-0 min-h-[44px] py-2.5 bg-transparent focus:outline-none focus-visible:shadow-none text-[16px] sm:text-[15px] placeholder:text-ink-soft/70"
         />
       </div>
       <LinkMessage link={value} />
@@ -97,7 +97,7 @@ export default function LinkPaste({ value, onChange, client = db }) {
 function LinkMessage({ link }) {
   if (link.kind === 'search') {
     return (
-      <p role="status" className="mt-2 text-[15px] text-amber-400 leading-relaxed">
+      <p role="status" className="mt-2 text-[15px] text-amber-600 leading-relaxed">
         That link is a search, not one ad. Open the ad (See ad details), then copy the link from the address bar.
       </p>
     );
@@ -120,12 +120,12 @@ function LinkMessage({ link }) {
         <p className="text-ink">
           Already in your swipe file: <strong className="font-semibold">{link.duplicate.brand || 'Untitled'}</strong>
           {link.duplicate.hook ? `, ${link.duplicate.hook}` : ''}.{' '}
-          <Link to={`/ad/${link.duplicate.id}`} className="underline underline-offset-2 text-accent-dim">
+          <Link to={`/ad/${link.duplicate.id}`} className="underline underline-offset-4 decoration-ink-soft hover:decoration-ink text-ink">
             Open
           </Link>
         </p>
       )}
-      {link.error && <p className="text-amber-400">{link.error}</p>}
+      {link.error && <p className="text-amber-600">{link.error}</p>}
       <p className="text-ink-soft">
         Saved with its link. Meta does not let apps download the ad itself, and its API only covers ads shown in the EU and
         UK. Add the image or video below.
@@ -133,7 +133,7 @@ function LinkMessage({ link }) {
       </p>
       {FEATURE_READY.capture && (
         <p>
-          <Link to="/capture/setup" className="underline underline-offset-2 text-accent-dim">
+          <Link to="/capture/setup" className="underline underline-offset-4 decoration-ink-soft hover:decoration-ink text-ink">
             Or capture it straight from the Ad Library
           </Link>
         </p>

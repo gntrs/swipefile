@@ -128,7 +128,7 @@ export default function RevenueCard() {
 
   return (
     <div
-      className={`relative overflow-hidden bg-card rounded-xl3 border shadow-card p-5 mb-4 animate-rise transition-colors duration-700 ${
+      className={`relative overflow-hidden bg-card rounded-xl3 border shadow-card p-5 mb-4 transition-colors duration-700 ${
         flash ? 'border-emerald-400 ring-2 ring-emerald-300/40' : 'border-line'
       }`}
     >
@@ -165,9 +165,9 @@ export default function RevenueCard() {
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="col-span-2 text-left bg-card rounded-2xl border border-line px-4 py-3.5 hover:border-emerald-300 hover:shadow-cardhover transition-all active:scale-[0.99]"
+            className="col-span-2 text-left bg-card rounded-xl px-4 py-3.5 hover:border-emerald-300 hover:shadow-cardhover transition-all active:scale-[0.99]"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft mb-1.5">Total generated</p>
+            <p className="kicker mb-1.5">Total generated</p>
             <p className="font-mono text-[38px] sm:text-[42px] font-bold tabular-nums tracking-tight leading-none">
               {sym(stats.currency)}
               {shownTotal.toFixed(2)}
@@ -176,7 +176,7 @@ export default function RevenueCard() {
               {stats.count} sale{stats.count === 1 ? '' : 's'} all time · tap to expand
             </p>
           </button>
-          <div className="bg-card rounded-2xl border border-line px-3.5 py-3">
+          <div className="bg-card rounded-xl px-3.5 py-3">
             <div className="flex items-center gap-1.5 mb-1">
               <TrendUp size={14} weight="bold" className="text-emerald-600" />
               <p className="text-[12px] font-medium text-ink-soft">MRR</p>
@@ -185,7 +185,7 @@ export default function RevenueCard() {
               {stats.mrr == null ? '-' : `${sym(stats.currency)}${shownMrr.toFixed(2)}`}
             </p>
           </div>
-          <div className="bg-card rounded-2xl border border-line px-3.5 py-3">
+          <div className="bg-card rounded-xl px-3.5 py-3">
             <div className="flex items-center gap-1.5 mb-1">
               <Sparkle size={14} weight="bold" className="text-accent-dim" />
               <p className="text-[12px] font-medium text-ink-soft">Today</p>

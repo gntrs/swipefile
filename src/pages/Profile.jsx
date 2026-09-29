@@ -31,7 +31,7 @@ function TeamMember({ member, isMe }) {
         <p className="text-[12px] text-ink-soft truncate">{member.email}</p>
       </div>
       {member.role === 'admin' && (
-        <span className="text-[11px] font-semibold uppercase tracking-wide bg-mint/40 text-ink-soft px-2 py-0.5 rounded-full flex-shrink-0">
+        <span className="font-mono text-[11px] font-medium uppercase tracking-[0.08em] bg-white/[0.06] text-ink-soft px-2 py-0.5 rounded-full flex-shrink-0">
           admin
         </span>
       )}
@@ -101,10 +101,10 @@ export default function Profile() {
   };
 
   return (
-    <div data-page="profile" className="px-5 sm:px-8 py-6 max-w-[480px] mx-auto">
-      <h1 className="text-[22px] font-semibold tracking-tight mb-5">Your profile</h1>
+    <div data-page="profile" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[480px] mx-auto">
+      <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mb-5">Your profile</h1>
 
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-6">
+      <div className="bg-card rounded-xl3 shadow-card p-6">
         {/* Avatar */}
         <div className="flex items-center gap-4 mb-6">
           <button
@@ -127,7 +127,7 @@ export default function Profile() {
             <p className="font-semibold text-[15px] flex items-center gap-2">
               {me?.nickname || user?.email?.split('@')[0]}
               {me?.role && (
-                <span className="text-[11px] font-semibold uppercase tracking-wide bg-mint/40 text-ink-soft px-2 py-0.5 rounded-full">
+                <span className="font-mono text-[11px] font-medium uppercase tracking-[0.08em] bg-white/[0.06] text-ink-soft px-2 py-0.5 rounded-full">
                   {me.role}
                 </span>
               )}
@@ -160,7 +160,7 @@ export default function Profile() {
           <button
             type="submit"
             disabled={busy}
-            className="press mt-4 px-6 py-2.5 rounded-2xl bg-accent text-black font-semibold shadow-cta disabled:opacity-60"
+            className="press mt-4 px-6 py-2.5 rounded-2xl bg-accent text-black font-semibold disabled:opacity-60"
           >
             {busy ? 'Saving...' : 'Save'}
           </button>
@@ -172,7 +172,7 @@ export default function Profile() {
           phones too - Test taps count as user gestures, so playback works.
           Clips are user-supplied: see public/memes/README.md. Ops module. */}
       {isOn('ops') && (
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-6 mt-4">
+      <div className="bg-card rounded-xl3 shadow-card p-6 mt-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 className="font-semibold text-[15px] flex items-center gap-2">
@@ -221,7 +221,7 @@ export default function Profile() {
 
       {/* The whole team, everyone's face and name in one place. Team module. */}
       {isOn('team') && (
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-6 mt-4">
+      <div className="bg-card rounded-xl3 shadow-card p-6 mt-4">
         <h2 className="font-semibold text-[15px] mb-1">Team</h2>
         <p className="text-[13px] text-ink-soft mb-2">
           {members.length} {members.length === 1 ? 'member' : 'members'}

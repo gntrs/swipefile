@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { db, IS_DEMO } from '@/lib/db';
 import { VERDICTS } from '@/lib/ads';
-import { APP_NAME } from '@/lib/brand';
+import Wordmark from '@/components/Wordmark';
 import { saveAd } from '@/lib/saveAd';
 import { useAuth } from '@/contexts/AuthContext';
 import DemoBanner from '@/components/DemoBanner';
@@ -11,14 +11,14 @@ import {
   formFromCapture, adFromCapture, runningDatesPatch, readInvokeError, fetchMediaOutcome, daysRunning, MEDIA_TEXT,
 } from './capture';
 
-const kicker = 'font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft';
+const kicker = 'kicker';
 const field =
-  'w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[16px] text-ink';
-const label = 'font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft mb-1.5 block';
+  'w-full min-h-[44px] py-2.5 px-3.5 rounded-xl border border-line focus:outline-none focus:border-accent bg-card text-[16px] text-ink';
+const label = 'kicker mb-1.5 block';
 const primary =
-  'press inline-flex items-center justify-center min-h-[44px] px-6 rounded-2xl bg-accent text-black font-semibold disabled:opacity-60';
+  'press inline-flex items-center justify-center min-h-[44px] px-6 rounded-xl bg-accent text-black text-[15px] font-semibold hover:bg-accent-dim transition-colors disabled:opacity-60';
 const secondary =
-  'press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl border border-line font-semibold text-ink hover:bg-card disabled:opacity-60';
+  'press inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[15px] font-semibold text-ink transition-colors disabled:opacity-60';
 
 const PLATFORM_NAMES = {
   facebook: 'Facebook',
@@ -66,7 +66,7 @@ function MediaPreview({ capture }) {
   if (!src) return null;
   if (failed) {
     return (
-      <p className="bg-card border border-line rounded-xl3 px-4 py-5 text-[15px] leading-relaxed text-ink-soft">
+      <p className="bg-card rounded-xl3 px-4 py-5 text-[15px] leading-relaxed text-ink-soft">
         Preview not available. The file is copied when you save, if fetch-media is deployed.
       </p>
     );
@@ -98,9 +98,8 @@ function Shell({ children }) {
     <div data-page="capture" className="h-full overflow-y-auto overscroll-contain bg-canvas text-ink">
       <DemoBanner />
       <div className="max-w-[720px] mx-auto px-5 sm:px-8 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
-        <Link to="/ads" className="press inline-flex items-center min-h-[44px] font-semibold text-[18px] tracking-tight mb-4">
-          {APP_NAME}
-          <span className="text-accent">.</span>
+        <Link to="/ads" className="press inline-flex items-center min-h-[44px] -ml-1 px-1 rounded-xl mb-8">
+          <Wordmark />
         </Link>
         {children}
       </div>
@@ -240,7 +239,7 @@ export default function CapturePage() {
     return (
       <Shell>
         <p className={kicker}>Capture</p>
-        <h1 className="text-[26px] font-semibold tracking-tight leading-tight mt-1">Nothing to capture</h1>
+        <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mt-3">Nothing to capture</h1>
         <p className="text-[16px] leading-relaxed text-ink-soft mt-3">
           This page opens from the bookmarklet or the extension, with an ad from the Meta Ad Library filled in.
         </p>
@@ -254,7 +253,7 @@ export default function CapturePage() {
   return (
     <Shell>
       <p className={kicker}>Capture{capture.src ? ` from the ${capture.src}` : ''}</p>
-      <h1 className="text-[26px] font-semibold tracking-tight leading-tight mt-1">
+      <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mt-3">
         {saved ? 'Saved to your swipe file' : existing ? 'Already in your swipe file' : 'Save this ad'}
       </h1>
       <Facts capture={capture} />
@@ -289,7 +288,7 @@ export default function CapturePage() {
         </div>
       ) : existing ? (
         <div className="mt-6">
-          <div className="bg-card border border-line rounded-xl3 px-5 py-4">
+          <div className="bg-card rounded-xl3 shadow-card px-5 py-4">
             <p className="text-[16px] font-semibold leading-snug">{existing.brand || 'Unnamed brand'}</p>
             {existing.hook && <p className="text-[16px] leading-relaxed text-ink-soft mt-1">{existing.hook}</p>}
             <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft mt-2">Verdict: {existing.verdict}</p>

@@ -19,14 +19,14 @@ const compact = (v) =>
 const ACCENT = {
   base: 'text-accent-dim',
   emerald: 'text-emerald-600',
-  blue: 'text-blue-600',
-  violet: 'text-violet-600',
+  blue: 'text-ink-soft',
+  violet: 'text-ink-soft',
   amber: 'text-amber-600',
 };
 
 function Stat({ icon: Icon, label, value, sub, accent = 'base' }) {
   return (
-    <div className="bg-card rounded-2xl border border-line px-3.5 py-3">
+    <div className="bg-card rounded-xl px-3.5 py-3">
       <div className="flex items-center gap-1.5 mb-1">
         <Icon size={15} weight="bold" className={ACCENT[accent] || ACCENT.base} />
         <span className="text-[12px] font-medium text-ink-soft">{label}</span>
@@ -101,7 +101,7 @@ export default function AdAnalytics({ ads }) {
   return (
     <div className="grid lg:grid-cols-2 gap-4 mb-4">
       {/* Our ads */}
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-5">
+      <div className="bg-card rounded-xl3 shadow-card p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-[15px]">Our ad performance</h2>
           <Link to={`/ads?q=${encodeURIComponent(OWN_BRAND)}`} className="inline-flex items-center justify-end min-h-[44px] min-w-[44px] text-[12px] text-accent-dim font-semibold">
@@ -160,7 +160,7 @@ export default function AdAnalytics({ ads }) {
       </div>
 
       {/* Competitor pressure */}
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-5">
+      <div className="bg-card rounded-xl3 shadow-card p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-[15px]">Competitor pressure</h2>
           <Link to="/competitors" className="inline-flex items-center justify-end min-h-[44px] min-w-[44px] text-[12px] text-accent-dim font-semibold">
