@@ -13,6 +13,8 @@ import {
   compareMarkets,
   countryName,
 } from '@/lib/ads';
+import { rankHistory, rankChange, rankChangeText, latestTrends, timeframeText } from '@/lib/intel';
+import BarList from '@/components/charts/BarList';
 
 // Markets read in this order: your focus countries (VITE_FOCUS_COUNTRIES)
 // first, then the rest alphabetically. Labels come from countryName.
@@ -38,27 +40,6 @@ const fmtDay = (d) => {
   const t = new Date(d);
   return Number.isNaN(t.getTime()) ? String(d) : t.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 };
-
-// Lower rank is better, so a rising line means we climbed. Guards on <2 points.
-function RankSpark({ points, width = 56, height = 18 }) {
-  if (!points || points.length < 2) return null;
-  // position 1 = best. Missing (null) = off the bottom (worst seen + 1).
-  const worst = Math.max(...points.map((p) => p ?? 0), 1);
-  const vals = points.map((p) => (p == null ? worst + 1 : p));
-  const max = Math.max(...vals);
-  const min = Math.min(...vals);
-  const span = max - min || 1;
-  const step = width / (vals.length - 1);
-  // Invert: best rank (min value) sits at the top of the box.
-  const d = vals
-    .map((v, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(((v - min) / span) * (height - 2) + 1).toFixed(1)}`)
-    .join(' ');
-  return (
-    <svg width={width} height={height} className="overflow-visible flex-shrink-0" aria-hidden="true">
-      <path d={d} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 // The empty state for a block that is not set up yet: one quiet line, and the
 // setup steps one level deeper behind "Set up", for the one person who needs
@@ -141,7 +122,8 @@ export default function Intel() {
     const topEu = ads
       .filter((a) => euReach(a))
       .sort((x, y) => euReach(y) - euReach(x))[0] || null;
-    return { counts, ready, countries, totalEuReach, topEu };
+    const euAds = ads.filter((a) => euReach(a)).length;
+    return { counts, ready, countries, totalEuReach, topEu, euAds };
   }, [ads]);
 
   /* ---- SEO (seo_ranks, migration 19) ---- */
@@ -162,12 +144,10 @@ export default function Intel() {
             .filter((r) => !r.is_ours && r.position != null)
             .sort((a, b) => a.position - b.position)
             .slice(0, 3);
-          // Our position over the tracked history, oldest -> newest.
-          const history = mine
-            .filter((r) => r.term === term && r.is_ours)
-            .sort((a, b) => (a.day < b.day ? -1 : 1))
-            .map((r) => r.position);
-          return { term, ours, scanned, rivals, history };
+          // Our first and latest check, as words: a rank is never drawn for
+          // a day we were not found.
+          const change = rankChange(rankHistory(mine, { market, term }));
+          return { term, ours, scanned, rivals, change };
         });
         // Terms we actually rank for float to the top, best first: the card
         // opens with the news rather than with a column of "not in top 20".
@@ -184,26 +164,16 @@ export default function Intel() {
   );
 
   /* ---- Trends (trends_interest, migration 19) ---- */
-  const trendsByGeo = useMemo(() => {
-    const rows = trends.rows;
-    if (!rows.length) return [];
-    const geos = [...new Set(rows.map((r) => r.geo))];
-    return geos
-      .map((g) => {
-        const mine = rows.filter((r) => r.geo === g);
-        // Latest point per term.
-        const byTerm = new Map();
-        for (const r of mine) {
-          const cur = byTerm.get(r.term);
-          if (!cur || r.point_date > cur.point_date) byTerm.set(r.term, r);
-        }
-        const terms = [...byTerm.values()]
-          .map((r) => ({ term: r.term, value: Number(r.value) || 0, hasData: r.has_data !== false }))
-          .sort((a, b) => b.value - a.value);
-        return { geo: g, terms };
-      })
-      .sort((a, b) => compareMarkets(a.geo, b.geo));
-  }, [trends.rows]);
+  // The latest complete week per request group: values only compare inside
+  // the group Google scaled them in.
+  const trendsByGeo = useMemo(
+    () => latestTrends(trends.rows).sort((a, b) => compareMarkets(a.geo, b.geo)),
+    [trends.rows],
+  );
+  const trendsLatest = useMemo(
+    () => trendsByGeo.flatMap((g) => g.groups.map((x) => x.date)).reduce((mx, d) => (!mx || d > mx ? d : mx), null),
+    [trendsByGeo],
+  );
 
   const seoLive = !seo.missing && seoByMarket.length > 0;
   const trendsLive = !trends.missing && trendsByGeo.length > 0;
@@ -252,23 +222,21 @@ export default function Intel() {
                 }
               >
                 <ul className="divide-y divide-line">
-                  {terms.map(({ term, ours, scanned, rivals, history }) => {
+                  {terms.map(({ term, ours, scanned, rivals, change }) => {
                     const placed = ours && ours.position != null;
                     return (
                       <li key={term} className="py-3 first:pt-0 last:pb-0">
                         <div className="flex items-baseline justify-between gap-3">
                           <p className={`text-ui min-w-0 ${placed ? 'text-ink font-medium' : 'text-ink-soft'}`}>{term}</p>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-ink-soft">
-                              <RankSpark points={history} />
+                          {placed ? (
+                            <span className="num text-ui text-ink flex-shrink-0">#{ours.position}</span>
+                          ) : (
+                            <span className="text-small text-ink-soft flex-shrink-0 whitespace-nowrap">
+                              not in top <span className="num">{scanned || 20}</span>
                             </span>
-                            {placed ? (
-                              <span className="num text-ui text-emerald-300">#{ours.position}</span>
-                            ) : (
-                              <span className="num text-small text-ink-soft/70">&gt;{scanned || 20}</span>
-                            )}
-                          </div>
+                          )}
                         </div>
+                        {change && <p className="text-small text-ink-soft mt-0.5">{rankChangeText(change, fmtDay)}</p>}
                         {rivals.length > 0 && (
                           <Meta
                             as="p"
@@ -305,13 +273,13 @@ export default function Intel() {
           <div className="grid gap-4 lg:gap-6 md:grid-cols-3">
             <Panel title="Transparency flags">
               <ul className="divide-y divide-line">
-                <FlagRow label="Ran in EU" value={geo.counts.eu} tone="emerald" />
-                <FlagRow label="Confirmed not EU" value={geo.counts.none} tone="line" />
-                <FlagRow label="Unchecked" value={geo.counts.unknown} tone="soft" />
+                <FlagRow label="Ran in the EU" value={geo.counts.eu} />
+                <FlagRow label="Checked, not in the EU" value={geo.counts.none} />
+                <FlagRow label="Not checked yet" value={geo.counts.unknown} />
               </ul>
             </Panel>
 
-            <Panel title="Ads by country">
+            <Panel title="Saved ads that ran per country">
               {geo.countries.length === 0 ? (
                 <EmptyState text="No per-country data resolved yet." />
               ) : (
@@ -330,15 +298,22 @@ export default function Intel() {
                       </Link>
                     </li>
                   ))}
+                  {geo.countries.length > 6 && (
+                    <li className="pt-3 text-small text-ink-soft">
+                      {geo.countries.length - 6} more {geo.countries.length - 6 === 1 ? 'country' : 'countries'} in the library filter
+                    </li>
+                  )}
                 </ul>
               )}
             </Panel>
 
-            <Panel title="EU reach seen">
+            <Panel title="EU reach, summed">
               <p className="num text-num-lg text-ink">
                 {geo.totalEuReach >= 1000 ? `${(geo.totalEuReach / 1000).toFixed(1)}k` : geo.totalEuReach}
               </p>
-              <p className="text-small text-ink-soft mt-2">people reached across flagged ads</p>
+              <p className="text-small text-ink-soft mt-2">
+                reach added up over {geo.euAds} {geo.euAds === 1 ? 'ad' : 'ads'} with EU data; one person seen by two ads counts twice
+              </p>
               {geo.topEu && (
                 <p className="text-small text-ink-soft mt-4 pt-4 border-t border-line">
                   Biggest: <span className="font-medium text-ink">{geo.topEu.brand || 'an ad'}</span> at{' '}
@@ -351,7 +326,7 @@ export default function Intel() {
       </Section>
 
       {/* ============ TRENDS ============ */}
-      <Section title="Demand trends" meta={trendsLive ? 'Live' : 'Not set up'}>
+      <Section title="Demand trends" meta={trendsLive ? `Week of ${fmtDay(trendsLatest)}` : 'Not set up'}>
         {!trendsLive ? (
           <NotSetUp
             summary="No Google Trends data yet."
@@ -360,29 +335,32 @@ export default function Intel() {
                 ? [<>Apply <Cmd>db-setup.sql</Cmd> in your database provider's SQL editor.</>]
                 : []),
               <>Run <Cmd>node scripts/trends-pull.mjs</Cmd> for search interest on parent-intent terms. Google rate-limits this hard, so a run that returns nothing usually just needs retrying later.</>,
-              <>Values only compare within one geo, never across geos.</>,
+              <>Values are 0 to 100 against the busiest week of the terms pulled together, so they only compare inside one pull.</>,
             ]}
           />
         ) : (
           <div className="grid gap-4 lg:gap-6 md:grid-cols-3">
-            {trendsByGeo.map(({ geo: g, terms }) => (
-              <Panel key={g} title={countryName(g)}>
-                <ul className="space-y-3">
-                  {terms.slice(0, 6).map(({ term, value, hasData }) => (
-                    <li key={term}>
-                      <div className="flex items-center justify-between gap-3 mb-1.5">
-                        <span className="text-small text-ink-soft truncate">{term}</span>
-                        <span className="num text-small text-ink">{hasData ? value : '-'}</span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-canvas overflow-hidden">
-                        <div className="h-full bg-accent rounded-full" style={{ width: `${Math.max(value, hasData ? 2 : 0)}%` }} />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-small text-ink-soft mt-4">Relative interest, 0 to 100 within {countryName(g)}</p>
-              </Panel>
-            ))}
+            {trendsByGeo.flatMap(({ geo: g, groups }) =>
+              groups.map((grp) => (
+                <Panel key={`${g}-${grp.key}`} title={countryName(g)}>
+                  <BarList
+                    caption={`Search interest, week of ${fmtDay(grp.date)}${grp.partial ? ' (week not finished)' : ''}. 100 is the busiest week for these terms over the ${timeframeText(grp.timeframe)}.`}
+                    max={100}
+                    rows={grp.terms.slice(0, 6).map(({ term, value }) => ({
+                      key: term,
+                      label: term,
+                      value: value ?? 0,
+                      display: value == null ? 'too low to measure' : String(value),
+                      muted: value == null,
+                      tip: value == null ? null : 'of 100, relative interest',
+                    }))}
+                  />
+                  {groups.length > 1 && (
+                    <p className="text-small text-ink-soft mt-3">Pulled in its own group, so not comparable with the other {countryName(g)} card.</p>
+                  )}
+                </Panel>
+              )),
+            )}
           </div>
         )}
       </Section>
@@ -394,14 +372,10 @@ export default function Intel() {
   );
 }
 
-function FlagRow({ label, value, tone }) {
-  const dot = tone === 'emerald' ? 'bg-emerald-400' : tone === 'line' ? 'bg-red-300' : 'bg-white/20';
+function FlagRow({ label, value }) {
   return (
     <li className="flex items-center justify-between gap-3 min-h-[44px]">
-      <span className="flex items-center gap-2.5 text-ui text-ink">
-        <span aria-hidden="true" className={`w-2.5 h-2.5 rounded-full ${dot}`} />
-        {label}
-      </span>
+      <span className="text-ui text-ink">{label}</span>
       <span className={`num text-num ${value ? 'text-ink' : 'text-ink-soft'}`}>{value}</span>
     </li>
   );

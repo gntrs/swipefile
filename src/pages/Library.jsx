@@ -403,7 +403,7 @@ export default function Library() {
           pressed={filters.starred}
           onClick={() => change('starred', !filters.starred)}
           aria-label="Starred"
-          icon={<Star size={16} weight={filters.starred ? 'fill' : 'bold'} aria-hidden="true" className="flex-shrink-0 text-amber-400" />}
+          icon={<Star size={16} weight={filters.starred ? 'fill' : 'bold'} aria-hidden="true" className="flex-shrink-0" />}
         >
           {/* Icon only on a phone, where the row has no room for words. */}
           <span className="hidden sm:inline">Starred</span>

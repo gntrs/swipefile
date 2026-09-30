@@ -31,7 +31,6 @@ import {
 } from '@/components/ui';
 
 const VERDICT_TONE = { winner: 'good', loser: 'bad', testing: 'warn', unsure: 'neutral' };
-const RATING_TONE = { AMAZING: 'good', GOOD: 'neutral', BAD: 'bad' };
 
 const cap = (s) => (s ? `${String(s).charAt(0).toUpperCase()}${String(s).slice(1)}` : s);
 const pos = (v) => Number.isFinite(+v) && +v > 0;
@@ -241,8 +240,8 @@ export default function AdDetail() {
   const live =
     typeof m.live === 'boolean' ? (
       <span className="inline-flex items-center gap-1.5">
-        <span aria-hidden="true" className={`w-1.5 h-1.5 rounded-full ${m.live ? 'bg-emerald-400' : 'bg-ink-soft/50'}`} />
-        <span className={m.live ? 'text-emerald-300' : ''}>{m.live ? 'Running' : 'Stopped'}</span>
+        <span aria-hidden="true" className={`w-1.5 h-1.5 rounded-full ${m.live ? 'bg-status-live' : 'ring-1 ring-inset ring-ink-soft'}`} />
+        <span className={m.live ? 'text-ink' : ''}>{m.live ? 'Running' : 'Stopped'}</span>
       </span>
     ) : null;
 
@@ -269,7 +268,7 @@ export default function AdDetail() {
               aria-pressed={starred}
               aria-label={starred ? 'Starred' : 'Star'}
               className="max-sm:px-0 max-sm:w-11"
-              icon={<Star size={16} weight={starred ? 'fill' : 'bold'} aria-hidden="true" className="text-amber-400 flex-shrink-0" />}
+              icon={<Star size={16} weight={starred ? 'fill' : 'bold'} aria-hidden="true" className={`flex-shrink-0 ${starred ? 'text-ink' : ''}`} />}
             >
               <span className="hidden sm:inline">{starred ? 'Starred' : 'Star'}</span>
             </Button>
@@ -349,8 +348,8 @@ export default function AdDetail() {
               title="Performance"
               action={
                 rating && (
-                  <Badge tone={RATING_TONE[rating.label] || 'neutral'} title="Reach and click strength">
-                    {cap(rating.label.toLowerCase())}
+                  <Badge tone={rating.tone} title={`Click rating: ${rating.basis}`}>
+                    {`${rating.label} CTR`}
                   </Badge>
                 )
               }

@@ -13,6 +13,22 @@
   --tabbar-h: calc(3.5rem + env(safe-area-inset-bottom));
   /* Where fixed bars start on the left: 0 on a phone, the sidebar from lg. */
   --nav-left: 0px;
+
+  /* Colour that means something, mirrored from tailwind.config.js for SVG
+     charts, which cannot take a utility class on every attribute. Status
+     marks always ride with a word. The viz ramp is the one magnitude colour:
+     bar, its track, the plot's hairline grid, and axis text (ink soft). */
+  --status-good: #36a980;
+  --status-warn: #c18434;
+  --status-bad: #c13140;
+  --status-neutral: #8b8b8b;
+  --status-live: #f4f4f5;
+  --viz-bar: #d4d4d4;
+  --viz-bar-hi: #ffffff;
+  --viz-track: #262626;
+  --viz-grid: #262626;
+  --viz-axis: #8b8b8b;
+  --viz-surface: #161616;
 }
 @media (min-width: 1024px) {
   :root {

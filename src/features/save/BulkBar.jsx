@@ -203,7 +203,7 @@ export default function BulkBar({ selected = [], active = false, pageCount = 0, 
               </select>
               <Button
                 variant="ghost"
-                icon={<Star size={16} weight="fill" aria-hidden="true" className="flex-shrink-0 text-amber-400" />}
+                icon={<Star size={16} weight="fill" aria-hidden="true" className="flex-shrink-0" />}
                 disabled={disabled}
                 onClick={() => run('star', true)}
                 className={TIGHT}
@@ -292,7 +292,7 @@ export default function BulkBar({ selected = [], active = false, pageCount = 0, 
             <p className="text-small font-medium text-ink mb-2">Star</p>
             <div className="grid grid-cols-2 gap-2">
               <Button
-                icon={<Star size={16} weight="fill" aria-hidden="true" className="flex-shrink-0 text-amber-400" />}
+                icon={<Star size={16} weight="fill" aria-hidden="true" className="flex-shrink-0" />}
                 disabled={disabled}
                 onClick={() => run('star', true)}
                 className="w-full"

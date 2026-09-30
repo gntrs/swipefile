@@ -4,7 +4,7 @@ import { Star } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
 import { setStarred, isStarred } from '@/lib/ads';
-import { parseCompareIds, MAX_COMPARE } from '@/lib/compare';
+import { parseCompareIds, bestIndex, MAX_COMPARE } from '@/lib/compare';
 import { compactNum, formatMoney } from '@/lib/format';
 import { RowsSkeleton } from '@/components/Skeleton';
 import { Page, PageHeader, Panel, Button, IconButton, EmptyState, Notice } from '@/components/ui';
@@ -17,14 +17,17 @@ const fmtEur = (v) => (v == null ? null : formatMoney(v));
 const fmtPct = (v) => (v == null ? null : `${v.toFixed(2)}%`);
 const fmtNum = (v) => (v == null ? null : compactNum(v));
 
-// Metric rows. `best` = 'max' (higher wins) or 'min' (lower wins); the winning
-// cell in each row gets highlighted so the pattern jumps out.
+// Metric rows. `best` = 'max' (higher wins) or 'min' (lower wins); the best
+// cell in a row is marked only when at least two ads have that number and one
+// is strictly ahead. Reach and impressions are different measures (people
+// against views), so each gets its own row and they are never compared.
 const ROWS = [
   { key: 'ctr', label: 'CTR', get: (a) => num(a, 'ctr'), fmt: fmtPct, best: 'max' },
   { key: 'cpc', label: 'CPC', get: (a) => num(a, 'cpc'), fmt: fmtEur, best: 'min' },
   { key: 'spend', label: 'Spend', get: (a) => num(a, 'spend'), fmt: fmtEur, best: null },
   { key: 'roas', label: 'ROAS', get: (a) => num(a, 'roas'), fmt: (v) => (v == null ? null : v.toFixed(2)), best: 'max' },
-  { key: 'reach', label: 'Reach or impressions', get: (a) => num(a, 'impressions') ?? num(a, 'reach'), fmt: fmtNum, best: 'max' },
+  { key: 'impressions', label: 'Impressions', get: (a) => num(a, 'impressions'), fmt: fmtNum, best: 'max' },
+  { key: 'reach', label: 'Reach', get: (a) => num(a, 'reach'), fmt: fmtNum, best: 'max' },
   { key: 'days', label: 'Days running', get: (a) => (typeof a?.metrics?.days_running === 'number' ? a.metrics.days_running : null), fmt: (v) => (v == null ? null : `${v}d`), best: 'max' },
 ];
 
@@ -38,9 +41,9 @@ function AdThumb({ ad }) {
     <div className="aspect-[4/5] max-h-56 w-full bg-canvas rounded-xl overflow-hidden flex items-center justify-center">
       {src ? (
         ad.format === 'video' ? (
-          <video src={src} muted loop playsInline className="w-full h-full object-cover" />
+          <video src={src} muted loop playsInline className="w-full h-full object-contain" />
         ) : (
-          <img src={src} alt={ad.brand || 'ad'} className="w-full h-full object-cover" />
+          <img src={src} alt={ad.brand || 'ad'} className="w-full h-full object-contain" />
         )
       ) : (
         <span className="text-small text-ink-soft">No media</span>
@@ -104,21 +107,8 @@ export default function Compare() {
     if (!ok) swap(!next);
   };
 
-  // Best cell index per row, for highlighting.
-  const bestIndex = (row) => {
-    if (!row.best) return -1;
-    let idx = -1;
-    let val = row.best === 'max' ? -Infinity : Infinity;
-    ads.forEach((a, i) => {
-      const v = row.get(a);
-      if (v == null) return;
-      if ((row.best === 'max' && v > val) || (row.best === 'min' && v < val)) {
-        val = v;
-        idx = i;
-      }
-    });
-    return idx;
-  };
+  // Best cell index per row, or -1 when there is no single best.
+  const bestOf = (row) => bestIndex(ads.map((a) => row.get(a)), row.best);
 
   const showTable = !loading && !error && ads.length >= 2;
 
@@ -127,7 +117,7 @@ export default function Compare() {
       <PageHeader
         back={{ to: '/ads', label: 'Library' }}
         title="Compare"
-        context={showTable ? `${ads.length} ads side by side. Best in each row is highlighted.` : null}
+        context={showTable ? `${ads.length} ads side by side. The best number in a row is marked best.` : null}
       />
 
       {(!loading && !error && missing > 0) || dropped > 0 ? (
@@ -190,7 +180,7 @@ export default function Compare() {
                             label={starred ? 'Remove star' : 'Star'}
                             pressed={starred}
                             onClick={() => toggleStar(a)}
-                            icon={<Star size={18} weight={starred ? 'fill' : 'bold'} aria-hidden="true" className={starred ? 'text-amber-400' : ''} />}
+                            icon={<Star size={18} weight={starred ? 'fill' : 'bold'} aria-hidden="true" className={starred ? 'text-ink' : ''} />}
                           />
                         </div>
                         <p className="text-small text-ink-soft truncate">{a.platform || '-'}</p>
@@ -201,7 +191,7 @@ export default function Compare() {
               </thead>
               <tbody className="divide-y divide-line border-t border-line">
                 {ROWS.map((row) => {
-                  const best = bestIndex(row);
+                  const best = bestOf(row);
                   return (
                     <tr key={row.key}>
                       <th scope="row" className={labelCell}>
@@ -214,10 +204,9 @@ export default function Compare() {
                             {value == null ? (
                               <span className="num text-num text-ink-soft">-</span>
                             ) : i === best ? (
-                              <span className="inline-flex items-center gap-1.5 text-emerald-300">
-                                <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-                                <span className="num text-num">{value}</span>
-                                <span className="sr-only">(best)</span>
+                              <span className="inline-flex items-baseline gap-2 text-ink">
+                                <span className="num text-num font-semibold">{value}</span>
+                                <span className="text-meta text-ink-soft">best</span>
                               </span>
                             ) : (
                               <span className="num text-num text-ink">{value}</span>

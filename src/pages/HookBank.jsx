@@ -311,8 +311,8 @@ export default function HookBank() {
                         items={[
                           h.proven && <Badge tone="good">Proven</Badge>,
                           h.live && (
-                            <span className="inline-flex items-center gap-1.5 text-emerald-300">
-                              <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            <span className="inline-flex items-center gap-1.5 text-ink">
+                              <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-status-live" />
                               {h.days > 0 ? `Live ${h.days}d` : 'Live'}
                             </span>
                           ),

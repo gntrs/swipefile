@@ -12,7 +12,7 @@ import { Page, PageHeader, Button, IconButton, Chip } from '@/components/ui';
 // never colour alone. `solid` = filled (selected button), `block` = soft fill
 // for the block on the grid, `dot` = legend dot.
 const STATUSES = [
-  { key: 'in_office', label: 'In office', solid: 'bg-mint text-emerald-900', block: 'bg-mint/50 border-mint text-emerald-900', dot: 'bg-mint' },
+  { key: 'in_office', label: 'In office', solid: 'bg-mint text-black', block: 'bg-mint/50 border-mint text-ink', dot: 'bg-mint' },
   { key: 'wfh', label: 'Home', full: 'Work from home', solid: 'bg-accent text-black', block: 'bg-accent-wash border-accent text-accent-dim', dot: 'bg-accent' },
   { key: 'out', label: 'Out', solid: 'bg-ink text-black', block: 'bg-canvas border-line text-ink-soft', dot: 'bg-ink-soft/60' },
 ];

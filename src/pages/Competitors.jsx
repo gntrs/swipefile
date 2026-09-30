@@ -3,6 +3,7 @@ import { ArrowRight, CaretDown, Plus } from '@phosphor-icons/react';
 import { fetchAll } from '@/lib/db';
 import PartialNotice from '@/components/PartialNotice';
 import { isOwnBrand } from '@/lib/brand';
+import { isRunning } from '@/lib/dashboard';
 import { useTeam } from '@/contexts/TeamContext';
 import AdCard from '@/components/AdCard';
 import TrackCompetitors from '@/components/TrackCompetitors';
@@ -104,7 +105,7 @@ export default function Competitors() {
     return [...map.values()]
       .map((b) => ({
         ...b,
-        running: b.ads.filter((a) => a.status === 'running').length,
+        running: b.ads.filter(isRunning).length,
         winners: b.ads.filter((a) => a.verdict === 'winner').length,
         new30: b.ads.filter((a) => new Date(a.created_at) >= cutoff).length,
         lastSeen: b.ads[0]?.created_at || null,
@@ -119,7 +120,7 @@ export default function Competitors() {
     return {
       brands: brands.length,
       ads: compAds.length,
-      running: compAds.filter((a) => a.status === 'running').length,
+      running: compAds.filter(isRunning).length,
       new30: compAds.filter((a) => new Date(a.created_at) >= cutoff).length,
     };
   }, [brands, compAds]);
@@ -149,7 +150,7 @@ export default function Competitors() {
             <Stat label="Brands tracked" value={totals.brands} />
             <Stat label="Ads tracked" value={totals.ads} />
             <Stat label="Running now" value={totals.running} />
-            <Stat label="New in 30 days" value={totals.new30} />
+            <Stat label="Saved in last 30 days" value={totals.new30} />
           </div>
         )
       )}
@@ -179,7 +180,7 @@ export default function Competitors() {
             >
               <span>Brand</span>
               <span className="text-right">Running</span>
-              <span className="text-right">New 30d</span>
+              <span className="text-right">Saved 30d</span>
               <span className="text-right">Winners</span>
               <span className="hidden xl:block">Platforms</span>
               <span className="text-right">Last seen</span>
@@ -190,7 +191,7 @@ export default function Competitors() {
                 const isOpen = open === b.key;
                 const counts = [
                   b.running > 0 && `${b.running} running`,
-                  b.new30 > 0 && `${b.new30} new`,
+                  b.new30 > 0 && `${b.new30} saved in 30d`,
                   b.winners > 0 && plural(b.winners, 'winner', 'winners'),
                 ].filter(Boolean);
                 return (
@@ -212,7 +213,7 @@ export default function Competitors() {
                         />
                       </span>
                       <Count n={b.running} label="running" />
-                      <Count n={b.new30} label="new in 30 days" />
+                      <Count n={b.new30} label="saved in the last 30 days" />
                       <Count n={b.winners} label={b.winners === 1 ? 'winner' : 'winners'} />
                       <span className="hidden xl:block text-small text-ink-soft truncate">
                         {b.platforms.join(', ') || '-'}

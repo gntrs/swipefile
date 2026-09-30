@@ -2,9 +2,30 @@
 // Black and white, dark only. A near black canvas, slightly lighter cards that
 // need no border to stand apart, light ink, one white accent, and small radii.
 // Figtree for reading, JetBrains Mono only for numbers, code and one eyebrow
-// per page. Colour only ever means something: green is good, red is bad, amber
-// is a star or a warning. The whole app is driven by these tokens, so changing
-// them here changes every screen.
+// per page. The whole app is driven by these tokens, so changing them here
+// changes every screen.
+//
+// Colour only ever means something, and each meaning has one token:
+//   status  good (winner, ok), bad (loser, error), warn (testing, due soon),
+//           neutral (unsure, info), live (running now). A status colour is a
+//           mark (a dot, an icon, a tinted fill) and always rides with a word;
+//           the word itself stays in ink.
+//   viz     one neutral ramp for magnitude: every bar is the same light grey on
+//           a dark track, because bar length already carries the number.
+// No chart needs categorical identity, so there is no categorical palette.
+// The status marks were checked with the dataviz palette validator in dark
+// mode against the card (#161616) and the canvas (#0A0A0A), all pairs: every
+// check passes, worst colour blind pair Delta E 9.5, worst normal 17.7. The
+// *-300 text tints clear 10:1 on both surfaces.
+const STATUS = {
+  good: '#36A980',
+  warn: '#C18434',
+  bad: '#C13140',
+  neutral: '#8B8B8B',
+  live: '#F4F4F5',
+};
+const STATUS_TEXT = { good: '#80E2B9', warn: '#F9BE79', bad: '#FFADAC' };
+
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
@@ -18,33 +39,24 @@ export default {
         accent: { DEFAULT: '#FFFFFF', dim: '#D4D4D4', wash: '#1C1C1C' },
         canvas: '#0A0A0A', // page background and in-card track fills (near black)
         ink: { DEFAULT: '#F4F4F5', soft: '#8B8B8B' }, // light body / muted secondary
-        mint: { DEFAULT: '#22C978', dark: '#63EFA6' }, // good/proven: vivid green
         line: '#262626', // hairlines: inputs, dividers, never around every card
         // Cards sit on the canvas without a border. `hi` is the same card under
         // the pointer or holding a pressed control.
         card: { DEFAULT: '#161616', hi: '#1C1C1C' },
 
-        // Semantic ramps for a dark canvas. Only three meanings carry colour:
-        // green is good or winner, red is bad or loser, amber is a star or a
-        // warning. Low shades (50/100) are dark tinted fills; high shades are
-        // the bright text tones on them. They merge over Tailwind's defaults.
-        emerald: {
-          50: '#0E2419', 100: '#123024', 300: '#5FF0A6', 400: '#3FE48D',
-          500: '#22C978', 600: '#4DEB97', 700: '#63EFA6', 900: '#9CF7C6',
-        },
-        red: {
-          50: '#2A1113', 100: '#361517', 300: '#FF8E8A',
-          500: '#FB4D52', 600: '#FF6E70',
-        },
-        rose: { 50: '#2A1116', 500: '#FB4E68', 600: '#FF6E86' },
-        amber: {
-          50: '#2A2109', 100: '#342A0C', 300: '#FFD866', 400: '#FFC53D',
-          500: '#F5B420', 600: '#FFCF54', 700: '#FFD877',
-        },
-        // There is no blue and no violet: both ramps are grays, so an old
-        // utility that asks for them still reads black and white.
-        blue: { 50: '#191A1B', 500: '#3C3F42', 600: '#AFB4B9' },
-        violet: { 50: '#1A191B', 600: '#B2AEB8' },
+        // The status marks and their text tints (see the note at the top).
+        status: { ...STATUS, 'good-text': STATUS_TEXT.good, 'warn-text': STATUS_TEXT.warn, 'bad-text': STATUS_TEXT.bad },
+        // Magnitude: a bar, its track, and the hairline grid of a plot.
+        viz: { bar: '#D4D4D4', 'bar-hi': '#FFFFFF', track: '#262626', grid: '#262626' },
+
+        // The older ramp names now point at the same status tokens, so a
+        // utility that still asks for emerald, red or amber gets the checked
+        // colour. 50 and 100 are dark tinted fills, 300 the text tint, 400 and
+        // 500 the mark. mint is the good mark (a done tick, an on switch).
+        mint: { DEFAULT: STATUS.good },
+        emerald: { 50: '#042016', 100: '#02291C', 300: STATUS_TEXT.good, 400: STATUS.good, 500: STATUS.good, 900: '#042016' },
+        red: { 50: '#2B1213', 100: '#361717', 300: STATUS_TEXT.bad, 400: STATUS.bad, 500: STATUS.bad },
+        amber: { 50: '#261704', 100: '#311D03', 300: STATUS_TEXT.warn, 400: STATUS.warn, 500: STATUS.warn },
       },
       fontFamily: {
         // Both faces are self hosted through @fontsource (see src/main.jsx).

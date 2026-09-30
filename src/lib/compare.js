@@ -24,3 +24,18 @@ export function parseCompareIds(raw, max = MAX_COMPARE) {
   }
   return { ids, invalid, dropped };
 }
+
+// Which column holds the best value in a Compare row. -1 unless at least two
+// ads have a value and one of them is strictly best: a lone value is not a
+// winner, and a tie at the top has no single winner.
+export function bestIndex(values, dir) {
+  if (dir !== 'max' && dir !== 'min') return -1;
+  const known = [];
+  (values || []).forEach((v, i) => {
+    if (typeof v === 'number' && Number.isFinite(v)) known.push([v, i]);
+  });
+  if (known.length < 2) return -1;
+  known.sort((a, b) => (dir === 'max' ? b[0] - a[0] : a[0] - b[0]));
+  if (known[0][0] === known[1][0]) return -1;
+  return known[0][1];
+}

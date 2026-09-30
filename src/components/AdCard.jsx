@@ -110,13 +110,13 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
         <span
           key={`halo-${pop}`}
           aria-hidden="true"
-          className="star-halo absolute w-8 h-8 rounded-full bg-amber-400 pointer-events-none"
+          className="star-halo absolute w-8 h-8 rounded-full bg-ink/40 pointer-events-none"
         />
       )}
       <span
         key={pop}
         className={`press-solo-face relative w-8 h-8 rounded-full flex items-center justify-center ${pop > 0 ? 'star-pop' : ''} ${
-          starred ? 'text-amber-400' : 'text-ink-soft group-hover:text-ink'
+          starred ? 'text-ink' : 'text-ink-soft group-hover:text-ink'
         }`}
       >
         <Star size={20} weight={starred ? 'fill' : 'bold'} />
@@ -126,8 +126,8 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
 
   // Running or stopped, with how long when the numbers do not already say it.
   const life = days !== null && (
-    <span className={m.live ? 'text-emerald-300' : 'text-ink-soft'}>
-      <span aria-hidden="true" className={`inline-block align-middle w-1.5 h-1.5 mr-1.5 -mt-0.5 rounded-full ${m.live ? 'bg-emerald-400' : 'bg-ink-soft/50'}`} />
+    <span className={m.live ? 'text-ink' : 'text-ink-soft'}>
+      <span aria-hidden="true" className={`inline-block align-middle w-1.5 h-1.5 mr-1.5 -mt-0.5 rounded-full ${m.live ? 'bg-status-live' : 'ring-1 ring-inset ring-ink-soft'}`} />
       {m.live ? 'Running' : 'Stopped'}
       {!showsDays && ` ${days}d`}
     </span>

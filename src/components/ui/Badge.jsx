@@ -1,12 +1,14 @@
 import React from 'react';
 
 // One status badge for the whole app. Colour always rides with a word, never
-// alone: green good, red bad, amber warning, grey for everything else.
+// alone: good (winner), bad (loser, overdue), warn (testing, due soon), grey
+// for everything else. The word sits in the status text tint on a faint wash
+// of the status mark, both from the status tokens in tailwind.config.js.
 // Figtree, sentence case: pass "Winner", not "WINNER".
 const TONES = {
-  good: 'bg-emerald-500/15 text-emerald-300',
-  bad: 'bg-red-500/15 text-red-300',
-  warn: 'bg-amber-500/15 text-amber-300',
+  good: 'bg-status-good/15 text-status-good-text',
+  bad: 'bg-status-bad/15 text-status-bad-text',
+  warn: 'bg-status-warn/15 text-status-warn-text',
   neutral: 'bg-white/[0.06] text-ink-soft',
 };
 

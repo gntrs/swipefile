@@ -265,20 +265,17 @@ export function nextImportVerdict(existing, newAuto) {
   return isAutoVerdict(existing) ? newAuto : null;
 }
 
-// Reach rating: one glanceable AMAZING / GOOD / BAD verdict on a card, so you
-// can read "is this ad working" without parsing numbers. Blends reach (how many
-// humans saw it) with CTR (how hard it pulled) - a big reach that nobody clicks
-// is not amazing. Returns null when the ad has no performance data at all (most
-// competitor / Ad-Library rows), so those cards just fall back to days-running.
+// Click rating: one glanceable Strong / OK / Weak read on an ad we paid for,
+// from its CTR alone. Reach is not rated: the Ad Library reach of a rival ad
+// grows with every day it runs, so it measures age and budget, not whether the
+// ad works, and rating it put "Amazing" next to ads that lost. Returns null
+// when there is no CTR (every competitor and Ad Library row).
 export function reachRating(ad) {
-  const m = ad?.metrics || {};
-  const reach = +m.reach || 0;
-  const ctr = +m.ctr || 0;
-  if (!reach && !ctr) return null;
-  // tone is a text colour: green good, plain ink in the middle, red bad.
-  if (ctr >= 5 || reach >= 3000) return { label: 'AMAZING', tone: 'text-emerald-600' };
-  if (ctr >= 2 || reach >= 800) return { label: 'GOOD', tone: 'text-ink' };
-  return { label: 'BAD', tone: 'text-red-600' };
+  const ctr = Number(ad?.metrics?.ctr);
+  if (!Number.isFinite(ctr) || ctr <= 0) return null;
+  if (ctr >= 5) return { label: 'Strong', tone: 'good', basis: 'CTR 5% or more' };
+  if (ctr >= 2) return { label: 'OK', tone: 'neutral', basis: 'CTR 2% to 5%' };
+  return { label: 'Weak', tone: 'bad', basis: 'CTR under 2%' };
 }
 
 // Short human reach, e.g. 4125 -> "4.1k". Empty string when unknown.

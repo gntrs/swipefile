@@ -10,6 +10,7 @@ import Goals from '@/components/Goals';
 import RevenueCard from '@/components/RevenueCard';
 import AdAnalytics from '@/components/AdAnalytics';
 import FunnelCard from '@/components/FunnelCard';
+import BarList from '@/components/charts/BarList';
 import { useTeam } from '@/contexts/TeamContext';
 import { isOn } from '@/lib/modules';
 import { isOwnBrand } from '@/lib/brand';
@@ -66,20 +67,26 @@ function Angles({ summary }) {
   if (!summary.angles.length)
     return <Empty text="Your winners have no angle yet. Tag one from its ad page." to="/ads?verdict=winner" action="See the winners" />;
   const rows = summary.angles.slice(0, 6);
-  const max = Math.max(...rows.map((r) => r.count));
+  const rest = summary.angles.slice(6).reduce((n, r) => n + r.count, 0);
   return (
     <>
-      <ul className="-mt-1">
-        {rows.map((r) => (
-          <li key={r.id} className="grid grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)_2rem] items-center gap-3 min-h-[36px]">
-            <span className="text-ui text-ink truncate">{r.label}</span>
-            <span className="h-2 rounded-full bg-white/[0.06] overflow-hidden" aria-hidden="true">
-              <span className="block h-full rounded-full bg-ink" style={{ width: `${(r.count / max) * 100}%` }} />
-            </span>
-            <span className="num text-ui text-ink text-right">{r.count}</span>
-          </li>
-        ))}
-      </ul>
+      <BarList
+        caption="Winning ads per angle, all time"
+        className="-mt-1"
+        rows={rows.map((r) => ({
+          key: r.id,
+          label: r.label,
+          value: r.count,
+          to: `/ads?verdict=winner&angle=${encodeURIComponent(r.id)}`,
+          tip: `of ${summary.winners} ${summary.winners === 1 ? 'winner' : 'winners'} (${Math.round((r.count / summary.winners) * 100)}%)`,
+        }))}
+      />
+      {rest > 0 && (
+        <p className="text-small text-ink-soft mt-2">
+          {rest} more {rest === 1 ? 'winner' : 'winners'} in {summary.angles.length - 6} other{' '}
+          {summary.angles.length - 6 === 1 ? 'angle' : 'angles'}
+        </p>
+      )}
       {summary.noAngle > 0 && (
         <p className="text-small text-ink-soft mt-3">
           {summary.noAngle} {summary.noAngle === 1 ? 'winner has' : 'winners have'} no angle yet
@@ -103,7 +110,7 @@ function Rivals({ summary }) {
           >
             <span className="text-body text-ink truncate group-hover:text-accent-dim transition-colors">{r.brand}</span>
             <Meta
-              items={[`${r.running} running`, r.fresh ? `${r.fresh} new` : null]}
+              items={[`${r.running} running`, r.fresh ? `${r.fresh} saved in 30d` : null]}
               className="text-small text-ink-soft flex-shrink-0 whitespace-nowrap"
             />
           </Link>
@@ -271,7 +278,7 @@ export default function Dashboard() {
 
             <div className="xl:col-span-5 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-4 lg:gap-6 items-start min-w-0">
               <Panel
-                title="Hooks by angle"
+                title="Winners by angle"
                 action={isOn('hooks') && summary.angles.length > 0 && <PanelLink to="/hooks">Hook bank</PanelLink>}
               >
                 <Angles summary={summary} />

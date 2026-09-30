@@ -4,23 +4,32 @@ import { db, fetchAll } from '@/lib/db';
 import { confettiBurst } from '@/lib/confetti';
 import { triggerCelebration } from '@/lib/celebration';
 import { Panel, Badge, Meta, Notice, IconButton } from '@/components/ui';
+import { revenueStats } from '@/lib/revenue';
 
 // The money counter. YT-subscriber-counter energy: lifetime revenue GENERATED
 // (not what was paid out), MRR, sales today, and confetti the moment a new
 // sale row lands via realtime (scripts/stripe-pull.mjs feeds the sales table
-// from your cron machine every ~5 min). Numbers animate up; green is reserved for
-// the good-news accents per the color law.
+// from your cron machine every ~5 min). The first numbers print as they are;
+// only a live change counts up, so the card never shows a total that was not
+// true. Amounts in other currencies are never added in (lib/revenue.js).
 
 const CUR = { eur: '€', usd: '$', gbp: '£' };
 const sym = (c) => CUR[(c || 'eur').toLowerCase()] || '';
 
-// Animate a number toward its target - the odometer feel.
-function useCountUp(target, ms = 900) {
+// Animate a number toward its target, the odometer feel, but only once the
+// real value has loaded: before that it jumps, so loading never plays a count
+// from zero.
+function useCountUp(target, ready, ms = 900) {
   const [shown, setShown] = useState(target);
   const fromRef = useRef(target);
   useEffect(() => {
     const from = fromRef.current;
     if (from === target) return undefined;
+    if (!ready.current) {
+      fromRef.current = target;
+      setShown(target);
+      return undefined;
+    }
     const started = performance.now();
     let raf;
     const tick = (now) => {
@@ -35,12 +44,6 @@ function useCountUp(target, ms = 900) {
   }, [target, ms]);
   return shown;
 }
-
-const isToday = (iso) => {
-  const d = new Date(iso);
-  const now = new Date();
-  return d.toDateString() === now.toDateString();
-};
 
 const ago = (iso) => {
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
@@ -102,27 +105,22 @@ export default function RevenueCard() {
     };
   }, []);
 
-  const stats = useMemo(() => {
-    const list = sales || [];
-    const currency = summary?.currency || list[0]?.currency || 'eur';
-    // Lifetime gross: Stripe-computed total when available (authoritative),
-    // else summed from sales rows.
-    const fromRows = list.reduce((s, r) => s + Number(r.amount || 0), 0);
-    const total = summary?.total_gross ?? Math.round(fromRows * 100) / 100;
-    const today = list.filter((r) => isToday(r.paid_at));
-    return {
-      currency,
-      total,
-      mrr: summary?.mrr ?? null,
-      todayCount: today.length,
-      todayAmount: Math.round(today.reduce((s, r) => s + Number(r.amount || 0), 0) * 100) / 100,
-      last: list[0] || null,
-      count: summary?.sales_count ?? list.length,
-    };
-  }, [sales, summary]);
+  const stats = useMemo(() => revenueStats(sales, summary), [sales, summary]);
 
-  const shownTotal = useCountUp(stats.total);
-  const shownMrr = useCountUp(stats.mrr ?? 0);
+  // Ready once the first load has rendered; from then on a change is live.
+  const ready = useRef(false);
+  useEffect(() => {
+    if (sales !== null) {
+      const t = setTimeout(() => {
+        ready.current = true;
+      }, 0);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [sales]);
+
+  const shownTotal = useCountUp(stats.total, ready);
+  const shownMrr = useCountUp(stats.mrr ?? 0, ready);
 
   const empty = sales !== null && sales.length === 0 && !summary;
 
@@ -164,6 +162,11 @@ export default function RevenueCard() {
             <p className="text-small text-ink-soft mt-2">
               {stats.count} sale{stats.count === 1 ? '' : 's'} all time · tap to expand
             </p>
+            {stats.otherCurrencySales > 0 && (
+              <p className="text-small text-ink-soft mt-1">
+                {stats.otherCurrencySales} sale{stats.otherCurrencySales === 1 ? '' : 's'} in other currencies not added in
+              </p>
+            )}
           </button>
           <div>
             <p className="text-small font-medium text-ink-soft">MRR</p>
@@ -173,7 +176,7 @@ export default function RevenueCard() {
           </div>
           <div>
             <p className="text-small font-medium text-ink-soft">Today</p>
-            <p className={`num text-lead mt-2 ${stats.todayCount > 0 ? 'text-emerald-300' : 'text-ink-soft'}`}>
+            <p className={`num text-lead mt-2 ${stats.todayCount > 0 ? 'text-ink' : 'text-ink-soft'}`}>
               {stats.todayCount > 0 ? `${sym(stats.currency)}${stats.todayAmount.toFixed(2)}` : '-'}
             </p>
             {stats.todayCount > 0 && (
