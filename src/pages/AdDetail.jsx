@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowSquareOut, CaretLeft, Check, LinkSimple, Trash, PaperPlaneRight, Star, UploadSimple } from '@phosphor-icons/react';
+import { ArrowSquareOut, Star, Trash, PaperPlaneRight, UploadSimple, Check } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
-import { creativeLink, reachRating, humanVerdictPatch, VERDICTS, STATUSES } from '@/lib/ads';
+import { creativeLink, reachRating, humanVerdictPatch, euReach, VERDICTS, STATUSES } from '@/lib/ads';
 import { removeMedia, attachMedia } from '@/lib/saveAd';
 import { compactNum, formatNum, formatMoney } from '@/lib/format';
-import Pill from '@/components/Pill';
+import { shortDate } from '@/features/ai/dates';
 import { Skeleton } from '@/components/Skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
@@ -14,9 +14,62 @@ import { TEAM_MODE } from '@/lib/modules';
 import AdDetailKeys from '@/features/save/AdDetailKeys';
 import WhyItWorks from '@/features/ai/WhyItWorks';
 import { readListContext } from '@/lib/library/listContext';
+import {
+  Page,
+  PageHeader,
+  Button,
+  IconButton,
+  Panel,
+  Metrics,
+  Badge,
+  Meta,
+  Field,
+  EmptyState,
+  Notice,
+  inputCls,
+  selectCls,
+} from '@/components/ui';
 
 const VERDICT_TONE = { winner: 'good', loser: 'bad', testing: 'warn', unsure: 'neutral' };
+const RATING_TONE = { AMAZING: 'good', GOOD: 'neutral', BAD: 'bad' };
 
+const cap = (s) => (s ? `${String(s).charAt(0).toUpperCase()}${String(s).slice(1)}` : s);
+const pos = (v) => Number.isFinite(+v) && +v > 0;
+
+// The numbers on the ad page, in two fixed sets so the grid keeps its shape:
+// what we paid and got for our own ads, and how far a rival's ad travelled.
+// A set shows when any of its numbers is known; the rest print a muted hyphen.
+function performanceItems(ad) {
+  const m = ad.metrics || {};
+  const items = [];
+  if (pos(m.ctr) || pos(m.cpc) || pos(m.spend) || pos(m.clicks) || pos(m.impressions)) {
+    items.push(
+      { key: 'ctr', label: 'CTR', value: pos(m.ctr) ? `${(+m.ctr).toFixed(1)}%` : null },
+      { key: 'cpc', label: 'CPC', value: pos(m.cpc) ? formatMoney(m.cpc) : null },
+      { key: 'spend', label: 'Spend', value: pos(m.spend) ? formatMoney(m.spend) : null },
+      { key: 'clicks', label: 'Clicks', value: pos(m.clicks) ? formatNum(m.clicks) : null },
+      { key: 'impressions', label: 'Impressions', value: pos(m.impressions) ? compactNum(m.impressions) : null }
+    );
+  }
+  const days = typeof m.days_running === 'number' ? m.days_running : null;
+  const eu = euReach(ad);
+  if (pos(m.reach) || pos(m.reach_per_day) || days !== null || eu) {
+    items.push(
+      { key: 'reach', label: 'Reach', value: pos(m.reach) ? compactNum(m.reach) : null },
+      { key: 'perday', label: 'Per day', value: pos(m.reach_per_day) ? compactNum(m.reach_per_day) : null },
+      { key: 'days', label: 'Days live', value: days === null ? null : String(days) },
+      { key: 'eu', label: 'EU reach', value: eu ? compactNum(eu) : null }
+    );
+  }
+  return items;
+}
+
+const linkCls =
+  'inline-flex items-center gap-1.5 min-h-[44px] max-w-full text-ui font-medium text-ink underline underline-offset-4 decoration-ink-soft/60 hover:decoration-ink break-all';
+
+function SubLabel({ children }) {
+  return <p className="text-small font-medium text-ink-soft mb-1">{children}</p>;
+}
 
 export default function AdDetail() {
   const { id } = useParams();
@@ -38,7 +91,8 @@ export default function AdDetail() {
   currentId.current = id;
   const src = useMediaUrl(ad?.media_path);
   // Back to the list this ad was opened from, with its filters and page.
-  const backToList = () => navigate(`/ads${readListContext()?.search || ''}`);
+  const listPath = () => `/ads${readListContext()?.search || ''}`;
+  const backToList = () => navigate(listPath());
 
   useEffect(() => {
     let mounted = true;
@@ -138,332 +192,325 @@ export default function AdDetail() {
 
   if (loading) {
     return (
-      <div className="px-5 sm:px-8 pt-6 sm:pt-8 max-w-[1040px] mx-auto" aria-busy="true">
+      <Page id="ad-detail" aria-busy="true">
         <span className="sr-only">Loading...</span>
-        <Skeleton className="w-24 h-4 mb-8" />
-        <div className="grid md:grid-cols-2 gap-6 md:gap-10">
-          <Skeleton className="aspect-[4/5] rounded-xl3" />
-          <div>
-            <Skeleton className="w-48 h-8" />
-            <Skeleton className="w-32 h-3 mt-3" />
-            <Skeleton className="h-28 mt-8 rounded-xl3" />
-            <Skeleton className="h-11 mt-6 rounded-xl" />
-            <Skeleton className="w-full h-4 mt-8" />
-            <Skeleton className="w-2/3 h-4 mt-2" />
+        <Skeleton className="w-24 h-4 mb-6" />
+        <Skeleton className="w-56 h-8 mb-3" />
+        <Skeleton className="w-40 h-4 mb-8" />
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6">
+          <Skeleton className="md:col-span-5 aspect-[4/5] max-h-[70dvh] rounded-xl3" />
+          <div className="md:col-span-7 flex flex-col gap-4 lg:gap-6">
+            <Skeleton className="h-36 rounded-xl3" />
+            <Skeleton className="h-28 rounded-xl3" />
+            <Skeleton className="h-48 rounded-xl3" />
           </div>
         </div>
-      </div>
+      </Page>
     );
   }
-  if (!ad) return <div data-page="ad-detail" className="px-5 sm:px-8 py-20 text-center text-[17px] font-semibold text-ink">Ad not found.</div>;
+  if (!ad) {
+    return (
+      <Page id="ad-detail">
+        <EmptyState
+          page
+          title="Ad not found."
+          text="It may have been deleted, or the link is wrong."
+          action={<Button to={listPath()}>Back to the library</Button>}
+        />
+      </Page>
+    );
+  }
 
   const m = ad.metrics || {};
+  const starred = Boolean(m.starred);
   // When we have no stored creative, fall back to any thumbnail the importer
-  // captured (may be a hotlinked CDN url that fails - onError drops to the
+  // captured (may be a hotlinked CDN url that fails: onError drops to the
   // branded placeholder below).
   const thumb = !src && !imgBroken ? m.thumbnail || m.image_url || m.thumbnail_url || m.creative_url || null : null;
   const rating = reachRating(ad);
-  const verdictTone = VERDICT_TONE[ad.verdict] || 'neutral';
-  const num = (v) => Number.isFinite(+v) && +v > 0;
-  const cells = [
-    num(m.reach) && { label: 'Reach', value: compactNum(m.reach) },
-    num(m.ctr) && { label: 'CTR', value: `${(+m.ctr).toFixed(1)}%` },
-    num(m.cpc) && { label: 'CPC', value: formatMoney(m.cpc) },
-    num(m.spend) && { label: 'Spend', value: formatMoney(m.spend) },
-    num(m.clicks) && { label: 'Clicks', value: formatNum(m.clicks) },
-    num(m.impressions) && { label: 'Impressions', value: compactNum(m.impressions) },
-  ].filter(Boolean);
+  const items = performanceItems(ad);
+  const activity = [
+    typeof m.live === 'boolean' ? (m.live ? 'Live now' : 'Stopped') : null,
+    m.started_running && shortDate(m.started_running) ? `since ${shortDate(m.started_running)}` : null,
+    m.last_synced && shortDate(m.last_synced) ? `synced ${shortDate(m.last_synced)}` : null,
+  ];
+  const hasActivity = activity.some(Boolean);
+  const drivers = Array.isArray(m.emotional_drivers) ? m.emotional_drivers.filter(Boolean) : [];
+  const tags = Array.isArray(ad.tags) ? ad.tags : [];
+
+  const live =
+    typeof m.live === 'boolean' ? (
+      <span className="inline-flex items-center gap-1.5">
+        <span aria-hidden="true" className={`w-1.5 h-1.5 rounded-full ${m.live ? 'bg-emerald-400' : 'bg-ink-soft/50'}`} />
+        <span className={m.live ? 'text-emerald-300' : ''}>{m.live ? 'Running' : 'Stopped'}</span>
+      </span>
+    ) : null;
 
   return (
-    <div data-page="ad-detail" className="px-5 sm:px-8 pt-4 sm:pt-6 pb-10 max-w-[1040px] mx-auto">
-      <div className="flex items-center justify-between mb-4 sm:mb-6">
-        <button
-          onClick={backToList}
-          className="press flex items-center gap-1 min-h-[44px] -ml-2 px-2 rounded-xl text-ink-soft hover:text-ink text-[15px] font-medium"
-        >
-          <CaretLeft size={16} weight="bold" /> Library
-        </button>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleStar}
-            aria-pressed={Boolean(ad.metrics?.starred)}
-            className={`press flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-xl text-[14px] font-semibold transition-colors ${
-              ad.metrics?.starred ? 'bg-amber-400 text-black' : 'bg-white/[0.06] text-ink hover:bg-white/[0.1]'
-            }`}
-          >
-            <Star size={16} weight={ad.metrics?.starred ? 'fill' : 'bold'} className={ad.metrics?.starred ? '' : 'text-amber-400'} />
-            {ad.metrics?.starred ? 'Starred' : 'Star'}
-          </button>
-          <button
-            onClick={remove}
-            disabled={deleting}
-            className="press flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-xl text-red-600 hover:bg-red-500/10 text-[14px] font-semibold transition-colors disabled:opacity-60"
-          >
-            <Trash size={16} weight="bold" /> {deleting ? 'Deleting...' : 'Delete'}
-          </button>
-        </div>
-      </div>
+    <Page id="ad-detail">
+      <PageHeader
+        back={{ to: listPath(), label: 'Library' }}
+        title={ad.brand || 'Untitled'}
+        badge={<Badge tone={VERDICT_TONE[ad.verdict] || 'neutral'}>{cap(ad.verdict || 'unsure')}</Badge>}
+        context={
+          <Meta
+            items={[
+              cap(ad.platform),
+              ad.format,
+              live,
+              ad.added_by_email ? `added by ${displayName(ad.added_by_email)}` : null,
+            ]}
+          />
+        }
+        actions={
+          <>
+            <Button
+              onClick={toggleStar}
+              aria-pressed={starred}
+              aria-label={starred ? 'Starred' : 'Star'}
+              className="max-sm:px-0 max-sm:w-11"
+              icon={<Star size={16} weight={starred ? 'fill' : 'bold'} aria-hidden="true" className="text-amber-400 flex-shrink-0" />}
+            >
+              <span className="hidden sm:inline">{starred ? 'Starred' : 'Star'}</span>
+            </Button>
+            <Button
+              variant="danger"
+              onClick={remove}
+              disabled={deleting}
+              aria-label={deleting ? 'Deleting...' : 'Delete'}
+              className="max-sm:px-0 max-sm:w-11"
+              icon={Trash}
+            >
+              <span className="hidden sm:inline">{deleting ? 'Deleting...' : 'Delete'}</span>
+            </Button>
+          </>
+        }
+      />
 
       {actionError && (
-        <p role="alert" className="mb-4 text-[15px] text-red-600">
+        <Notice tone="bad" className="mb-4 lg:mb-6">
           {actionError}
-        </p>
+        </Notice>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6 md:gap-10">
-        {/* Media. Stays in view on wide screens while the details scroll. */}
-        <div className="bg-card rounded-xl3 shadow-card overflow-hidden md:sticky md:top-6 self-start">
-          <div className="aspect-[4/5] bg-canvas flex items-center justify-center">
-            {src ? (
-              ad.format === 'video' ? (
-                <video src={src} controls playsInline className="w-full h-full object-contain" />
+      {/* GRID_SPLIT, but from md: on a tablet a full width creative would
+          push every detail below the fold. */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6">
+        {/* The creative. Sticky on wide screens so the details scroll past it
+            instead of leaving a hole under it. */}
+        <div className="md:col-span-5 md:sticky md:top-6 self-start min-w-0">
+          <div className="bg-card rounded-xl3 overflow-hidden">
+            <div className="aspect-[4/5] max-h-[70dvh] w-full bg-canvas/60 flex items-center justify-center">
+              {src ? (
+                ad.format === 'video' ? (
+                  <video src={src} controls playsInline className="w-full h-full object-contain" />
+                ) : (
+                  <img src={src} alt={ad.brand} className="w-full h-full object-contain" />
+                )
+              ) : thumb ? (
+                <img src={thumb} alt={ad.brand} onError={() => setImgBroken(true)} className="w-full h-full object-contain" />
               ) : (
-                <img src={src} alt={ad.brand} className="w-full h-full object-contain" />
-              )
-            ) : thumb ? (
-              <img
-                src={thumb}
-                alt={ad.brand}
-                onError={() => setImgBroken(true)}
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              // Branded placeholder + a real way to see the creative, instead
-              // of a bare "No media" string.
-              <div className="flex flex-col items-center justify-center gap-3 text-center px-6">
-                <span className="w-16 h-16 rounded-xl bg-white/[0.06] flex items-center justify-center text-[24px] font-semibold text-ink-soft">
-                  {(ad.brand || '?').slice(0, 1).toUpperCase()}
-                </span>
-                <p className="text-ink-soft text-[15px]">No creative saved for this ad</p>
-                <a
-                  href={creativeLink(ad)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 min-h-[44px] px-2 rounded-xl text-[15px] font-semibold text-ink underline underline-offset-4"
-                >
-                  See the creative <ArrowSquareOut size={13} weight="bold" className="flex-shrink-0" />
-                </a>
+                // Branded placeholder and a real way to see the creative.
+                <div className="flex flex-col items-center justify-center gap-3 text-center px-6">
+                  <span className="w-16 h-16 rounded-xl bg-white/[0.06] flex items-center justify-center text-h2 text-ink-soft">
+                    {(ad.brand || '?').slice(0, 1).toUpperCase()}
+                  </span>
+                  <p className="text-body text-ink-soft">No creative saved for this ad</p>
+                  <a href={creativeLink(ad)} target="_blank" rel="noreferrer" className={linkCls}>
+                    See the creative <ArrowSquareOut size={14} weight="bold" aria-hidden="true" className="flex-shrink-0" />
+                  </a>
+                </div>
+              )}
+            </div>
+            {!ad.media_path && (
+              <div className="p-3 border-t border-line">
+                <Button icon={UploadSimple} onClick={() => fileInput.current?.click()} disabled={uploading} className="w-full">
+                  {uploading ? 'Uploading...' : 'Add the image or video'}
+                </Button>
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={(e) => {
+                    addCreative(e.target.files?.[0]);
+                    e.target.value = '';
+                  }}
+                  className="hidden"
+                />
               </div>
             )}
           </div>
-          {!ad.media_path && (
-            <div className="p-3 border-t border-line">
-              <button
-                type="button"
-                onClick={() => fileInput.current?.click()}
-                disabled={uploading}
-                className="press w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold text-ink transition-colors disabled:opacity-60"
-              >
-                <UploadSimple size={16} weight="bold" aria-hidden="true" />
-                {uploading ? 'Uploading...' : 'Add the image or video'}
-              </button>
-              <input
-                ref={fileInput}
-                type="file"
-                accept="image/*,video/*"
-                onChange={(e) => {
-                  addCreative(e.target.files?.[0]);
-                  e.target.value = '';
-                }}
-                className="hidden"
-              />
-            </div>
-          )}
         </div>
 
-        {/* Details */}
-        <div className="flex flex-col gap-5 min-w-0">
-          <div>
-            <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">{ad.brand || 'Untitled'}</h1>
-            <div className="flex items-center gap-2 flex-wrap mt-3">
-              <Pill tone={verdictTone}>{ad.verdict || 'unsure'}</Pill>
-              {typeof m.live === 'boolean' && (
-                <Pill tone={m.live ? 'good' : 'neutral'}>{m.live ? 'Running' : 'Stopped'}</Pill>
+        {/* The details, as panels. */}
+        <div className="md:col-span-7 flex flex-col gap-4 lg:gap-6 min-w-0">
+          {(rating || items.length > 0 || hasActivity) && (
+            <Panel
+              title="Performance"
+              action={
+                rating && (
+                  <Badge tone={RATING_TONE[rating.label] || 'neutral'} title="Reach and click strength">
+                    {cap(rating.label.toLowerCase())}
+                  </Badge>
+                )
+              }
+            >
+              {items.length > 0 && <Metrics items={items} cols={3} />}
+              {hasActivity && (
+                <p className={`text-small text-ink-soft ${items.length ? 'mt-4' : ''}`}>
+                  <Meta items={activity} />
+                </p>
               )}
-              <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-soft">{ad.platform} · {ad.format}</span>
-            </div>
-            {ad.added_by_email && (
-              <p className="text-ink-soft text-[14px] mt-2">Added by {displayName(ad.added_by_email)}</p>
-            )}
-          </div>
+            </Panel>
+          )}
 
-          {/* Performance at a glance: the rating verdict + the raw numbers,
-              laid out as a clean stat grid so the data reads instantly. */}
-          {(rating || cells.length > 0) && (
-            <div className="bg-card rounded-xl3 shadow-card p-4 sm:p-5">
-              {rating && (
-                <div className="flex items-baseline gap-2.5 mb-4">
-                  <span className={`font-mono text-[12px] font-medium uppercase tracking-[0.12em] ${rating.tone}`}>
-                    {rating.label}
-                  </span>
-                  <span className="text-[13px] text-ink-soft">reach + click strength</span>
-                </div>
-              )}
-              {cells.length > 0 && (
-                <div className="grid grid-cols-3 gap-x-3 gap-y-5">
-                  {cells.map((c) => (
-                    <div key={c.label} className="min-w-0">
-                      <p className="font-mono text-[20px] font-medium tabular-nums leading-none truncate">{c.value}</p>
-                      <p className="kicker mt-2 truncate">{c.label}</p>
-                    </div>
+          <Panel title="Verdict and status">
+            <div className="grid grid-cols-2 gap-3 lg:gap-4">
+              <Field label="Verdict" htmlFor="ad-verdict">
+                <select id="ad-verdict" value={ad.verdict} onChange={(e) => setVerdict(e.target.value)} className={selectCls}>
+                  {VERDICTS.map((o) => (
+                    <option key={o} value={o}>
+                      {cap(o)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Status" htmlFor="ad-status">
+                <select id="ad-status" value={ad.status} onChange={(e) => patch({ status: e.target.value })} className={selectCls}>
+                  {STATUSES.map((o) => (
+                    <option key={o} value={o}>
+                      {cap(o)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          </Panel>
+
+          <Panel title="The ad" bodyClassName="flex flex-col gap-5">
+            {ad.hook && (
+              <div>
+                <SubLabel>Hook</SubLabel>
+                <p className="text-lead font-medium text-ink whitespace-pre-line">{ad.hook}</p>
+              </div>
+            )}
+            {ad.ad_copy && (
+              <div>
+                <SubLabel>Ad copy</SubLabel>
+                <p className="text-body text-ink whitespace-pre-line max-w-[68ch]">{ad.ad_copy}</p>
+              </div>
+            )}
+            {drivers.length > 0 && (
+              <div>
+                <SubLabel>Emotional drivers</SubLabel>
+                <p className="text-body text-ink">{drivers.join(', ')}</p>
+              </div>
+            )}
+            {m.transcription && (
+              <div>
+                <SubLabel>Transcript</SubLabel>
+                <p className="text-body text-ink whitespace-pre-line max-w-[68ch]">{m.transcription}</p>
+              </div>
+            )}
+            {ad.landing_url && (
+              <div>
+                <SubLabel>Landing page</SubLabel>
+                <a href={ad.landing_url} target="_blank" rel="noreferrer" className={linkCls}>
+                  {ad.landing_url}
+                </a>
+              </div>
+            )}
+            {/* The link to the ad itself (Ad Library, post url). Pasteable here
+                for ads that were added without one. */}
+            {m.source_url ? (
+              <div>
+                <SubLabel>Ad link</SubLabel>
+                <a href={m.source_url} target="_blank" rel="noreferrer" className={linkCls}>
+                  {m.source_url} <ArrowSquareOut size={14} weight="bold" aria-hidden="true" className="flex-shrink-0" />
+                </a>
+              </div>
+            ) : (
+              <div>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const v = linkDraft.trim();
+                    if (v) patch({ metrics: { ...(ad.metrics || {}), source_url: v } });
+                  }}
+                >
+                  <SubLabel>Ad link</SubLabel>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="ad-link"
+                      aria-label="Ad link"
+                      value={linkDraft}
+                      onChange={(e) => setLinkDraft(e.target.value)}
+                      placeholder="Paste the ad link (Ad Library, post url...)"
+                      className={`${inputCls} flex-1 min-w-0`}
+                    />
+                    <IconButton type="submit" label="Save ad link" icon={Check} variant="secondary" disabled={!linkDraft.trim()} />
+                  </div>
+                </form>
+                <a href={creativeLink(ad)} target="_blank" rel="noreferrer" className={`${linkCls} mt-1`}>
+                  Search this brand in the Ad Library <ArrowSquareOut size={14} weight="bold" aria-hidden="true" className="flex-shrink-0" />
+                </a>
+              </div>
+            )}
+            {tags.length > 0 && (
+              <div>
+                <SubLabel>Tags</SubLabel>
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.map((t) => (
+                    <Badge key={t}>{t}</Badge>
                   ))}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </Panel>
 
-          <div className="flex gap-3">
-            <Select label="Verdict" value={ad.verdict} options={VERDICTS} onChange={setVerdict} />
-            <Select label="Status" value={ad.status} options={STATUSES} onChange={(v) => patch({ status: v })} />
-          </div>
-
-          {/* Activity numbers synced from Foreplay: how long the ad has been
-              running and whether it is still live. */}
-          {(typeof ad.metrics?.days_running === 'number' || typeof ad.metrics?.live === 'boolean') && (
-            <Info
-              label="Activity"
-              value={[
-                typeof ad.metrics?.live === 'boolean' ? (ad.metrics.live ? 'Live now' : 'Stopped') : null,
-                typeof ad.metrics?.days_running === 'number' ? `${ad.metrics.days_running} days running` : null,
-                ad.metrics?.started_running ? `since ${new Date(ad.metrics.started_running).toLocaleDateString()}` : null,
-                ad.metrics?.last_synced ? `synced ${new Date(ad.metrics.last_synced).toLocaleDateString()}` : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            />
-          )}
-
-          {/* Link to the ad itself (Ad Library, post url, Foreplay). Pasteable
-              here for ads that were added without one. */}
-          {ad.metrics?.source_url ? (
-            <Info
-              label="Ad link"
-              value={
-                <a href={ad.metrics.source_url} target="_blank" rel="noreferrer" className="text-ink underline underline-offset-4 decoration-ink-soft hover:decoration-ink break-all inline-flex items-center gap-1 min-h-[44px]">
-                  {ad.metrics.source_url} <ArrowSquareOut size={14} className="flex-shrink-0" />
-                </a>
-              }
-            />
-          ) : (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const v = linkDraft.trim();
-                if (v) patch({ metrics: { ...(ad.metrics || {}), source_url: v } });
-              }}
-              className="flex items-center gap-2"
-            >
-              <LinkSimple size={18} weight="bold" className="text-ink-soft flex-shrink-0" />
-              <input
-                value={linkDraft}
-                onChange={(e) => setLinkDraft(e.target.value)}
-                placeholder="Paste the ad link (Ad Library, post url...)"
-                className="flex-1 min-w-0 min-h-[44px] py-2 px-3 rounded-xl border border-line focus:outline-none focus:border-accent bg-card text-[16px] sm:text-[14px] placeholder:text-ink-soft"
-              />
-              <button
-                type="submit"
-                disabled={!linkDraft.trim()}
-                aria-label="Save ad link"
-                className="press w-11 h-11 rounded-xl bg-accent text-black flex items-center justify-center flex-shrink-0 disabled:opacity-30"
-              >
-                <Check size={15} weight="bold" />
-              </button>
-            </form>
-          )}
-          {ad.metrics?.source_url ? (
-            <Info
-              label="Ad Library"
-              value={
-                <a href={ad.metrics.source_url} target="_blank" rel="noreferrer" className="text-ink underline underline-offset-4 decoration-ink-soft hover:decoration-ink break-all inline-flex items-center gap-1 min-h-[44px]">
-                  See the creative <ArrowSquareOut size={14} className="flex-shrink-0" />
-                </a>
-              }
-            />
-          ) : (
-            <Info
-              label="Ad Library"
-              value={
-                <a href={creativeLink(ad)} target="_blank" rel="noreferrer" className="text-ink underline underline-offset-4 decoration-ink-soft hover:decoration-ink break-all inline-flex items-center gap-1 min-h-[44px]">
-                  Search this brand <ArrowSquareOut size={14} className="flex-shrink-0" />
-                </a>
-              }
-            />
-          )}
-          {ad.hook && <Info label="Hook" value={ad.hook} />}
-          {ad.ad_copy && <Info label="Ad copy" value={ad.ad_copy} />}
-          {Array.isArray(ad.metrics?.emotional_drivers) && ad.metrics.emotional_drivers.length > 0 && (
-            <Info label="Emotional drivers" value={ad.metrics.emotional_drivers.join(', ')} />
-          )}
-          {ad.metrics?.transcription && <Info label="Transcript" value={ad.metrics.transcription} />}
-          {ad.landing_url && (
-            <Info label="Landing" value={<a href={ad.landing_url} target="_blank" rel="noreferrer" className="text-ink underline underline-offset-4 decoration-ink-soft hover:decoration-ink break-all inline-flex items-center min-h-[44px]">{ad.landing_url}</a>} />
-          )}
-          {Array.isArray(ad.tags) && ad.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {ad.tags.map((t) => (
-                <span key={t} className="text-[13px] leading-6 px-2 rounded bg-white/[0.06] text-ink-soft">{t}</span>
-              ))}
-            </div>
-          )}
-          <AdDetailKeys ad={ad} onVerdict={setVerdict} onStar={toggleStar} onDelete={remove} />
           <WhyItWorks ad={ad} onAdChange={setAd} />
+          <AdDetailKeys ad={ad} onVerdict={setVerdict} onStar={toggleStar} onDelete={remove} />
         </div>
       </div>
 
-      {/* Comments: shared team notes, or your own notes on a solo install */}
-      <div className="mt-10 pt-6 border-t border-line">
-        <h3 className="kicker mb-4">{TEAM_MODE ? 'Team notes' : 'Notes'}</h3>
-        <div className="flex flex-col gap-2 mb-3">
-          {comments.length === 0 && <p className="text-ink-soft text-[15px]">No notes yet.</p>}
-          {comments.map((c) => (
-            <div key={c.id} className="bg-card rounded-xl px-4 py-3">
-              <p className="text-[15px] leading-relaxed">{c.body}</p>
-              <p className="font-mono text-[11px] text-ink-soft mt-1.5">{displayName(c.author_email)}</p>
-            </div>
-          ))}
-        </div>
-        <form onSubmit={addComment} className="flex gap-2">
+      {/* Notes: shared team notes, or your own notes on a solo install. */}
+      <Panel title={TEAM_MODE ? 'Team notes' : 'Notes'} flush className="mt-4 lg:mt-6">
+        {comments.length === 0 ? (
+          <div className="px-5 lg:px-6">
+            <EmptyState text="No notes yet." className="!py-0" />
+          </div>
+        ) : (
+          <ul className="divide-y divide-line border-t border-line">
+            {comments.map((c) => (
+              <li key={c.id} className="px-5 lg:px-6 py-3">
+                <p className="text-body text-ink whitespace-pre-line">{c.body}</p>
+                <p className="text-small text-ink-soft mt-0.5">
+                  <Meta items={[displayName(c.author_email), shortDate(c.created_at)]} />
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form onSubmit={addComment} className="flex gap-2 px-5 lg:px-6 pt-4 pb-5 lg:pb-6">
+          <label htmlFor="ad-note" className="sr-only">
+            {TEAM_MODE ? 'Add a note for the team' : 'Add a note'}
+          </label>
           <input
+            id="ad-note"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder={TEAM_MODE ? 'Add a note for the team...' : 'Add a note...'}
-            className="flex-1 min-w-0 min-h-[44px] py-2.5 px-3.5 rounded-xl border border-line focus:outline-none focus:border-accent bg-card text-[16px] sm:text-[15px] placeholder:text-ink-soft"
+            className={`${inputCls} flex-1 min-w-0`}
           />
-          <button
+          <IconButton
+            type="submit"
+            label="Add note"
+            variant="primary"
+            icon={<PaperPlaneRight size={18} weight="fill" aria-hidden="true" />}
             disabled={sending || !newComment.trim()}
-            aria-label="Add note"
-            className="press w-11 h-11 flex-shrink-0 rounded-xl bg-accent text-black flex items-center justify-center disabled:opacity-30"
-          >
-            <PaperPlaneRight size={18} weight="fill" />
-          </button>
+          />
         </form>
-      </div>
-    </div>
-  );
-}
-
-function Info({ label, value }) {
-  return (
-    <div>
-      <p className="kicker mb-1">{label}</p>
-      <p className="text-[16px] leading-relaxed whitespace-pre-wrap">{value}</p>
-    </div>
-  );
-}
-
-function Select({ label, value, options, onChange }) {
-  return (
-    <label className="flex-1 min-w-0">
-      <span className="kicker block mb-1.5">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full min-h-[44px] py-2 px-3 rounded-xl border border-line bg-card focus:outline-none focus:border-accent text-[15px] capitalize"
-      >
-        {options.map((o) => (
-          <option key={o} value={o} className="capitalize">{o}</option>
-        ))}
-      </select>
-    </label>
+      </Panel>
+    </Page>
   );
 }

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CaretLeft, UploadSimple } from '@phosphor-icons/react';
+import { UploadSimple } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
+import { Page, PageHeader, Panel, Field, Button, Notice, inputCls, selectCls, textareaCls } from '@/components/ui';
 import { MEDIA_BUCKET, mediaPathFor, validateFile, friendlyStorageError, removeMedia, uploadBody } from '@/lib/saveAd';
 
 const PLATFORMS = ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'Other'];
@@ -10,8 +11,7 @@ const TYPES = ['post', 'story', 'reel', 'video', 'other'];
 const VERDICTS = ['unsure', 'winner', 'testing', 'loser'];
 const METRIC_KEYS = ['views', 'likes', 'comments', 'shares', 'saves', 'clicks', 'signups'];
 
-const field = 'w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]';
-const label = 'text-[13px] font-semibold text-ink-soft mb-1 block';
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export default function AddPost() {
   const { user } = useAuth();
@@ -107,121 +107,109 @@ export default function AddPost() {
   };
 
   return (
-    <div data-page="add-post" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[720px] mx-auto">
-      <button onClick={() => navigate('/posts')} className="flex items-center gap-1 min-h-[44px] text-ink-soft text-[14px] font-medium mb-4">
-        <CaretLeft size={16} weight="bold" /> Posts
-      </button>
-      <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mb-5">
-        {fromCompetitors ? 'Log a competitor post' : 'Log an organic post'}
-      </h1>
+    <Page id="add-post" width="narrow">
+      <PageHeader back={{ to: '/posts', label: 'Posts' }} title={fromCompetitors ? 'Log a competitor post' : 'Log an organic post'} />
 
-      <form onSubmit={submit} className="grid gap-4">
-        <div>
-          <span className={label}>Whose post is it?</span>
-          <input
-            className={field}
-            value={f.brand}
-            onChange={set('brand')}
-            placeholder="Leave empty for our own, or type the competitor brand"
-          />
-        </div>
+      <form onSubmit={submit} className="flex flex-col gap-4 lg:gap-6">
+        <Panel title="The post">
+          <div className="grid gap-5">
+            <Field label="Whose post is it?" htmlFor="post-brand" hint="Leave empty for our own, or type the competitor brand.">
+              <input id="post-brand" aria-describedby="post-brand-hint" className={inputCls} value={f.brand} onChange={set('brand')} placeholder="Our own" />
+            </Field>
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <span className={label}>Title / hook</span>
-            <input className={field} value={f.title} onChange={set('title')} placeholder="e.g. founder story reel" />
-          </div>
-          <div>
-            <span className={label}>Link to the post</span>
-            <input className={field} value={f.url} onChange={set('url')} placeholder="https://..." />
-          </div>
-        </div>
+            <div className="grid sm:grid-cols-2 gap-5 sm:gap-4">
+              <Field label="Title or hook" htmlFor="post-title">
+                <input id="post-title" className={inputCls} value={f.title} onChange={set('title')} placeholder="e.g. founder story reel" />
+              </Field>
+              <Field label="Link to the post" htmlFor="post-url">
+                <input id="post-url" className={inputCls} value={f.url} onChange={set('url')} placeholder="https://..." />
+              </Field>
+            </div>
 
-        <div className="grid sm:grid-cols-3 gap-4">
-          <div>
-            <span className={label}>Platform</span>
-            <select className={field} value={f.platform} onChange={set('platform')}>
-              {PLATFORMS.map((p) => <option key={p}>{p}</option>)}
-            </select>
-          </div>
-          <div>
-            <span className={label}>Type</span>
-            <select className={field} value={f.post_type} onChange={set('post_type')}>
-              {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-          <div>
-            <span className={label}>Posted on</span>
-            <input type="date" className={field} value={f.posted_at} onChange={set('posted_at')} />
-          </div>
-        </div>
+            <div className="grid sm:grid-cols-3 gap-5 sm:gap-4">
+              <Field label="Platform" htmlFor="post-platform">
+                <select id="post-platform" className={selectCls} value={f.platform} onChange={set('platform')}>
+                  {PLATFORMS.map((p) => <option key={p}>{p}</option>)}
+                </select>
+              </Field>
+              <Field label="Type" htmlFor="post-type">
+                <select id="post-type" className={selectCls} value={f.post_type} onChange={set('post_type')}>
+                  {TYPES.map((t) => <option key={t} value={t}>{cap(t)}</option>)}
+                </select>
+              </Field>
+              <Field label="Posted on" htmlFor="post-date">
+                <input id="post-date" type="date" className={inputCls} value={f.posted_at} onChange={set('posted_at')} />
+              </Field>
+            </div>
 
-        <div>
-          <span className={label}>Post copy</span>
-          <textarea className={`${field} min-h-[90px]`} value={f.copy} onChange={set('copy')} placeholder="Paste the caption / text..." />
-        </div>
+            <Field label="Post copy" htmlFor="post-copy">
+              <textarea id="post-copy" className={textareaCls} value={f.copy} onChange={set('copy')} placeholder="Paste the caption or text..." />
+            </Field>
+          </div>
+        </Panel>
 
-        {/* Metrics */}
-        <div>
-          <span className={label}>Results (fill what you know)</span>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+        <Panel title="Results" action={<span className="text-small text-ink-soft">Fill what you know</span>}>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {METRIC_KEYS.map((k) => (
-              <div key={k}>
+              <Field key={k} label={cap(k)} htmlFor={`post-metric-${k}`}>
                 <input
+                  id={`post-metric-${k}`}
                   type="number"
                   min="0"
-                  className={field}
+                  inputMode="numeric"
+                  className={`${inputCls} num`}
                   value={metrics[k] ?? ''}
                   onChange={setMetric(k)}
                   placeholder="0"
                 />
-                <p className="text-[11px] text-ink-soft mt-0.5 text-center capitalize">{k}</p>
-              </div>
+              </Field>
             ))}
           </div>
-        </div>
+        </Panel>
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <span className={label}>Verdict</span>
-            <select className={field} value={f.verdict} onChange={set('verdict')}>
-              {VERDICTS.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
+        <Panel title="Labels and notes">
+          <div className="grid gap-5">
+            <div className="grid sm:grid-cols-2 gap-5 sm:gap-4">
+              <Field label="Verdict" htmlFor="post-verdict">
+                <select id="post-verdict" className={selectCls} value={f.verdict} onChange={set('verdict')}>
+                  {VERDICTS.map((v) => <option key={v} value={v}>{cap(v)}</option>)}
+                </select>
+              </Field>
+              <Field label="Tags" htmlFor="post-tags" hint="Comma separated">
+                <input id="post-tags" aria-describedby="post-tags-hint" className={inputCls} value={f.tags} onChange={set('tags')} placeholder="fb-group, story, wave" />
+              </Field>
+            </div>
+
+            <Field label="Notes" htmlFor="post-notes">
+              <textarea id="post-notes" className={textareaCls} value={f.notes} onChange={set('notes')} placeholder="Anything worth remembering about this one..." />
+            </Field>
+
+            {/* Optional screenshot */}
+            <div>
+              <p className="text-small font-medium text-ink mb-2">Screenshot</p>
+              <label className="flex flex-col items-center justify-center min-h-[7.5rem] border border-dashed border-line rounded-xl p-4 text-center cursor-pointer hover:border-ink-soft transition-colors focus-within:border-ink-soft">
+                {preview ? (
+                  <img src={preview} className="max-h-48 mx-auto rounded-xl" alt="preview" />
+                ) : (
+                  <span className="flex flex-col items-center gap-2 text-ink-soft">
+                    <UploadSimple size={22} aria-hidden="true" />
+                    <span className="text-ui font-medium">Add a screenshot (optional)</span>
+                  </span>
+                )}
+                <input type="file" accept="image/*" onChange={onFile} className="sr-only" data-probe-skip />
+              </label>
+            </div>
           </div>
-          <div>
-            <span className={label}>Tags (comma separated)</span>
-            <input className={field} value={f.tags} onChange={set('tags')} placeholder="fb-group, story, wave" />
-          </div>
-        </div>
+        </Panel>
+
+        {error && <Notice tone="bad">{error}</Notice>}
 
         <div>
-          <span className={label}>Notes</span>
-          <textarea className={`${field} min-h-[60px]`} value={f.notes} onChange={set('notes')} placeholder="Anything worth remembering about this one..." />
+          <Button type="submit" variant="primary" disabled={busy}>
+            {busy ? 'Saving...' : 'Save post'}
+          </Button>
         </div>
-
-        {/* Optional screenshot */}
-        <label className="block bg-card border-2 border-dashed border-line rounded-xl3 p-4 text-center cursor-pointer hover:border-accent transition-colors">
-          {preview ? (
-            <img src={preview} className="max-h-48 mx-auto rounded-2xl" alt="preview" />
-          ) : (
-            <div className="py-4 text-ink-soft">
-              <UploadSimple size={22} className="mx-auto mb-1" />
-              <p className="text-[13px] font-medium">Screenshot (optional)</p>
-            </div>
-          )}
-          <input type="file" accept="image/*" onChange={onFile} className="hidden" />
-        </label>
-
-        {error && <p className="text-red-500 text-[13px]">{error}</p>}
-
-        <button
-          type="submit"
-          disabled={busy}
-          className="press justify-self-start px-6 py-3 rounded-2xl bg-accent text-black font-semibold disabled:opacity-60"
-        >
-          {busy ? 'Saving...' : 'Save post'}
-        </button>
       </form>
-    </div>
+    </Page>
   );
 }

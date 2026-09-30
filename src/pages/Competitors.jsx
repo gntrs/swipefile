@@ -1,23 +1,28 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  Binoculars,
-  CaretDown,
-  Images,
-  Lightning,
-  Megaphone,
-  PlusCircle,
-  TrendUp,
-} from '@phosphor-icons/react';
+import { ArrowRight, CaretDown, Plus } from '@phosphor-icons/react';
 import { fetchAll } from '@/lib/db';
 import PartialNotice from '@/components/PartialNotice';
 import { isOwnBrand } from '@/lib/brand';
 import { useTeam } from '@/contexts/TeamContext';
 import AdCard from '@/components/AdCard';
-import StatCard from '@/components/StatCard';
 import TrackCompetitors from '@/components/TrackCompetitors';
 import { isOn } from '@/lib/modules';
-import { RowsSkeleton } from '@/components/Skeleton';
+import { RowsSkeleton, StatSkeleton } from '@/components/Skeleton';
+import { shortDate } from '@/features/ai/dates';
+import {
+  Page,
+  PageHeader,
+  Button,
+  Panel,
+  Section,
+  Stat,
+  List,
+  Row,
+  Meta,
+  EmptyState,
+  GRID_CARDS,
+  GRID_STATS,
+} from '@/components/ui';
 
 const DAY = 86400000;
 
@@ -31,6 +36,24 @@ function ago(iso) {
 }
 
 const isCompetitor = (brand) => Boolean(brand && brand.trim()) && !isOwnBrand(brand);
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+// The rival table columns. Under lg a row is two lines (brand, then a meta
+// line); from lg the counts get their own right aligned columns, and the
+// platforms column joins at xl where there is room for it.
+const COLS =
+  'grid grid-cols-[minmax(0,1fr)_2.75rem] items-center gap-x-4 ' +
+  'lg:grid-cols-[minmax(0,1fr)_5rem_5rem_5rem_7rem_2.75rem] ' +
+  'xl:grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_5.5rem_minmax(0,10rem)_7.5rem_2.75rem]';
+
+function Count({ n, label }) {
+  return (
+    <span className={`hidden lg:block text-right num text-num ${n ? 'text-ink' : 'text-ink-soft/60'}`}>
+      {n}
+      <span className="sr-only"> {label}</span>
+    </span>
+  );
+}
 
 // Everything we know about the other brands, in one place: their ads (mostly
 // via the Meta Ad Library import, plus anything added by hand), how active
@@ -102,188 +125,186 @@ export default function Competitors() {
   }, [brands, compAds]);
 
   return (
-    <div data-page="competitors" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1200px] mx-auto">
-      <div className="flex items-start justify-between gap-3 mb-6">
-        <div className="min-w-0">
-          <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Competitors</h1>
-          <p className="text-ink-soft text-[15px] leading-relaxed mt-2">What the other brands are running</p>
+    <Page id="competitors">
+      <PageHeader
+        title="Competitors"
+        context="What the other brands are running"
+        actions={
+          <Button variant="primary" icon={Plus} to="/ads/add">
+            Add ad
+          </Button>
+        }
+      />
+      <PartialNotice rows={partial} onRetry={() => setReload((n) => n + 1)} className="mb-6" />
+
+      {loading ? (
+        <div className={`${GRID_STATS} mb-6`}>
+          {[0, 1, 2, 3].map((i) => (
+            <StatSkeleton key={i} />
+          ))}
         </div>
-        <Link
-          to="/ads/add"
-          className="press flex-shrink-0 flex items-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl bg-accent text-black text-[14px] font-semibold whitespace-nowrap hover:bg-accent-dim transition-colors"
-        >
-          <PlusCircle size={20} weight="bold" /> Add ad
-        </Link>
-      </div>
-      <PartialNotice rows={partial} onRetry={() => setReload((n) => n + 1)} className="mb-4" />
+      ) : (
+        brands.length > 0 && (
+          <div className={`${GRID_STATS} mb-6`}>
+            <Stat label="Brands tracked" value={totals.brands} />
+            <Stat label="Ads tracked" value={totals.ads} />
+            <Stat label="Running now" value={totals.running} />
+            <Stat label="New in 30 days" value={totals.new30} />
+          </div>
+        )
+      )}
 
       <TrackCompetitors />
 
       {loading ? (
-        <RowsSkeleton rows={3} />
+        <RowsSkeleton rows={4} className="mt-6" />
       ) : brands.length === 0 ? (
-        <div className="text-center py-20 text-ink-soft">
-          <Binoculars size={32} className="mx-auto mb-2" />
-          <p className="mb-2">No competitor ads yet.</p>
-          <p className="text-[13px]">
-            Track a brand above to pull its ads from the Meta Ad Library, or{' '}
-            <Link to="/ads/add" className="text-accent-dim font-semibold">
-              add one by hand
-            </Link>{' '}
-            with the brand filled in.
-          </p>
-        </div>
+        <Panel className="mt-6">
+          <EmptyState
+            title="No competitor ads yet."
+            text="Track a brand above to pull its ads from the Meta Ad Library, or add one by hand with the brand filled in."
+            action={
+              <Button variant="secondary" to="/ads/add">
+                Add one by hand
+              </Button>
+            }
+          />
+        </Panel>
       ) : (
         <>
-          {/* Activity overview */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <StatCard icon={Binoculars} label="Brands tracked" value={totals.brands} accent="base" />
-            <StatCard icon={Images} label="Ads tracked" value={totals.ads} accent="violet" />
-            <StatCard icon={Lightning} label="Running now" value={totals.running} accent="amber" />
-            <StatCard icon={TrendUp} label="New in 30 days" value={totals.new30} accent="blue" />
-          </div>
+          <Panel flush className="mt-6 overflow-hidden" aria-label="Rival brands">
+            <div
+              aria-hidden="true"
+              className={`${COLS} hidden lg:grid min-h-[44px] px-6 border-b border-line text-small font-medium text-ink-soft`}
+            >
+              <span>Brand</span>
+              <span className="text-right">Running</span>
+              <span className="text-right">New 30d</span>
+              <span className="text-right">Winners</span>
+              <span className="hidden xl:block">Platforms</span>
+              <span className="text-right">Last seen</span>
+              <span />
+            </div>
+            <ul className="divide-y divide-line">
+              {brands.map((b) => {
+                const isOpen = open === b.key;
+                const counts = [
+                  b.running > 0 && `${b.running} running`,
+                  b.new30 > 0 && `${b.new30} new`,
+                  b.winners > 0 && plural(b.winners, 'winner', 'winners'),
+                ].filter(Boolean);
+                return (
+                  <li key={b.key}>
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      onClick={() => setOpen(isOpen ? null : b.key)}
+                      className={`${COLS} w-full min-h-[56px] px-5 lg:px-6 py-3 text-left hover:bg-white/[0.02] transition-colors focus-visible:!outline-offset-[-2px]`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-body font-medium text-ink truncate">{b.name}</span>
+                        <Meta
+                          className="block lg:hidden text-small text-ink-soft mt-0.5"
+                          items={[
+                            ...(counts.length ? counts : [plural(b.ads.length, 'ad', 'ads')]),
+                            b.lastSeen && <span className="whitespace-nowrap">last seen {ago(b.lastSeen)}</span>,
+                          ]}
+                        />
+                      </span>
+                      <Count n={b.running} label="running" />
+                      <Count n={b.new30} label="new in 30 days" />
+                      <Count n={b.winners} label={b.winners === 1 ? 'winner' : 'winners'} />
+                      <span className="hidden xl:block text-small text-ink-soft truncate">
+                        {b.platforms.join(', ') || '-'}
+                      </span>
+                      <span className="hidden lg:block text-small text-ink-soft text-right whitespace-nowrap">
+                        {b.lastSeen ? ago(b.lastSeen) : '-'}
+                      </span>
+                      <span className="flex justify-end">
+                        <CaretDown
+                          size={16}
+                          weight="bold"
+                          aria-hidden="true"
+                          className={`text-ink-soft transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                        />
+                      </span>
+                    </button>
 
-          {/* Top competitors */}
-          <div className="flex flex-col gap-2.5">
-            {brands.map((b) => (
-              <div
-                key={b.key}
-                className="bg-card rounded-xl3 shadow-card overflow-hidden"
-              >
-                <button
-                  onClick={() => setOpen(open === b.key ? null : b.key)}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-[15px]">{b.name}</p>
-                      {b.running > 0 && (
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">
-                          {b.running} running
-                        </span>
-                      )}
-                      {b.new30 > 0 && (
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent-wash text-accent-dim">
-                          {b.new30} new in 30d
-                        </span>
-                      )}
-                      {b.winners > 0 && (
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
-                          {b.winners} winner{b.winners > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[12px] text-ink-soft truncate mt-0.5">
-                      {[
-                        `${b.ads.length} ${b.ads.length === 1 ? 'ad' : 'ads'}`,
-                        b.posts.length > 0 &&
-                          `${b.posts.length} ${b.posts.length === 1 ? 'post' : 'posts'}`,
-                        b.platforms.join(', '),
-                        b.lastSeen && `last seen ${ago(b.lastSeen)}`,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </p>
-                  </div>
-                  <CaretDown
-                    size={16}
-                    weight="bold"
-                    className={`text-ink-soft flex-shrink-0 transition-transform ${
-                      open === b.key ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-
-                {open === b.key && (
-                  <div className="px-4 pb-4 border-t border-line pt-4">
-                    {b.ads.length === 0 ? (
-                      <p className="text-ink-soft text-[13px]">No ads yet, only posts.</p>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {b.ads.slice(0, 8).map((ad) => (
-                          <AdCard key={ad.id} ad={ad} />
-                        ))}
+                    {isOpen && (
+                      <div className="px-4 lg:px-6 py-4 lg:py-6 bg-canvas/50 border-t border-line">
+                        {b.ads.length === 0 ? (
+                          <p className="text-body text-ink-soft">No ads yet, only posts.</p>
+                        ) : (
+                          <div className={GRID_CARDS}>
+                            {b.ads.slice(0, 8).map((ad) => (
+                              <AdCard key={ad.id} ad={ad} />
+                            ))}
+                          </div>
+                        )}
+                        {b.ads.length > 8 && (
+                          <Button
+                            variant="ghost"
+                            to={`/ads?q=${encodeURIComponent(b.name)}`}
+                            className="mt-3 -ml-4"
+                          >
+                            See all {b.ads.length} in the library
+                            <ArrowRight size={14} weight="bold" aria-hidden="true" />
+                          </Button>
+                        )}
                       </div>
                     )}
-                    {b.ads.length > 8 && (
-                      <Link
-                        to={`/ads?q=${encodeURIComponent(b.name)}`}
-                        className="inline-block mt-3 text-accent-dim text-[13px] font-semibold"
-                      >
-                        See all {b.ads.length} in the library
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </Panel>
 
           {/* Competitor social posts (team module) */}
           {isOn('team') && (
-          <>
-          <div className="flex items-center justify-between gap-3 mt-8 mb-3">
-            <div>
-              <h2 className="text-[17px] font-semibold tracking-tight">Their social posts</h2>
-              <p className="text-ink-soft text-[13px]">
-                Organic content spotted on competitor accounts
-              </p>
-            </div>
-            <Link
-              to="/posts/add?competitor=1"
-              className="flex items-center gap-1.5 min-h-[44px] text-accent-dim text-[14px] font-semibold flex-shrink-0"
+            <Section
+              title="Their social posts"
+              action={
+                <Button variant="secondary" icon={Plus} to="/posts/add?competitor=1">
+                  Log one
+                </Button>
+              }
             >
-              <PlusCircle size={18} weight="bold" /> Log one
-            </Link>
-          </div>
-
-          {compPosts.length === 0 ? (
-            <div className="bg-card rounded-xl3 shadow-card px-4 py-6 text-center text-ink-soft">
-              <Megaphone size={24} className="mx-auto mb-1.5" />
-              <p className="text-[13px]">
-                Nothing logged yet. Spot a competitor post worth remembering?{' '}
-                <Link to="/posts/add?competitor=1" className="text-accent-dim font-semibold">
-                  Log it
-                </Link>{' '}
-                with the brand filled in.
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              {compPosts.map((p) => (
-                <Link
-                  key={p.id}
-                  to={`/post/${p.id}`}
-                  className="bg-card rounded-xl3 shadow-card hover:shadow-cardhover transition-all px-4 py-3 flex items-center gap-4"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent-wash text-accent-dim flex-shrink-0">
-                        {p.brand.trim()}
-                      </span>
-                      <p className="font-semibold text-[15px] truncate">
-                        {p.title || 'Untitled post'}
-                      </p>
-                    </div>
-                    <p className="text-[12px] text-ink-soft truncate mt-0.5">
-                      {[
-                        p.platform,
-                        p.post_type,
-                        p.posted_at,
-                        p.added_by_email && `by ${displayName(p.added_by_email)}`,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-          </>
+              {compPosts.length === 0 ? (
+                <Panel>
+                  <EmptyState
+                    text="Nothing logged yet. Spot a competitor post worth remembering? Log it with the brand filled in."
+                  />
+                </Panel>
+              ) : (
+                <Panel flush>
+                  <List>
+                    {compPosts.map((p) => (
+                      <Row
+                        key={p.id}
+                        to={`/post/${p.id}`}
+                        title={p.title || 'Untitled post'}
+                        meta={
+                          <Meta
+                            items={[
+                              <span key="b" className="text-ink">
+                                {p.brand.trim()}
+                              </span>,
+                              p.platform,
+                              p.post_type,
+                              shortDate(p.posted_at),
+                              p.added_by_email && `by ${displayName(p.added_by_email)}`,
+                            ]}
+                          />
+                        }
+                      />
+                    ))}
+                  </List>
+                </Panel>
+              )}
+            </Section>
           )}
         </>
       )}
-    </div>
+    </Page>
   );
 }

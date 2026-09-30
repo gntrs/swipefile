@@ -1,9 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 // Black and white, dark only. A near black canvas, slightly lighter cards that
 // need no border to stand apart, light ink, one white accent, and small radii.
-// Mono carries labels and numbers. Colour only ever means something: green is
-// good, red is bad, amber is a star or a warning. The whole app is driven by
-// these tokens, so changing them here changes every screen.
+// Figtree for reading, JetBrains Mono only for numbers, code and one eyebrow
+// per page. Colour only ever means something: green is good, red is bad, amber
+// is a star or a warning. The whole app is driven by these tokens, so changing
+// them here changes every screen.
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
@@ -46,10 +47,26 @@ export default {
         violet: { 50: '#1A191B', 600: '#B2AEB8' },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        // Geist Mono for labels, meta, numbers and code. Numbers also take
-        // tabular-nums so columns line up.
-        mono: ['Geist Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        // Both faces are self hosted through @fontsource (see src/main.jsx).
+        sans: ['Figtree', 'ui-sans-serif', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        // Numbers, code and keys only. Numbers also take tabular-nums (.num)
+        // so columns line up.
+        mono: ['"JetBrains Mono"', 'ui-monospace', '"SF Mono"', '"Cascadia Mono"', 'Menlo', 'monospace'],
+      },
+      // The only type sizes a page may use. All rem, so the root size in
+      // index.css (16, 17.5 from 1200px, 18.5 from 1600px) moves the whole
+      // scale. text-meta is the floor: nothing renders smaller.
+      fontSize: {
+        meta: ['0.75rem', { lineHeight: '1rem' }],
+        small: ['0.875rem', { lineHeight: '1.35rem' }],
+        ui: ['0.9375rem', { lineHeight: '1.25rem' }],
+        body: ['1rem', { lineHeight: '1.6' }],
+        lead: ['1.125rem', { lineHeight: '1.55' }],
+        title: ['1.125rem', { lineHeight: '1.35', letterSpacing: '-0.01em', fontWeight: '600' }],
+        h2: ['1.375rem', { lineHeight: '1.25', letterSpacing: '-0.02em', fontWeight: '700' }],
+        h1: ['clamp(1.75rem, 1.4rem + 0.8vw, 2rem)', { lineHeight: '1.1', letterSpacing: '-0.025em', fontWeight: '700' }],
+        num: ['1rem', { lineHeight: '1.25' }],
+        'num-lg': ['clamp(1.75rem, 1.4rem + 0.9vw, 2.25rem)', { lineHeight: '1', letterSpacing: '-0.02em' }],
       },
       boxShadow: {
         // Barely there. A card is lit on its top edge and nothing else; the

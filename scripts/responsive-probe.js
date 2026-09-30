@@ -44,6 +44,7 @@ const SIZES = [
   [1024, 768, 'iPad landscape'],
   [1280, 800, 'laptop'],
   [1440, 900, 'desktop'],
+  [1920, 1080, 'common desktop monitor'],
 ]
 
 /* The demo seed uses fixed ids, so these routes always exist in demo mode.
@@ -51,6 +52,7 @@ const SIZES = [
 const AD_1 = '00000000-0000-4000-8000-000000000001'
 const AD_2 = '00000000-0000-4000-8000-000000000002'
 const ROUTES = [
+  { label: 'home', path: '/', page: 'dashboard' },
   { label: 'library', path: '/ads', page: 'library' },
   { label: 'library-filtered', path: '/ads?verdict=winner', page: 'library' },
   { label: 'ad-detail', path: `/ad/${AD_1}`, page: 'ad-detail' },
@@ -60,7 +62,6 @@ const ROUTES = [
   { label: 'briefs', path: '/briefs', page: 'briefs' },
   { label: 'competitors', path: '/competitors', page: 'competitors' },
   { label: 'intel', path: '/intel', page: 'intel' },
-  { label: 'overview', path: '/overview', page: 'dashboard' },
   { label: 'compare', path: `/compare?ids=${AD_1},${AD_2}`, page: 'compare' },
   { label: 'profile', path: '/profile', page: 'profile' },
   { label: 'setup', path: '/setup', page: 'setup' },
@@ -72,7 +73,6 @@ const ROUTES = [
 /* Screens that exist only with the team module on. */
 const POST_1 = '00000000-0000-4000-8000-000000000401'
 const TEAM_ROUTES = [
-  { label: 'home', path: '/', page: 'dashboard' },
   { label: 'posts', path: '/posts', page: 'posts' },
   { label: 'add-post', path: '/posts/add', page: 'add-post' },
   { label: 'post-detail', path: `/post/${POST_1}`, page: 'post-detail' },
@@ -83,7 +83,13 @@ const TEAM_ROUTES = [
 function yieldNow() {
   return new Promise((resolve) => {
     const channel = new MessageChannel()
-    channel.port1.onmessage = () => resolve()
+    // Close both ports: an open channel per yield piles up millions of live
+    // ports over a team sweep and crashes the tab.
+    channel.port1.onmessage = () => {
+      channel.port1.close()
+      channel.port2.close()
+      resolve()
+    }
     channel.port2.postMessage(0)
   })
 }

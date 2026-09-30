@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X } from '@phosphor-icons/react';
+import { IconButton } from '@/components/ui';
 
 // Sale celebration overlay ("party mode", see src/lib/celebration.js).
 // Mounted once in Layout. Listens for the 'sale-celebrate' event, then plays
@@ -191,17 +192,16 @@ export default function SaleCelebration() {
       />
       {meme.chroma && <canvas ref={canvasRef} className={mediaCls} />}
       {meme.music && <audio ref={audioRef} src={meme.music} preload="auto" />}
-      <button
-        type="button"
+      <IconButton
+        label="Close"
+        icon={X}
+        variant="secondary"
         onClick={(e) => {
           e.stopPropagation();
           setMeme(null);
         }}
-        aria-label="Close"
-        className="absolute top-5 right-5 w-11 h-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20"
-      >
-        <X size={20} weight="bold" />
-      </button>
+        className="absolute top-[calc(1.25rem+env(safe-area-inset-top))] right-5 !rounded-full !bg-white/10 hover:!bg-white/20 !text-white"
+      />
     </div>
   );
 }

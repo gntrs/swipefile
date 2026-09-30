@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Check, Copy, FileText, FilmSlate, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
+import { Check, Copy, FilmSlate, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
 import { db, isMissingTable, isMissingColumn } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
@@ -9,6 +9,7 @@ import MigrationCard from '@/components/MigrationCard';
 import { shortDate } from '@/features/ai/dates';
 import { sourceIdsOf, sourceLabel, briefAuthor, checkDraft } from '@/features/ai/briefs';
 import { RowsSkeleton } from '@/components/Skeleton';
+import { Page, PageHeader, Panel, Button, Field, Meta, EmptyState, Notice, inputCls, textareaCls } from '@/components/ui';
 
 // A brief can carry a ready-to-paste prompt for an AI video editor, fenced off
 // from the prose so it survives the round trip to the tool intact. Everything
@@ -25,16 +26,27 @@ export function extractPrompt(body = '') {
   return block || null;
 }
 
-const kicker = 'kicker';
-const actionBase =
-  'press inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 rounded-xl text-[14px] font-semibold transition-colors disabled:opacity-60';
-const actionBtn = `${actionBase} bg-white/[0.06] hover:bg-white/[0.1] text-ink`;
-const primaryBtn =
-  'press inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-accent text-black text-[14px] font-semibold hover:bg-accent-dim transition-colors disabled:opacity-60';
-const inputCls =
-  'w-full min-h-[44px] px-3 py-2.5 rounded-xl border border-line bg-canvas text-[16px] focus:outline-none focus:border-accent';
+// The body around the prompt: the text before it, the prompt, the text after.
+// The marker lines themselves are never shown.
+function splitBrief(body = '') {
+  const start = body.indexOf(PROMPT_OPEN);
+  if (start === -1) return { before: body.trim(), prompt: null, after: '' };
+  const end = body.indexOf(PROMPT_CLOSE, start + PROMPT_OPEN.length);
+  return {
+    before: body.slice(0, start).trim(),
+    prompt: extractPrompt(body),
+    after: end === -1 ? '' : body.slice(end + PROMPT_CLOSE.length).trim(),
+  };
+}
 
-function CopyButton({ text, label, icon: Icon = Copy }) {
+// The folded preview: the first lines, without the prompt markers.
+const preview = (body = '') =>
+  body
+    .split('\n')
+    .filter((l) => !l.includes(PROMPT_OPEN) && !l.includes(PROMPT_CLOSE))
+    .join('\n');
+
+function CopyButton({ text, label, icon = Copy }) {
   const [state, setState] = useState('idle');
   const copy = async () => {
     try {
@@ -46,15 +58,14 @@ function CopyButton({ text, label, icon: Icon = Copy }) {
     }
   };
   return (
-    <button type="button" onClick={copy} className={state === 'copied' ? `${actionBase} bg-emerald-500/15 text-emerald-300` : actionBtn}>
-      {state === 'copied' ? <Check size={14} weight="bold" /> : <Icon size={14} weight="bold" />}
+    <Button onClick={copy} icon={state === 'copied' ? Check : icon} className={state === 'copied' ? '!text-emerald-300' : ''}>
       {state === 'copied' ? 'Copied' : state === 'failed' ? 'Copy failed, select the text' : label}
-    </button>
+    </Button>
   );
 }
 
 // A brief's title and body as a form, for editing and for new briefs.
-function BriefForm({ initial, saving, error, onSave, onCancel, saveLabel = 'Save' }) {
+function BriefForm({ initial, saving, error, onSave, onCancel, saveLabel = 'Save', idPrefix = 'brief' }) {
   const [title, setTitle] = useState(initial?.title || '');
   const [body, setBody] = useState(initial?.body || '');
   return (
@@ -63,33 +74,28 @@ function BriefForm({ initial, saving, error, onSave, onCancel, saveLabel = 'Save
         e.preventDefault();
         onSave({ title, body });
       }}
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-5"
     >
-      <label className="flex flex-col gap-1">
-        <span className={kicker}>Title</span>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputCls} maxLength={200} />
-      </label>
-      <label className="flex flex-col gap-1">
-        <span className={kicker}>Brief</span>
+      <Field label="Title" htmlFor={`${idPrefix}-title`}>
+        <input id={`${idPrefix}-title`} value={title} onChange={(e) => setTitle(e.target.value)} className={inputCls} maxLength={200} />
+      </Field>
+      <Field label="Brief" htmlFor={`${idPrefix}-body`}>
         <textarea
+          id={`${idPrefix}-body`}
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={10}
-          className={`${inputCls} leading-relaxed min-h-[200px] resize-y`}
+          className={`${textareaCls} min-h-[12.5rem]`}
         />
-      </label>
-      {error && (
-        <p role="alert" className="text-[15px] text-red-600 leading-relaxed">
-          {error}
-        </p>
-      )}
+      </Field>
+      {error && <Notice tone="bad">{error}</Notice>}
       <div className="flex flex-wrap gap-2">
-        <button type="submit" disabled={saving} className={primaryBtn}>
+        <Button type="submit" variant="primary" disabled={saving}>
           {saving ? 'Saving...' : saveLabel}
-        </button>
-        <button type="button" onClick={onCancel} disabled={saving} className={actionBtn}>
+        </Button>
+        <Button variant="ghost" onClick={onCancel} disabled={saving}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -101,45 +107,38 @@ function Sources({ brief, sourceAds, sourcesLoaded }) {
   const hooks = Array.isArray(brief.source_hooks) ? brief.source_hooks.filter(Boolean) : [];
   if (!ids.length && !hooks.length) return null;
   return (
-    <div className="mt-4">
-      <p className={`${kicker} mb-2`}>Sources</p>
+    <div className="mt-6">
+      <p className="text-small font-medium text-ink-soft mb-1">Sources</p>
       {ids.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <ul className="divide-y divide-line">
           {ids.map((id) => {
             const ad = sourceAds.get(id);
-            if (sourcesLoaded && !ad) {
-              return (
-                <span key={id} className="inline-flex items-center min-h-[44px] px-3 rounded-xl border border-dashed border-line text-[14px] text-ink-soft">
-                  Deleted ad
-                </span>
-              );
-            }
             return (
-              <Link
-                key={id}
-                to={`/ad/${id}`}
-                className="press inline-flex items-center min-h-[44px] max-w-full px-3 rounded-xl bg-canvas hover:bg-white/[0.06] text-[14px] text-ink transition-colors"
-              >
-                <span className="truncate">{ad ? sourceLabel(ad) : 'Source ad'}</span>
-              </Link>
+              <li key={id}>
+                {sourcesLoaded && !ad ? (
+                  <span className="flex items-center min-h-[44px] text-small text-ink-soft">Deleted ad</span>
+                ) : (
+                  <Link
+                    to={`/ad/${id}`}
+                    className="flex items-center min-h-[44px] text-small text-ink hover:underline underline-offset-4 decoration-ink-soft/60"
+                  >
+                    <span className="truncate">{ad ? sourceLabel(ad) : 'Source ad'}</span>
+                  </Link>
+                )}
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
       {hooks.length > 0 && (
-        <div className="mt-2">
-          <button
-            type="button"
-            onClick={() => setShowHooks((v) => !v)}
-            aria-expanded={showHooks}
-            className="press inline-flex items-center min-h-[44px] px-3 -ml-3 rounded-xl text-[14px] font-semibold text-ink-soft hover:text-ink"
-          >
+        <div className="mt-1">
+          <Button variant="ghost" onClick={() => setShowHooks((v) => !v)} aria-expanded={showHooks} className="-ml-4">
             {hooks.length === 1 ? '1 hook' : `${hooks.length} hooks`}
-          </button>
+          </Button>
           {showHooks && (
             <ul className="mt-1 flex flex-col gap-1.5">
               {hooks.map((h, i) => (
-                <li key={i} className="text-[16px] leading-relaxed">
+                <li key={i} className="text-body text-ink">
                   {h}
                 </li>
               ))}
@@ -318,79 +317,86 @@ export default function Briefs() {
 
   if (missing) {
     return (
-      <div data-page="briefs" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[720px] mx-auto">
+      <Page id="briefs" width="narrow">
+        <PageHeader title="Briefs" />
         <MigrationCard title="Briefs" />
-      </div>
+      </Page>
     );
   }
 
+  const bodyText = (text) => <p className="text-body text-ink whitespace-pre-wrap select-text max-w-[68ch]">{text}</p>;
+
   return (
-    <div data-page="briefs" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[720px] mx-auto">
-      <div className="mb-6 flex items-start gap-3">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Briefs</h1>
-          <p className="text-ink-soft text-[15px] leading-relaxed mt-2">
-            What to make next. Write one here, or select ads or hooks and build one from them.
-          </p>
-        </div>
-        {!creating && (
-          <button
-            type="button"
-            onClick={() => {
-              setEditing(null);
-              setFormError(null);
-              setCreating(true);
-            }}
-            className={`${primaryBtn} gap-1.5 flex-shrink-0`}
-          >
-            <Plus size={16} weight="bold" />
-            New brief
-          </button>
-        )}
-      </div>
+    <Page id="briefs" width="narrow">
+      <PageHeader
+        title="Briefs"
+        context="What to make next. Write one here, or select ads or hooks and build one from them."
+        actions={
+          !creating && (
+            <Button
+              variant={editing ? 'secondary' : 'primary'}
+              icon={Plus}
+              onClick={() => {
+                setEditing(null);
+                setFormError(null);
+                setCreating(true);
+              }}
+            >
+              New brief
+            </Button>
+          )
+        }
+      />
 
       {creating && (
-        <div className="bg-card rounded-xl3 shadow-card p-4 sm:p-5 mb-4">
-          <p className={`${kicker} mb-3`}>New brief</p>
-          <BriefForm saving={saving} error={formError} onSave={create} onCancel={() => setCreating(false)} saveLabel="Save brief" />
-        </div>
+        <Panel title="New brief" className="mb-4 lg:mb-6">
+          <BriefForm
+            idPrefix="new-brief"
+            saving={saving}
+            error={formError}
+            onSave={create}
+            onCancel={() => setCreating(false)}
+            saveLabel="Save brief"
+          />
+        </Panel>
       )}
 
       {loadError && (
-        <p role="alert" className="mb-4 text-[15px] text-red-600 leading-relaxed">
+        <Notice tone="bad" className="mb-4">
           {loadError}
-        </p>
+        </Notice>
       )}
 
       {loading ? (
         <RowsSkeleton rows={3} />
       ) : briefs.length === 0 ? (
-        !creating && !loadError && (
-          <div className="text-center py-20 text-ink-soft">
-            <FileText size={32} weight="bold" className="mx-auto mb-4" />
-            <p className="text-[16px]">No briefs yet. Write one, or select ads in the library and build one.</p>
-          </div>
+        !creating &&
+        !loadError && (
+          <Panel>
+            <EmptyState title="No briefs yet." text="Write one, or select ads in the library and build one from them." />
+          </Panel>
         )
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-4">
           {briefs.map((b) => {
             const expanded = open === b.id || editing === b.id;
-            const prompt = extractPrompt(b.body || '');
+            const parts = splitBrief(b.body || '');
+            const prompt = parts.prompt;
             const who = briefAuthor(b, { teamMode: TEAM_MODE, displayName });
             const date = shortDate(b.created_at);
             const edited = b.updated_at ? shortDate(b.updated_at) : null;
             return (
-              <div
+              <section
                 key={b.id}
                 ref={highlight === b.id ? wantedRef : null}
-                className={`bg-card rounded-xl3 shadow-card scroll-mt-6 transition-shadow duration-700 ${
-                  highlight === b.id ? 'ring-2 ring-accent' : ''
-                }`}
+                aria-label={b.title}
+                className={`bg-card rounded-xl3 scroll-mt-6 transition-shadow duration-700 ${highlight === b.id ? 'ring-2 ring-accent' : ''}`}
               >
                 {editing === b.id ? (
-                  <div className="p-4 sm:p-5">
-                    <p className={`${kicker} mb-3`}>Edit brief</p>
+                  <div className="p-5 lg:p-6">
+                    <h2 className="text-title text-ink mb-4">Edit brief</h2>
                     <BriefForm
+                      idPrefix={`brief-${b.id}`}
                       initial={b}
                       saving={saving}
                       error={formError}
@@ -407,55 +413,59 @@ export default function Briefs() {
                       type="button"
                       onClick={() => setOpen(expanded ? null : b.id)}
                       aria-expanded={expanded}
-                      className="block w-full min-h-[44px] text-left px-4 sm:px-5 pt-4 sm:pt-5 pb-2 rounded-xl3"
+                      className={`block w-full min-h-[44px] text-left px-5 lg:px-6 pt-5 lg:pt-6 rounded-xl3 ${expanded ? 'pb-4' : 'pb-5 lg:pb-6'}`}
                     >
-                      <p className="font-semibold text-[18px] leading-snug tracking-[-0.01em]">{b.title}</p>
-                      <p className="font-mono text-[12px] text-ink-soft mt-1.5">
-                        {[date, who, edited ? `edited ${edited}` : null].filter(Boolean).join(' · ')}
-                      </p>
+                      <span className="block text-title text-ink">{b.title}</span>
+                      <Meta
+                        className="block text-small text-ink-soft mt-1"
+                        items={[date, who, edited ? `edited ${edited}` : null]}
+                      />
+                      {!expanded && (
+                        <span className="block text-body text-ink-soft line-clamp-2 whitespace-pre-line mt-3">{preview(b.body || '')}</span>
+                      )}
                     </button>
-                    {expanded ? (
-                      <div className="px-4 sm:px-5 pb-4 sm:pb-5">
-                        <p className="text-[16px] leading-relaxed whitespace-pre-wrap select-text max-w-[68ch]">{b.body}</p>
+                    {expanded && (
+                      <div className="px-5 lg:px-6 pb-5 lg:pb-6">
+                        <div className="flex flex-col gap-4">
+                          {parts.before && bodyText(parts.before)}
+                          {prompt && (
+                            <div className="bg-white/[0.03] rounded-xl p-4 max-w-[68ch]">
+                              <p className="text-small font-medium text-ink-soft mb-2">Editor prompt</p>
+                              <p className="text-body text-ink whitespace-pre-wrap select-text">{prompt}</p>
+                            </div>
+                          )}
+                          {parts.after && bodyText(parts.after)}
+                        </div>
                         <Sources brief={b} sourceAds={sourceAds} sourcesLoaded={sourcesLoaded} />
-                        <div className="mt-5 flex flex-wrap gap-2">
+                        <div className="mt-6 flex flex-wrap gap-2">
                           <CopyButton text={`${b.title}\n\n${b.body}`} label="Copy brief" />
                           {prompt && <CopyButton text={prompt} label="Copy prompt" icon={FilmSlate} />}
-                          <button type="button" onClick={() => startEdit(b)} className={actionBtn}>
-                            <PencilSimple size={14} weight="bold" />
+                          <Button variant="ghost" icon={PencilSimple} onClick={() => startEdit(b)}>
                             Edit
-                          </button>
-                          <button
-                            type="button"
+                          </Button>
+                          <Button
+                            variant="danger"
+                            icon={Trash}
                             onClick={() => remove(b)}
-                            className={armed === b.id ? `${actionBase} bg-red-500 text-white` : `${actionBase} bg-white/[0.06] hover:bg-white/[0.1] text-red-600`}
+                            className={armed === b.id ? 'bg-red-500/15' : ''}
                           >
-                            <Trash size={14} weight="bold" />
                             {armed === b.id ? 'Tap again to delete' : 'Delete'}
-                          </button>
+                          </Button>
                         </div>
                         {rowError?.id === b.id && (
-                          <p role="alert" className="mt-2 text-[15px] text-red-600">
+                          <Notice tone="bad" className="mt-3">
                             {rowError.message}
-                          </p>
+                          </Notice>
                         )}
                       </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setOpen(b.id)}
-                        className="block w-full min-h-[44px] text-left px-4 sm:px-5 pb-4 sm:pb-5 rounded-xl3"
-                      >
-                        <p className="text-[15px] leading-relaxed text-ink-soft line-clamp-2 whitespace-pre-wrap">{b.body}</p>
-                      </button>
                     )}
                   </>
                 )}
-              </div>
+              </section>
             );
           })}
         </div>
       )}
-    </div>
+    </Page>
   );
 }

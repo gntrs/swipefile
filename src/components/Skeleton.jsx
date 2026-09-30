@@ -10,47 +10,53 @@ export function Skeleton({ className = '' }) {
   );
 }
 
-// A stat-tile-shaped skeleton, matching StatCard's footprint.
+// A stat tile on its way, in Stat's footprint: the label on top, the number
+// at the bottom.
 export function StatSkeleton() {
   return (
-    <div className="bg-card rounded-xl3 shadow-card p-5">
-      <Skeleton className="w-10 h-10 rounded-xl mb-3" />
-      <Skeleton className="w-20 h-7 mb-2" />
-      <Skeleton className="w-16 h-3" />
+    <div className="flex flex-col min-h-[7.5rem] bg-card rounded-xl3 p-5 lg:p-6">
+      <Skeleton className="w-24 h-3.5" />
+      <Skeleton className="w-16 h-8 mt-auto" />
     </div>
   );
 }
 
-// An ad card on its way: brand, two lines of hook, the verdict row and the
-// three numbers, in the places AdCard puts them.
+// An ad card on its way, in AdCard's places: brand, two hook lines, the status
+// line, three numbers, and the footer under a hairline.
 export function CardSkeleton() {
   return (
-    <div className="bg-card rounded-xl3 shadow-card px-4 pt-4 pb-4 flex flex-col min-h-[208px]">
-      <Skeleton className="w-24 h-3" />
-      <Skeleton className="w-full h-4 mt-3" />
-      <Skeleton className="w-3/4 h-4 mt-2" />
-      <div className="flex gap-2 mt-4">
-        <Skeleton className="w-16 h-5 rounded-full" />
-        <Skeleton className="w-12 h-5" />
+    <div className="flex flex-col min-h-[15.5rem] bg-card rounded-xl3">
+      <div className="flex flex-1 flex-col px-5 pt-5 pb-4">
+        <Skeleton className="w-24 h-3.5" />
+        <Skeleton className="w-full h-4 mt-4" />
+        <Skeleton className="w-3/4 h-4 mt-2.5" />
+        <div className="flex gap-2 mt-4">
+          <Skeleton className="w-16 h-6" />
+          <Skeleton className="w-24 h-6" />
+        </div>
+        <div className="grid grid-cols-3 gap-4 mt-auto pt-5">
+          <Skeleton className="h-9" />
+          <Skeleton className="h-9" />
+          <Skeleton className="h-9" />
+        </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 mt-auto pt-4">
-        <Skeleton className="h-8" />
-        <Skeleton className="h-8" />
-        <Skeleton className="h-8" />
+      <div className="flex items-center justify-between gap-4 min-h-[44px] px-5 border-t border-line">
+        <Skeleton className="w-16 h-3.5" />
+        <Skeleton className="w-28 h-3.5" />
       </div>
     </div>
   );
 }
 
-// A list of text rows on their way (hooks, briefs, notes).
+// Rows on their way (hooks, briefs, notes), inside one panel with hairlines.
 export function RowsSkeleton({ rows = 4, className = '' }) {
   return (
-    <div className={`flex flex-col gap-2 ${className}`} aria-busy="true">
+    <div className={`bg-card rounded-xl3 divide-y divide-line ${className}`} aria-busy="true">
       <span className="sr-only">Loading...</span>
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="bg-card rounded-xl3 shadow-card px-4 py-4">
+        <div key={i} className="flex flex-col justify-center min-h-[56px] px-5 lg:px-6 py-3.5">
           <Skeleton className={`h-4 ${i % 2 ? 'w-2/3' : 'w-5/6'}`} />
-          <Skeleton className="w-24 h-3 mt-3" />
+          <Skeleton className="w-28 h-3 mt-2.5" />
         </div>
       ))}
     </div>

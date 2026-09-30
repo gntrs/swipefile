@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { CurrencyEur, CursorClick, Target, TrendUp } from '@phosphor-icons/react';
 import { OWN_BRAND, isOwnBrand } from '@/lib/brand';
+import { Panel, PanelLink, Metrics, EmptyState } from '@/components/ui';
 
 // End-of-day numbers view. Two cards, both derived from the ads already loaded
 // on the dashboard (no extra fetch): how OUR ads are performing, and how hard
@@ -16,26 +16,17 @@ const pct = (v) => (v == null ? '-' : `${(+v).toFixed(2)}%`);
 const compact = (v) =>
   v == null ? '-' : v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k` : `${v}`;
 
-const ACCENT = {
-  base: 'text-accent-dim',
-  emerald: 'text-emerald-600',
-  blue: 'text-ink-soft',
-  violet: 'text-ink-soft',
-  amber: 'text-amber-600',
-};
-
-function Stat({ icon: Icon, label, value, sub, accent = 'base' }) {
-  return (
-    <div className="bg-card rounded-xl px-3.5 py-3">
-      <div className="flex items-center gap-1.5 mb-1">
-        <Icon size={15} weight="bold" className={ACCENT[accent] || ACCENT.base} />
-        <span className="text-[12px] font-medium text-ink-soft">{label}</span>
-      </div>
-      <p className="font-mono text-[19px] font-semibold tabular-nums leading-none tracking-tight">{value}</p>
-      {sub && <p className="text-[11px] text-ink-soft mt-1 truncate">{sub}</p>}
-    </div>
-  );
-}
+// Our ads as a small table: the name, then four right aligned number columns
+// that line up row to row. Under sm the numbers drop to a second line, each
+// with its label.
+const OUR_COLS =
+  'grid grid-cols-4 gap-x-3 sm:grid-cols-[minmax(0,1fr)_4rem_4.5rem_5rem_3.5rem] sm:items-center';
+const NUMS = [
+  ['ctr', 'CTR'],
+  ['cpc', 'CPC'],
+  ['spend', 'Spend'],
+  ['reach', 'Reach'],
+];
 
 export default function AdAnalytics({ ads }) {
   // ---- our ads ----
@@ -99,109 +90,112 @@ export default function AdAnalytics({ ads }) {
   }, [ads]);
 
   return (
-    <div className="grid lg:grid-cols-2 gap-4 mb-4">
+    <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-6 min-w-0">
       {/* Our ads */}
-      <div className="bg-card rounded-xl3 shadow-card p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-[15px]">Our ad performance</h2>
-          <Link to={`/ads?q=${encodeURIComponent(OWN_BRAND)}`} className="inline-flex items-center justify-end min-h-[44px] min-w-[44px] text-[12px] text-accent-dim font-semibold">
-            All ours
-          </Link>
-        </div>
-
+      <Panel
+        title="Our ad performance"
+        className="xl:col-span-7"
+        action={<PanelLink to={`/ads?q=${encodeURIComponent(OWN_BRAND)}`}>All ours</PanelLink>}
+      >
         {our.rows.length === 0 ? (
-          <p className="text-ink-soft text-[13px]">
-            No numbers on our ads yet. They fill in from the Meta import.
-          </p>
+          <EmptyState text="No numbers on our ads yet. They fill in from the Meta import." />
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-              <Stat icon={CurrencyEur} label="Spend" value={eur(our.totalSpend)} accent="base" />
-              <Stat icon={CursorClick} label="CTR" value={pct(our.blendedCtr)} accent="blue" />
-              <Stat icon={Target} label="CPC" value={eur(our.blendedCpc)} accent="violet" />
-              <Stat
-                icon={TrendUp}
-                label="Best CTR"
-                value={our.best ? pct(our.best.ctr) : '-'}
-                sub={our.best?.name}
-                accent="emerald"
-              />
-            </div>
+            <Metrics
+              cols={2}
+              className="sm:grid-cols-4 mb-2"
+              items={[
+                { label: 'Spend', value: eur(our.totalSpend) },
+                { label: 'CTR', value: pct(our.blendedCtr) },
+                { label: 'CPC', value: eur(our.blendedCpc) },
+                { label: 'Best CTR', value: our.best ? pct(our.best.ctr) : null, tone: our.best ? 'good' : undefined },
+              ]}
+            />
+            {our.best && <p className="text-small text-ink-soft truncate mb-5">Best: {our.best.name}</p>}
 
-            {/* CTR per ad - bar width = CTR relative to our best, the efficiency
-                read; money + cost sit in the label line. */}
-            <div className="flex flex-col gap-2.5">
-              {our.rows.map((r) => (
-                <Link key={r.id} to={`/ad/${r.id}`} className="block min-h-[44px] group">
-                  <div className="flex items-baseline justify-between gap-2 mb-1">
-                    <span className="text-[13px] font-medium truncate group-hover:text-accent-dim transition-colors">
-                      {r.name}
-                    </span>
-                    <span className="font-mono text-[12px] text-ink-soft tabular-nums flex-shrink-0">
-                      {pct(r.ctr)} · {eur(r.cpc)} CPC
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2.5 rounded-full bg-card overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-accent"
-                        style={{ width: `${Math.max(3, ((r.ctr || 0) / our.maxCtr) * 100)}%` }}
-                      />
-                    </div>
-                    <span className="font-mono text-[11px] text-ink-soft tabular-nums w-20 text-right flex-shrink-0">
-                      {eur(r.spend)} · {compact(r.impressions)}
-                    </span>
-                  </div>
-                </Link>
+            <div aria-hidden="true" className={`${OUR_COLS} hidden sm:grid pb-2 border-b border-line text-meta font-medium text-ink-soft`}>
+              <span>Ad</span>
+              {NUMS.map(([k, label]) => (
+                <span key={k} className="text-right">
+                  {label}
+                </span>
               ))}
             </div>
+            <ul className="divide-y divide-line">
+              {our.rows.map((r) => {
+                const values = { ctr: pct(r.ctr), cpc: eur(r.cpc), spend: eur(r.spend), reach: compact(r.impressions) };
+                return (
+                  <li key={r.id}>
+                    <Link
+                      to={`/ad/${r.id}`}
+                      className={`${OUR_COLS} group gap-y-1 min-h-[44px] py-2.5 -mx-2 px-2 rounded-xl hover:bg-white/[0.03] transition-colors`}
+                    >
+                      <span className="col-span-4 sm:col-span-1 min-w-0">
+                        <span className="block text-ui font-medium text-ink truncate">{r.name}</span>
+                        {/* CTR against our best: the efficiency read at a glance. */}
+                        <span aria-hidden="true" className="block h-1 mt-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                          <span
+                            className="block h-full rounded-full bg-white/60"
+                            style={{ width: `${Math.max(3, ((r.ctr || 0) / our.maxCtr) * 100)}%` }}
+                          />
+                        </span>
+                      </span>
+                      {NUMS.map(([k, label]) => (
+                        <span key={k} className="flex flex-col sm:block sm:text-right">
+                          <span className={`num text-small ${values[k] === '-' ? 'text-ink-soft' : 'text-ink'}`}>{values[k]}</span>
+                          <span className="sm:sr-only text-meta text-ink-soft">{label}</span>
+                        </span>
+                      ))}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
           </>
         )}
-      </div>
+      </Panel>
 
       {/* Competitor pressure */}
-      <div className="bg-card rounded-xl3 shadow-card p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-[15px]">Competitor pressure</h2>
-          <Link to="/competitors" className="inline-flex items-center justify-end min-h-[44px] min-w-[44px] text-[12px] text-accent-dim font-semibold">
-            Competitors
-          </Link>
-        </div>
+      <Panel title="Competitor pressure" className="xl:col-span-5" action={<PanelLink to="/competitors">Competitors</PanelLink>}>
+        <Metrics
+          cols={2}
+          className="mb-6"
+          items={[
+            { label: 'Their ads running now', value: compact(pulse.running) },
+            { label: 'Proven (30d+)', value: compact(pulse.proven) },
+          ]}
+        />
 
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <Stat icon={CursorClick} label="Their ads running now" value={compact(pulse.running)} accent="amber" />
-          <Stat icon={TrendUp} label="Proven (30d+)" value={compact(pulse.proven)} accent="emerald" />
-        </div>
-
-        {/* Top rivals by ads running now; the mint slice marks how many are
-            proven long-runners (staying power, not just testing). */}
-        <p className="text-[12px] text-ink-soft mb-2">Top rivals by ads running now</p>
+        {/* Top rivals by ads running now. */}
+        <p className="text-small font-medium text-ink-soft mb-1">Top rivals by ads running now</p>
         {pulse.top.length === 0 ? (
-          <p className="text-ink-soft text-[13px]">No competitors tracked yet.</p>
+          <EmptyState text="No competitors tracked yet." />
         ) : (
-          <div className="flex flex-col gap-2.5">
+          <ul className="divide-y divide-line">
             {pulse.top.map((b) => (
-              <Link key={b.brand} to={`/ads?q=${encodeURIComponent(b.brand)}`} className="block min-h-[44px] group">
-                <div className="flex items-baseline justify-between gap-2 mb-1">
-                  <span className="text-[13px] font-medium truncate group-hover:text-accent-dim transition-colors">
-                    {b.brand}
+              <li key={b.brand}>
+                <Link
+                  to={`/ads?q=${encodeURIComponent(b.brand)}`}
+                  className="group block min-h-[44px] py-2.5 -mx-2 px-2 rounded-xl hover:bg-white/[0.03] transition-colors"
+                >
+                  <span className="flex items-baseline justify-between gap-3">
+                    <span className="text-ui font-medium text-ink truncate">{b.brand}</span>
+                    <span className="text-small text-ink-soft flex-shrink-0">
+                      {b.running} running{b.proven > 0 && ` · ${b.proven} proven`}
+                    </span>
                   </span>
-                  <span className="font-mono text-[12px] text-ink-soft tabular-nums flex-shrink-0">
-                    {b.running} running{b.proven > 0 && ` · ${b.proven} proven`}
+                  <span aria-hidden="true" className="block h-1 mt-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                    <span
+                      className="block h-full rounded-full bg-white/30"
+                      style={{ width: `${Math.max(2, (b.running / pulse.max) * 100)}%` }}
+                    />
                   </span>
-                </div>
-                <div className="h-2.5 rounded-full bg-card overflow-hidden flex">
-                  <div
-                    className="h-full rounded-full bg-white/25"
-                    style={{ width: `${Math.max(2, (b.running / pulse.max) * 100)}%` }}
-                    title={`${b.running} running`}
-                  />
-                </div>
-              </Link>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }

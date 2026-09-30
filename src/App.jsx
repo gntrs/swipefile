@@ -7,7 +7,7 @@ import Layout from '@/components/Layout';
 import PageFallback from '@/components/PageFallback';
 import Login from '@/pages/Login';
 import Setup from '@/pages/Setup';
-import { isOn, TEAM_MODE } from '@/lib/modules';
+import { isOn } from '@/lib/modules';
 
 // Every page except Login and Setup loads on demand, so the first paint only
 // ships what the first screen needs.
@@ -87,8 +87,8 @@ export default function App() {
           </SetupGate>
         }
       >
-        {/* Home: the dashboard for a team, the library for one person. */}
-        <Route index element={TEAM_MODE ? page(<Dashboard />) : <Navigate to="/ads" replace />} />
+        {/* Home is the dashboard in every mode. /overview is its old address. */}
+        <Route index element={page(<Dashboard />)} />
         <Route path="overview" element={page(<Dashboard />)} />
         <Route path="ads" element={page(<Library />)} />
         <Route path="ads/import" element={page(<ImportPage />)} />

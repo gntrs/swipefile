@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DotsThreeOutline, Scales, Star, Tag, Trash, X } from '@phosphor-icons/react';
+import { Button, IconButton, Sheet, Field, inputCls, selectCls, useIsDesktop } from '@/components/ui';
 import { bulkVerdict, bulkStar, bulkTags, bulkDelete, MAX_SELECT } from '@/lib/library/bulk';
 import { RECENT_TAG } from '@/lib/ads';
 import BriefFromSelection from '@/features/ai/BriefFromSelection';
@@ -12,17 +13,11 @@ const VERDICT_ACTIONS = [
   { id: 'unsure', label: 'Unsure' },
 ];
 
-// Colour lives apart from shape, so the delete button can swap it whole.
-const btnShape =
-  'press inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 rounded-xl text-[14px] font-semibold transition-colors disabled:opacity-40';
-const rowShape =
-  'press w-full flex items-center gap-3 min-h-[48px] px-4 rounded-xl text-[15px] font-medium text-left disabled:opacity-40';
-const quiet = 'bg-white/[0.06] hover:bg-white/[0.1] text-ink';
-const danger = (armed) => (armed ? 'bg-red-500 text-white' : 'bg-white/[0.06] hover:bg-white/[0.1] text-red-600');
-const btn = `${btnShape} ${quiet}`;
-const row = `${rowShape} ${quiet}`;
-const input =
-  'min-h-[44px] min-w-0 px-3 rounded-xl border border-line bg-canvas text-[14px] focus:outline-none focus:border-accent';
+// The delete button turns solid red once armed: the second tap deletes.
+const ARMED = '!bg-red-500 !text-white';
+// Quiet buttons in the lg bar run a little tighter so the whole bar is one row
+// at 1440.
+const TIGHT = '!px-3';
 
 // What a finished action says. failed lists { id, message }.
 function resultText(kind, arg, done, failed) {
@@ -40,14 +35,17 @@ function resultText(kind, arg, done, failed) {
 }
 
 // The bar under the library while ads are selected: one action for all of
-// them. Pinned above the phone tab bar and clear of the sidebar from sm up.
-// On phones the actions live in a bottom sheet behind Actions.
+// them. Pinned above the phone tab bar and clear of the sidebar. From lg the
+// actions sit in the bar (tags in their own small sheet); under lg they live
+// in a bottom sheet behind Actions.
 export default function BulkBar({ selected = [], active = false, pageCount = 0, full = false, onSelectPage, onClear, onRowsChanged, onDeleted, onChanged }) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState('');
   const [retry, setRetry] = useState(null); // { kind, arg, ids }
   const [sheet, setSheet] = useState(false);
+  const [tagSheet, setTagSheet] = useState(false);
+  const desktop = useIsDesktop();
   const [tagDraft, setTagDraft] = useState('');
   const [removeTag, setRemoveTag] = useState('');
   const [armed, setArmed] = useState(false);
@@ -69,6 +67,7 @@ export default function BulkBar({ selected = [], active = false, pageCount = 0, 
   const run = async (kind, arg, targets = selected) => {
     if (busy || !targets.length) return;
     setSheet(false);
+    setTagSheet(false);
     setMessage('');
     setRetry(null);
     const total = targets.length.toLocaleString('en-US');
@@ -121,175 +120,202 @@ export default function BulkBar({ selected = [], active = false, pageCount = 0, 
 
   if (!count && !active) return null;
 
+  const countText = (
+    <p className="flex items-center min-h-[44px] px-2 text-ui text-ink whitespace-nowrap">
+      <span className="num text-ui mr-1.5">{count.toLocaleString('en-US')}</span> selected
+    </p>
+  );
+
+  // Add a tag to every selected ad, or take one off. Shared by the tags sheet
+  // (lg) and the actions sheet (phone).
+  const tagControls = (
+    <div className="grid gap-5">
+      <form onSubmit={addTag}>
+        <Field label="Add a tag" htmlFor="bulk-tag-add">
+          <div className="flex gap-2">
+            <input
+              id="bulk-tag-add"
+              value={tagDraft}
+              onChange={(e) => setTagDraft(e.target.value)}
+              placeholder="New tag"
+              aria-label="Tag to add"
+              maxLength={60}
+              className={`${inputCls} flex-1 min-w-0`}
+            />
+            <Button type="submit" icon={Tag} disabled={disabled || !tagDraft.trim()}>
+              Add
+            </Button>
+          </div>
+        </Field>
+      </form>
+      {presentTags.length > 0 && (
+        <Field label="Remove a tag" htmlFor="bulk-tag-remove">
+          <div className="flex gap-2">
+            <select
+              id="bulk-tag-remove"
+              value={removeTag}
+              onChange={(e) => setRemoveTag(e.target.value)}
+              aria-label="Tag to remove"
+              className={`${selectCls} flex-1 min-w-0`}
+            >
+              <option value="">Pick a tag...</option>
+              {presentTags.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            <Button disabled={disabled || !removeTag} onClick={() => run('remove', removeTag)}>
+              Remove
+            </Button>
+          </div>
+        </Field>
+      )}
+    </div>
+  );
+
   return (
     <>
-      <div data-bulk-bar className="fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] sm:bottom-0 sm:left-60 z-40 px-3 sm:px-6 pb-2 sm:pb-[calc(1rem+env(safe-area-inset-bottom))] pointer-events-none">
-        <div className="pointer-events-auto max-w-[1100px] mx-auto bg-card border border-line rounded-xl3 shadow-cardhover p-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-mono text-[13px] tabular-nums text-ink px-2 min-h-[44px] flex items-center">
-              {count.toLocaleString('en-US')} selected
-            </p>
-            <button type="button" onClick={onSelectPage} disabled={Boolean(busy) || full || !pageCount} className={`${btn} hidden sm:inline-flex`}>
-              Select page
-            </button>
-            <button type="button" onClick={() => setSheet(true)} disabled={Boolean(busy)} className={`${btn} sm:hidden ml-auto`} aria-haspopup="true">
-              <DotsThreeOutline size={16} weight="bold" /> Actions
-            </button>
-            <button type="button" onClick={onClear} disabled={disabled} className={`${btn} sm:ml-auto`} aria-label="Clear selection">
-              <X size={16} weight="bold" />
-              <span className="hidden sm:inline">Clear</span>
-            </button>
-          </div>
-
-          {/* Inline actions from sm up. */}
-          <div className="hidden sm:flex flex-wrap items-center gap-2 mt-2">
-            {VERDICT_ACTIONS.map((v) => (
-              <button key={v.id} type="button" disabled={disabled} onClick={() => run('verdict', v.id)} className={btn}>
-                {v.label}
-              </button>
-            ))}
-            <span className="w-px self-stretch bg-line mx-1" />
-            <button type="button" disabled={disabled} onClick={() => run('star', true)} className={btn}>
-              <Star size={15} weight="fill" className="text-amber-400" /> Star
-            </button>
-            <button type="button" disabled={disabled} onClick={() => run('star', false)} className={btn}>
-              <Star size={15} weight="bold" /> Unstar
-            </button>
-            <form onSubmit={addTag} className="flex items-center gap-1.5">
-              <input
-                value={tagDraft}
-                onChange={(e) => setTagDraft(e.target.value)}
-                placeholder="New tag"
-                aria-label="Tag to add"
-                maxLength={60}
-                className={`${input} w-[120px]`}
-              />
-              <button type="submit" disabled={disabled || !tagDraft.trim()} className={btn}>
-                <Tag size={15} weight="bold" /> Add
-              </button>
-            </form>
-            {presentTags.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                <select value={removeTag} onChange={(e) => setRemoveTag(e.target.value)} aria-label="Tag to remove" className={`${input} max-w-[160px]`}>
-                  <option value="">Remove tag...</option>
-                  {presentTags.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-                <button type="button" disabled={disabled || !removeTag} onClick={() => run('remove', removeTag)} className={btn}>
-                  Remove
-                </button>
-              </div>
-            )}
-            <span className="w-px self-stretch bg-line mx-1" />
-            <button type="button" disabled={disabled || !canCompare} onClick={compare} className={btn} title="Compare 2 to 4 ads">
-              <Scales size={15} weight="bold" /> Compare
-            </button>
-            <BriefFromSelection adIds={ids} label="Brief from these" />
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={onDelete}
-              className={`${btnShape} ${danger(armed)}`}
-            >
-              <Trash size={15} weight="bold" /> {deleteLabel}
-            </button>
-          </div>
+      <div
+        data-bulk-bar
+        className="fixed bottom-[var(--tabbar-h)] left-[var(--nav-left)] right-0 z-40 px-3 lg:px-[var(--gutter)] pb-2 lg:pb-[calc(1rem+env(safe-area-inset-bottom))] pointer-events-none"
+      >
+        <div className="pointer-events-auto mx-auto max-w-[calc(var(--maxw)_-_2*var(--gutter))] bg-card border border-line rounded-xl3 shadow-cardhover p-2">
+          {desktop ? (
+            <div className="flex flex-wrap items-center gap-1">
+              {countText}
+              <Button variant="ghost" onClick={onSelectPage} disabled={Boolean(busy) || full || !pageCount} className={TIGHT}>
+                Select page
+              </Button>
+              <select
+                value=""
+                onChange={(e) => e.target.value && run('verdict', e.target.value)}
+                disabled={disabled}
+                aria-label="Set verdict"
+                className="min-h-[44px] rounded-xl bg-white/[0.03] border border-line pl-3.5 pr-2 text-ui text-ink cursor-pointer disabled:opacity-50"
+              >
+                <option value="">Set verdict...</option>
+                {VERDICT_ACTIONS.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+              <Button
+                variant="ghost"
+                icon={<Star size={16} weight="fill" aria-hidden="true" className="flex-shrink-0 text-amber-400" />}
+                disabled={disabled}
+                onClick={() => run('star', true)}
+                className={TIGHT}
+              >
+                Star
+              </Button>
+              <Button variant="ghost" disabled={disabled} onClick={() => run('star', false)} className={TIGHT}>
+                Unstar
+              </Button>
+              <Button disabled={disabled} onClick={() => setTagSheet(true)} aria-haspopup="dialog">
+                Tags
+              </Button>
+              <Button disabled={disabled || !canCompare} onClick={compare} title="Compare 2 to 4 ads">
+                Compare
+              </Button>
+              <BriefFromSelection adIds={ids} label="Brief from these" />
+              <Button variant="danger" icon={Trash} disabled={disabled} onClick={onDelete} className={`${TIGHT} ${armed ? ARMED : ''}`}>
+                {deleteLabel}
+              </Button>
+              <IconButton label="Clear selection" icon={X} onClick={onClear} disabled={disabled} className="ml-auto" />
+            </div>
+          ) : (
+            <div className="flex items-center gap-1">
+              {countText}
+              <Button
+                icon={Scales}
+                disabled={disabled || !canCompare}
+                onClick={compare}
+                aria-label="Compare"
+                title="Compare 2 to 4 ads"
+                className="ml-auto"
+              >
+                <span className="hidden sm:inline">Compare</span>
+              </Button>
+              <Button icon={DotsThreeOutline} onClick={() => setSheet(true)} disabled={Boolean(busy)} aria-haspopup="dialog">
+                Actions
+              </Button>
+              <IconButton label="Clear selection" icon={X} onClick={onClear} disabled={disabled} />
+            </div>
+          )}
 
           {(busy || message || full) && (
             <div className="flex flex-wrap items-center gap-2 px-2 pt-1">
-              <p aria-live="polite" className="flex-1 min-w-0 text-[14px] text-ink-soft py-2">
+              <p aria-live="polite" className="flex-1 min-w-0 text-small text-ink-soft py-2">
                 {busy || message || (full ? `Selection is full (${MAX_SELECT}).` : '')}
               </p>
-              {retry && !busy && (
-                <button type="button" onClick={retryFailed} className={btn}>
-                  Retry failed
-                </button>
-              )}
+              {retry && !busy && <Button onClick={retryFailed}>Retry failed</Button>}
             </div>
           )}
         </div>
       </div>
 
-      {/* Phone sheet with the same actions as full width rows. */}
-      {sheet && (
-        <div className="sm:hidden fixed inset-0 z-[60] flex items-end">
-          <div aria-hidden="true" className="absolute inset-0 bg-black/60 animate-fade" onClick={() => setSheet(false)} />
-          <div
-            data-sheet="bulk"
-            className="relative w-full max-h-[85%] overflow-y-auto overscroll-contain bg-card rounded-t-3xl px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] animate-sheet-up"
+      {/* lg: the tag actions, one small sheet. */}
+      <Sheet open={desktop && tagSheet} onClose={() => setTagSheet(false)} title="Tags" sheetId="bulk-tags">
+        <p className="text-small text-ink-soft mb-4">
+          For the {count.toLocaleString('en-US')} selected {count === 1 ? 'ad' : 'ads'}.
+        </p>
+        {tagControls}
+      </Sheet>
+
+      {/* Phone and tablet: every action as a full width row. */}
+      <Sheet open={!desktop && sheet} onClose={() => setSheet(false)} title={`${count.toLocaleString('en-US')} selected`} sheetId="bulk">
+        <div className="grid gap-5">
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={() => {
+              setSheet(false);
+              onSelectPage?.();
+            }}
+            disabled={full || !pageCount}
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className="kicker">{count.toLocaleString('en-US')} selected</span>
-              <button
-                type="button"
-                onClick={() => setSheet(false)}
-                aria-label="Close"
-                className="press w-11 h-11 -mr-1.5 rounded-full bg-white/[0.06] flex items-center justify-center text-ink-soft hover:text-ink"
-              >
-                <X size={16} weight="bold" />
-              </button>
-            </div>
-            <div className="grid gap-2">
-              <button type="button" onClick={() => { setSheet(false); onSelectPage?.(); }} disabled={full || !pageCount} className={row}>
-                Select page
-              </button>
-              <div className="grid grid-cols-2 gap-2">
-                {VERDICT_ACTIONS.map((v) => (
-                  <button key={v.id} type="button" disabled={disabled} onClick={() => run('verdict', v.id)} className={row}>
-                    {v.label}
-                  </button>
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button type="button" disabled={disabled} onClick={() => run('star', true)} className={row}>
-                  <Star size={18} weight="fill" className="text-amber-400" /> Star
-                </button>
-                <button type="button" disabled={disabled} onClick={() => run('star', false)} className={row}>
-                  <Star size={18} weight="bold" /> Unstar
-                </button>
-              </div>
-              <form onSubmit={addTag} className="flex gap-2">
-                <input
-                  value={tagDraft}
-                  onChange={(e) => setTagDraft(e.target.value)}
-                  placeholder="New tag"
-                  aria-label="Tag to add"
-                  maxLength={60}
-                  className={`${input} flex-1 text-[16px]`}
-                />
-                <button type="submit" disabled={disabled || !tagDraft.trim()} className={btn}>
-                  Add tag
-                </button>
-              </form>
-              {presentTags.length > 0 && (
-                <div className="flex gap-2">
-                  <select value={removeTag} onChange={(e) => setRemoveTag(e.target.value)} aria-label="Tag to remove" className={`${input} flex-1 text-[16px]`}>
-                    <option value="">Remove tag...</option>
-                    {presentTags.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="button" disabled={!removeTag} onClick={() => run('remove', removeTag)} className={btn}>
-                    Remove
-                  </button>
-                </div>
-              )}
-              <button type="button" disabled={!canCompare} onClick={compare} className={row}>
-                <Scales size={18} weight="bold" /> Compare {canCompare ? count : '(2 to 4 ads)'}
-              </button>
-              <BriefFromSelection adIds={ids} label="Brief from these" className="w-full min-h-[48px]" />
-              <button type="button" disabled={disabled} onClick={onDelete} className={`${rowShape} ${danger(armed)}`}>
-                <Trash size={18} weight="bold" /> {deleteLabel}
-              </button>
+            Select page
+          </Button>
+          <div>
+            <p className="text-small font-medium text-ink mb-2">Verdict</p>
+            <div className="grid grid-cols-2 gap-2">
+              {VERDICT_ACTIONS.map((v) => (
+                <Button key={v.id} disabled={disabled} onClick={() => run('verdict', v.id)} className="w-full">
+                  {v.label}
+                </Button>
+              ))}
             </div>
           </div>
+          <div>
+            <p className="text-small font-medium text-ink mb-2">Star</p>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                icon={<Star size={16} weight="fill" aria-hidden="true" className="flex-shrink-0 text-amber-400" />}
+                disabled={disabled}
+                onClick={() => run('star', true)}
+                className="w-full"
+              >
+                Star
+              </Button>
+              <Button icon={Star} disabled={disabled} onClick={() => run('star', false)} className="w-full">
+                Unstar
+              </Button>
+            </div>
+          </div>
+          {tagControls}
+          <div className="grid gap-2 pt-1">
+            <Button icon={Scales} disabled={!canCompare} onClick={compare} className="w-full">
+              Compare {canCompare ? count : '(2 to 4 ads)'}
+            </Button>
+            <BriefFromSelection adIds={ids} label="Brief from these" className="w-full" />
+            <Button variant="danger" icon={Trash} disabled={disabled} onClick={onDelete} className={`w-full ${armed ? ARMED : ''}`}>
+              {deleteLabel}
+            </Button>
+          </div>
         </div>
-      )}
+      </Sheet>
     </>
   );
 }

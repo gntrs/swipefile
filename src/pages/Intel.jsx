@@ -1,13 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  MagnifyingGlass,
-  GlobeHemisphereWest,
-  TrendUp,
-  CaretRight,
-} from '@phosphor-icons/react';
+import { CaretRight } from '@phosphor-icons/react';
 import { db, fetchAll } from '@/lib/db';
 import { Skeleton } from '@/components/Skeleton';
+import { Page, PageHeader, Panel, Section, Button, Badge, Meta, EmptyState } from '@/components/ui';
 import {
   geoStatus,
   countryOptions,
@@ -64,59 +60,47 @@ function RankSpark({ points, width = 56, height = 18 }) {
   );
 }
 
-// One section header: icon, title, and a right-aligned status that says in a
-// glance whether this block is live and how fresh it is. Keeping the header
-// identical across the three sections is what makes the page scan as a page
-// rather than as three unrelated widgets.
-function SectionHead({ icon: Icon, title, status, live }) {
-  return (
-    <div className="flex items-center gap-2.5 mb-3">
-      <Icon size={17} weight="bold" className={live ? 'text-ink' : 'text-ink-soft'} />
-      <h2 className="font-semibold text-[15px] tracking-tight">{title}</h2>
-      <span className="flex-1 h-px bg-line" />
-      <span className={`text-[11px] tabular-nums ${live ? 'text-ink-soft' : 'text-ink-soft/60'}`}>{status}</span>
-    </div>
-  );
-}
-
-// The empty state. The old version shouted three shell commands at whoever
-// opened the page; two of the three sections being unconfigured turned the
-// screen into a to-do list. Now the section states its condition in one quiet
-// line and folds the setup steps one level deeper, for the one person who
-// needs them.
+// The empty state for a block that is not set up yet: one quiet line, and the
+// setup steps one level deeper behind "Set up", for the one person who needs
+// them.
 function NotSetUp({ summary, steps }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
   return (
-    <details className="group rounded-xl3 bg-card overflow-hidden">
-      <summary className="flex items-center gap-2 min-h-[44px] px-4 py-3 cursor-pointer list-none select-none text-[13px] text-ink-soft transition-colors duration-150 ease-swift hover:text-ink [&::-webkit-details-marker]:hidden">
-        <span className="flex-1 min-w-0">{summary}</span>
-        <span className="flex items-center gap-1 text-[12px] flex-shrink-0">
+    <Panel>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className="text-body text-ink-soft min-w-0">{summary}</p>
+        <Button
+          variant="ghost"
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={() => setOpen(!open)}
+          className="-my-1 -mr-3"
+        >
           Set up
           <CaretRight
-            size={12}
+            size={14}
             weight="bold"
-            className="transition-transform duration-200 ease-swift group-open:rotate-90"
+            aria-hidden="true"
+            className={`transition-transform ${open ? 'rotate-90' : ''}`}
           />
-        </span>
-      </summary>
-      <ol className="px-4 pb-4 pt-1 space-y-1.5 text-[12px] text-ink-soft border-t border-line/60 mt-0">
-        {steps.map((s, i) => (
-          <li key={i} className="flex gap-2.5 pt-1.5">
-            <span className="tabular-nums text-ink-soft/60 flex-shrink-0">{i + 1}</span>
-            <span className="min-w-0">{s}</span>
-          </li>
-        ))}
-      </ol>
-    </details>
+        </Button>
+      </div>
+      {open && (
+        <ol id={id} className="mt-4 pt-4 border-t border-line space-y-3 text-body text-ink-soft">
+          {steps.map((s, i) => (
+            <li key={i} className="flex gap-3">
+              <span className="num text-ui text-ink-soft/60 flex-shrink-0 w-4">{i + 1}</span>
+              <span className="min-w-0">{s}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </Panel>
   );
 }
 
-const Cmd = ({ children }) => (
-  <code className="text-[11.5px] font-mono text-ink break-all">{children}</code>
-);
-
-const Card = ({ children }) => (
-  <div className="bg-card rounded-xl3 shadow-card p-5">{children}</div>
-);
+const Cmd = ({ children }) => <code className="font-mono text-small text-ink break-all">{children}</code>;
 
 export default function Intel() {
   const [ads, setAds] = useState([]);
@@ -226,33 +210,25 @@ export default function Intel() {
 
   if (loading)
     return (
-      <div className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
-        <Skeleton className="w-40 h-3.5 mb-2" />
-        <Skeleton className="w-52 h-8 mb-6" />
-        <div className="grid gap-4">
+      <Page id="intel">
+        <Skeleton className="w-52 h-8 mb-3" />
+        <Skeleton className="w-80 max-w-full h-4 mb-8" />
+        <div className="grid gap-4 lg:gap-6">
           <Skeleton className="w-full h-40 rounded-xl3" />
           <Skeleton className="w-full h-40 rounded-xl3" />
         </div>
-      </div>
+      </Page>
     );
 
   return (
-    <div data-page="intel" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1100px] mx-auto">
-      <header className="mb-7">
-        <p className="kicker">Market intel</p>
-        <h1 className="text-[28px] sm:text-[32px] font-semibold tracking-[-0.02em] leading-[1.1] mt-3">Where we stand</h1>
-        <p className="text-ink-soft text-[15px] leading-relaxed mt-2">Search rank, EU ad geography and demand trends for the markets we chase.</p>
-      </header>
+    <Page id="intel">
+      <PageHeader
+        title="Where we stand"
+        context="Search rank, EU ad geography and demand trends for the markets we chase."
+      />
 
       {/* ============ SEO ============ */}
-      <section className="mb-7">
-        <SectionHead
-          icon={MagnifyingGlass}
-          title="Search rank"
-          live={seoLive}
-          status={seoLive ? fmtDay(seoLatestDay) : 'Not set up'}
-        />
-
+      <Section first title="Search rank" meta={seoLive ? `Updated ${fmtDay(seoLatestDay)}` : 'Not set up'}>
         {!seoLive ? (
           <NotSetUp
             summary="No search rank data yet."
@@ -264,67 +240,58 @@ export default function Intel() {
             ]}
           />
         ) : (
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 lg:gap-6 md:grid-cols-3">
             {seoByMarket.map(({ market, terms, ranked }) => (
-              <Card key={market}>
-                <div className="flex items-baseline justify-between mb-4">
-                  <h3 className="font-semibold text-[15px] tracking-tight">{countryName(market)}</h3>
-                  <span className="text-[11px] text-ink-soft tabular-nums">
-                    {ranked}/{terms.length} ranking
+              <Panel
+                key={market}
+                title={countryName(market)}
+                action={
+                  <span className="text-small text-ink-soft">
+                    {ranked} of {terms.length} ranking
                   </span>
-                </div>
-                <div className="space-y-3">
+                }
+              >
+                <ul className="divide-y divide-line">
                   {terms.map(({ term, ours, scanned, rivals, history }) => {
                     const placed = ours && ours.position != null;
                     return (
-                      <div key={term}>
+                      <li key={term} className="py-3 first:pt-0 last:pb-0">
                         <div className="flex items-baseline justify-between gap-3">
-                          <p className={`text-[13px] leading-snug min-w-0 ${placed ? 'text-ink font-medium' : 'text-ink-soft'}`}>
-                            {term}
-                          </p>
+                          <p className={`text-ui min-w-0 ${placed ? 'text-ink font-medium' : 'text-ink-soft'}`}>{term}</p>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-accent-dim/60">
+                            <span className="text-ink-soft">
                               <RankSpark points={history} />
                             </span>
                             {placed ? (
-                              <span className="text-[12px] font-semibold tabular-nums text-emerald-500 bg-emerald-50 rounded px-1.5 py-0.5">
-                                #{ours.position}
-                              </span>
+                              <span className="num text-ui text-emerald-300">#{ours.position}</span>
                             ) : (
-                              <span className="text-[11px] tabular-nums text-ink-soft/60">
-                                &gt;{scanned || 20}
-                              </span>
+                              <span className="num text-small text-ink-soft/70">&gt;{scanned || 20}</span>
                             )}
                           </div>
                         </div>
                         {rivals.length > 0 && (
-                          <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 mt-1">
-                            {rivals.map((r) => (
-                              <span key={r.domain} className="text-[11px] text-ink-soft/70 tabular-nums">
-                                <span className="text-ink-soft">#{r.position}</span> {r.domain.replace(/^www\./, '')}
+                          <Meta
+                            as="p"
+                            className="text-small text-ink-soft mt-1"
+                            items={rivals.map((r) => (
+                              <span key={r.domain}>
+                                #{r.position} {r.domain.replace(/^www\./, '')}
                               </span>
                             ))}
-                          </div>
+                          />
                         )}
-                      </div>
+                      </li>
                     );
                   })}
-                </div>
-              </Card>
+                </ul>
+              </Panel>
             ))}
           </div>
         )}
-      </section>
+      </Section>
 
       {/* ============ GEO / EU reach ============ */}
-      <section className="mb-7">
-        <SectionHead
-          icon={GlobeHemisphereWest}
-          title="EU ad geography"
-          live={geo.ready}
-          status={geo.ready ? `${geo.counts.eu} EU ads` : 'Not set up'}
-        />
-
+      <Section title="EU ad geography" meta={geo.ready ? `${geo.counts.eu} EU ads` : 'Not set up'}>
         {!geo.ready ? (
           <NotSetUp
             summary="No ads carry EU transparency data yet."
@@ -335,70 +302,56 @@ export default function Intel() {
             ]}
           />
         ) : (
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* Flag distribution */}
-            <Card>
-              <h3 className="font-semibold text-[15px] tracking-tight mb-4">Transparency flags</h3>
-              <div className="space-y-2.5">
+          <div className="grid gap-4 lg:gap-6 md:grid-cols-3">
+            <Panel title="Transparency flags">
+              <ul className="divide-y divide-line">
                 <FlagRow label="Ran in EU" value={geo.counts.eu} tone="emerald" />
                 <FlagRow label="Confirmed not EU" value={geo.counts.none} tone="line" />
                 <FlagRow label="Unchecked" value={geo.counts.unknown} tone="soft" />
-              </div>
-            </Card>
+              </ul>
+            </Panel>
 
-            {/* Country leaderboard */}
-            <Card>
-              <h3 className="font-semibold text-[15px] tracking-tight mb-4">Ads by country</h3>
+            <Panel title="Ads by country">
               {geo.countries.length === 0 ? (
-                <p className="text-ink-soft text-[13px]">No per-country data resolved yet.</p>
+                <EmptyState text="No per-country data resolved yet." />
               ) : (
-                <div>
+                <ul className="divide-y divide-line -my-1">
                   {geo.countries.slice(0, 6).map(({ code, label, count }) => (
-                    <Link
-                      key={code}
-                      to={`/ads?country=${code}`}
-                      className="flex items-center justify-between min-h-[44px] group -mx-1 px-1 rounded transition-colors duration-150 ease-swift hover:bg-canvas/60 active:bg-canvas"
-                    >
-                      <span className="text-[13px] transition-colors duration-150 group-hover:text-accent-dim">
-                        {label}
-                        {FOCUS_COUNTRIES.includes(code) && (
-                          <span className="ml-1.5 text-[10px] font-bold uppercase text-accent-dim">focus</span>
-                        )}
-                      </span>
-                      <span className="text-[13px] font-semibold tabular-nums">{count}</span>
-                    </Link>
+                    <li key={code}>
+                      <Link
+                        to={`/ads?country=${code}`}
+                        className="group flex items-center justify-between gap-3 min-h-[44px] -mx-2 px-2 rounded-xl hover:bg-white/[0.03] transition-colors"
+                      >
+                        <span className="flex items-center gap-2 min-w-0 text-ui text-ink">
+                          <span className="truncate">{label}</span>
+                          {FOCUS_COUNTRIES.includes(code) && <Badge>Focus</Badge>}
+                        </span>
+                        <span className="num text-num text-ink">{count}</span>
+                      </Link>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
-            </Card>
+            </Panel>
 
-            {/* Reach */}
-            <Card>
-              <h3 className="font-semibold text-[15px] tracking-tight mb-4">EU reach seen</h3>
-              <p className="text-[28px] font-semibold tabular-nums leading-none tracking-tight">
+            <Panel title="EU reach seen">
+              <p className="num text-num-lg text-ink">
                 {geo.totalEuReach >= 1000 ? `${(geo.totalEuReach / 1000).toFixed(1)}k` : geo.totalEuReach}
               </p>
-              <p className="text-[12px] text-ink-soft mt-1.5">people reached across flagged ads</p>
+              <p className="text-small text-ink-soft mt-2">people reached across flagged ads</p>
               {geo.topEu && (
-                <p className="text-[12px] text-ink-soft mt-3 pt-3 border-t border-line">
+                <p className="text-small text-ink-soft mt-4 pt-4 border-t border-line">
                   Biggest: <span className="font-medium text-ink">{geo.topEu.brand || 'an ad'}</span> at{' '}
                   <span className="font-semibold text-ink">{fmtEuReach(geo.topEu)}</span>
                 </p>
               )}
-            </Card>
+            </Panel>
           </div>
         )}
-      </section>
+      </Section>
 
       {/* ============ TRENDS ============ */}
-      <section className="mb-7">
-        <SectionHead
-          icon={TrendUp}
-          title="Demand trends"
-          live={trendsLive}
-          status={trendsLive ? 'live' : 'Not set up'}
-        />
-
+      <Section title="Demand trends" meta={trendsLive ? 'Live' : 'Not set up'}>
         {!trendsLive ? (
           <NotSetUp
             summary="No Google Trends data yet."
@@ -411,47 +364,45 @@ export default function Intel() {
             ]}
           />
         ) : (
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 lg:gap-6 md:grid-cols-3">
             {trendsByGeo.map(({ geo: g, terms }) => (
-              <Card key={g}>
-                <h3 className="font-semibold text-[15px] tracking-tight mb-4">{countryName(g)}</h3>
-                <div className="space-y-2.5">
+              <Panel key={g} title={countryName(g)}>
+                <ul className="space-y-3">
                   {terms.slice(0, 6).map(({ term, value, hasData }) => (
-                    <div key={term}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[12px] text-ink-soft truncate pr-2">{term}</span>
-                        <span className="text-[12px] font-semibold tabular-nums">{hasData ? value : '-'}</span>
+                    <li key={term}>
+                      <div className="flex items-center justify-between gap-3 mb-1.5">
+                        <span className="text-small text-ink-soft truncate">{term}</span>
+                        <span className="num text-small text-ink">{hasData ? value : '-'}</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-canvas overflow-hidden">
                         <div className="h-full bg-accent rounded-full" style={{ width: `${Math.max(value, hasData ? 2 : 0)}%` }} />
                       </div>
-                    </div>
+                    </li>
                   ))}
-                </div>
-                <p className="text-[11px] text-ink-soft/60 mt-3.5">relative interest, 0 to 100 within {countryName(g)}</p>
-              </Card>
+                </ul>
+                <p className="text-small text-ink-soft mt-4">Relative interest, 0 to 100 within {countryName(g)}</p>
+              </Panel>
             ))}
           </div>
         )}
-      </section>
+      </Section>
 
-      <p className="text-[11.5px] text-ink-soft/60">
+      <p className="text-small text-ink-soft mt-10 lg:mt-12">
         Refreshed daily by <Cmd>scripts/seo-cron.sh</Cmd>.
       </p>
-    </div>
+    </Page>
   );
 }
 
 function FlagRow({ label, value, tone }) {
-  const dot =
-    tone === 'emerald' ? 'bg-emerald-400' : tone === 'line' ? 'bg-red-300' : 'bg-line';
+  const dot = tone === 'emerald' ? 'bg-emerald-400' : tone === 'line' ? 'bg-red-300' : 'bg-white/20';
   return (
-    <div className="flex items-center justify-between">
-      <span className="flex items-center gap-2 text-[13px] text-ink-soft">
-        <span className={`w-2.5 h-2.5 rounded-full ${dot}`} />
+    <li className="flex items-center justify-between gap-3 min-h-[44px]">
+      <span className="flex items-center gap-2.5 text-ui text-ink">
+        <span aria-hidden="true" className={`w-2.5 h-2.5 rounded-full ${dot}`} />
         {label}
       </span>
-      <span className="text-[13px] font-semibold tabular-nums">{value}</span>
-    </div>
+      <span className={`num text-num ${value ? 'text-ink' : 'text-ink-soft'}`}>{value}</span>
+    </li>
   );
 }

@@ -11,8 +11,8 @@ const labels = (items) => items.map((i) => i.label);
 const shorts = (items) => items.map((i) => i.short);
 
 describe('sidebarItems', () => {
-  it('solo: library first, overview near the end, no team pages', () => {
-    expect(labels(sidebarItems(SOLO))).toEqual(['Ads', 'Hook bank', 'Briefs', 'Competitors', 'Market intel', 'Overview']);
+  it('solo: dashboard then ads first, no team pages', () => {
+    expect(labels(sidebarItems(SOLO))).toEqual(['Dashboard', 'Ads', 'Hook bank', 'Briefs', 'Competitors', 'Market intel']);
   });
   it('all: the long standing team list and order', () => {
     expect(labels(sidebarItems(ALL))).toEqual([
@@ -33,38 +33,47 @@ describe('sidebarItems', () => {
   });
   it('dashboard is the only item with end', () => {
     expect(sidebarItems(ALL).filter((i) => i.end).map((i) => i.to)).toEqual(['/']);
+    expect(sidebarItems(SOLO).filter((i) => i.end).map((i) => i.to)).toEqual(['/']);
+  });
+  it('every mode leads with Dashboard then Ads', () => {
+    for (const opts of [SOLO, ALL, TEAM, ready(SOLO), { modules: parseModules('library'), ready: {} }]) {
+      expect(sidebarItems(opts).slice(0, 2).map((i) => i.id)).toEqual(['dashboard', 'ads']);
+      expect(mobileTabs(opts).slice(0, 2).map((i) => i.id)).toEqual(['dashboard', 'ads']);
+    }
+  });
+  it('has no separate overview item', () => {
+    expect(NAV_ITEMS.overview).toBeUndefined();
   });
 });
 
 describe('mobileTabs', () => {
-  it('solo: Ads, Hooks, Briefs, Rivals', () => {
-    expect(shorts(mobileTabs(SOLO))).toEqual(['Ads', 'Hooks', 'Briefs', 'Rivals']);
+  it('solo: Home, Ads, Hooks, Rivals', () => {
+    expect(shorts(mobileTabs(SOLO))).toEqual(['Home', 'Ads', 'Hooks', 'Rivals']);
   });
   it('all: Home, Ads, Posts, Rivals', () => {
     expect(shorts(mobileTabs(ALL))).toEqual(['Home', 'Ads', 'Posts', 'Rivals']);
   });
-  it('library,team: Rivals is off, so Overview takes its place', () => {
-    // Fill order is Ads, Hooks, Briefs, Rivals, Intel, Overview: only Overview is on and not a tab.
-    expect(shorts(mobileTabs(TEAM))).toEqual(['Home', 'Ads', 'Posts', 'Overview']);
+  it('library,team: Rivals is off and nothing is left to fill, so three tabs', () => {
+    expect(shorts(mobileTabs(TEAM))).toEqual(['Home', 'Ads', 'Posts']);
   });
   it('replaces an off tab in place with the next fill item', () => {
     const noHooks = { modules: parseModules('library,briefs,competitors,intel'), ready: {} };
-    expect(shorts(mobileTabs(noHooks))).toEqual(['Ads', 'Intel', 'Briefs', 'Rivals']);
+    expect(shorts(mobileTabs(noHooks))).toEqual(['Home', 'Ads', 'Briefs', 'Rivals']);
     const opsOnly = { modules: parseModules('ops,hooks'), ready: {} };
-    expect(shorts(mobileTabs(opsOnly))).toEqual(['Home', 'Ads', 'Hooks', 'Overview']);
+    expect(shorts(mobileTabs(opsOnly))).toEqual(['Home', 'Ads', 'Hooks']);
   });
   it('library alone: fewer tabs rather than a repeat', () => {
     const lib = { modules: parseModules('library'), ready: {} };
-    expect(shorts(mobileTabs(lib))).toEqual(['Ads', 'Overview']);
+    expect(shorts(mobileTabs(lib))).toEqual(['Home', 'Ads']);
   });
 });
 
 describe('moreItems', () => {
-  it('solo: Starred ads, Market intel, Overview, Profile', () => {
-    expect(labels(moreItems(SOLO))).toEqual(['Starred ads', 'Market intel', 'Overview', 'Profile']);
+  it('solo: Starred ads, Briefs, Market intel, Profile', () => {
+    expect(labels(moreItems(SOLO))).toEqual(['Starred ads', 'Briefs', 'Market intel', 'Profile']);
   });
   it('solo with capture ready: Capture before Profile', () => {
-    expect(labels(moreItems(ready(SOLO)))).toEqual(['Starred ads', 'Market intel', 'Overview', 'Capture', 'Profile']);
+    expect(labels(moreItems(ready(SOLO)))).toEqual(['Starred ads', 'Briefs', 'Market intel', 'Capture', 'Profile']);
   });
   it('all: the long standing list and order', () => {
     expect(labels(moreItems(ALL))).toEqual([

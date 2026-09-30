@@ -162,18 +162,18 @@ The app starts as a solo swipe file: library, hook bank, briefs, competitors and
 
 | Module | On by default | What it adds |
 |---|---|---|
-| `library` | always | Ads, add an ad, CSV import, compare, the ad page, capture, `/overview`, profile |
+| `library` | always | Ads, add an ad, CSV import, compare, the ad page, capture, the dashboard, profile |
 | `hooks` | yes | Hook bank |
-| `briefs` | yes | Briefs, and the latest brief on the overview |
-| `competitors` | yes | Competitors, and rivals' proven plays on the overview |
-| `intel` | yes | Market intel, and its card on the overview |
+| `briefs` | yes | Briefs, and the latest brief on the dashboard |
+| `competitors` | yes | Competitors, and busy rivals on the dashboard |
+| `intel` | yes | Market intel |
 | `team` | no | Team chat and goals, organic posts, outreach, availability, the welcome popup, the team list on your profile, who added each ad |
 | `ops` | no | Revenue, ad performance, the site funnel, sale celebrations and party mode |
 
 - `VITE_MODULES=all` turns on every module.
 - A comma list turns on exactly those modules, and `library` is always on. `VITE_MODULES=team,ops` gives you the team and ops features but hides hooks, briefs, competitors and intel; to keep them, list them too: `VITE_MODULES=library,hooks,briefs,competitors,intel,team,ops` (the same as `all`).
 - Unknown names are ignored with a warning in the browser console.
-- With `team` or `ops` on, `/` opens the dashboard; otherwise it opens the library and the dashboard lives at `/overview`.
+- `/` opens the dashboard in every mode (`/overview` still works). With `team` or `ops` on, their cards join it below the solo numbers.
 
 Turning a module off hides it and nothing else: its data stays in the database.
 
@@ -256,7 +256,7 @@ Set `SEO_OWN_DOMAIN` (and `SEO_COMPETITOR_DOMAINS`), then `seo-rank-pull.mjs` fo
 
 ### Stripe
 
-Set `STRIPE_API_KEY` (a restricted read only key) and `REVENUE_TZ`. `stripe-pull.mjs` syncs sales; `revenue-alert.mjs` and `failed-payment-alert.mjs` send Telegram pings. The revenue card on the overview is part of the `ops` module.
+Set `STRIPE_API_KEY` (a restricted read only key) and `REVENUE_TZ`. `stripe-pull.mjs` syncs sales; `revenue-alert.mjs` and `failed-payment-alert.mjs` send Telegram pings. The revenue card on the dashboard is part of the `ops` module.
 
 ### Product analytics and the site funnel
 

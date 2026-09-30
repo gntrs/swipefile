@@ -3,6 +3,7 @@ import { fetchAll, isMissingTable } from '@/lib/db';
 import PartialNotice from '@/components/PartialNotice';
 import { parseFunnelStages, DEFAULT_FUNNEL_STAGES } from '@/lib/funnel';
 import { RowsSkeleton } from '@/components/Skeleton';
+import { Panel, Notice } from '@/components/ui';
 
 // Site funnel + traffic, read from kpi_snapshots (one row per day, written by
 // scripts/snapshot-kpis.mjs from the daily PostHog pull; the browser can't
@@ -79,59 +80,54 @@ export default function FunnelCard() {
   }, [spark]);
 
   return (
-    <div className="bg-card rounded-xl3 shadow-card p-5 mb-4">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="font-semibold text-[15px]">Site funnel</h2>
-          <p className="text-ink-soft text-[12px]">
-            Last {days || WINDOW} days{visitors ? ` · ${visitors.toLocaleString()} visitors` : ''}
-          </p>
-        </div>
-        {sparkPath && (
-          <svg viewBox="0 0 100 28" preserveAspectRatio="none" className="w-28 h-8" aria-hidden="true">
-            <path d={sparkPath.area} fill="rgba(255,255,255,0.08)" />
-            <path d={sparkPath.line} fill="none" stroke="#FFFFFF" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+    <Panel
+      title="Site funnel"
+      action={
+        sparkPath && (
+          <svg viewBox="0 0 100 28" preserveAspectRatio="none" className="w-28 h-7 text-ink-soft" aria-hidden="true">
+            <path d={sparkPath.area} fill="rgba(255,255,255,0.06)" />
+            <path d={sparkPath.line} fill="none" stroke="currentColor" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
           </svg>
-        )}
-      </div>
+        )
+      }
+    >
+      <p className="text-small text-ink-soft -mt-3 mb-5">
+        Last {days || WINDOW} days{visitors ? ` · ${visitors.toLocaleString()} visitors` : ''}
+      </p>
 
-      <PartialNotice rows={partial} noun="days" onRetry={() => setReload((n) => n + 1)} className="mb-3" />
+      <PartialNotice rows={partial} noun="days" onRetry={() => setReload((n) => n + 1)} className="mb-4" />
       {rows === null ? (
-        <RowsSkeleton rows={2} />
+        <RowsSkeleton rows={2} className="!bg-transparent" />
       ) : rows.length === 0 ? (
-        <div className="text-[13px] text-ink-soft bg-canvas/60 rounded-2xl px-4 py-3">
-          No snapshots yet. Apply <span className="font-mono text-[12px]">db-setup.sql</span>,
-          then the daily cron (or <span className="font-mono text-[12px]">node scripts/snapshot-kpis.mjs</span>)
-          fills this in.
-        </div>
+        <Notice tone="info">
+          No snapshots yet. Apply <code className="font-mono text-small">db-setup.sql</code>, then the daily cron (or{' '}
+          <code className="font-mono text-small">node scripts/snapshot-kpis.mjs</code>) fills this in.
+        </Notice>
       ) : (
-        <div className="flex flex-col gap-2">
-          {funnel.map((s) => (
-            <div key={s.key}>
-              <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                <span className="text-[13px] font-medium">{s.label}</span>
-                <span className="font-mono text-[12px] text-ink-soft tabular-nums flex-shrink-0">
-                  {s.value.toLocaleString()}
-                  {s.conv != null && (
-                    <span className={`ml-1.5 font-semibold ${s.conv < 40 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                      {s.conv.toFixed(0)}%
-                    </span>
-                  )}
-                </span>
-              </div>
-              <div className="h-2.5 rounded-full bg-card overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-accent"
-                  style={{ width: `${Math.max(2, s.width)}%` }}
-                />
-              </div>
-            </div>
-          ))}
-          <p className="text-[11px] text-ink-soft mt-1">
-            % = conversion from the stage above. Red flags a leak under 40%.
-          </p>
-        </div>
+        <>
+          <ul className="flex flex-col gap-3.5">
+            {funnel.map((s) => (
+              <li key={s.key}>
+                <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                  <span className="text-ui font-medium text-ink">{s.label}</span>
+                  <span className="flex items-baseline gap-3 flex-shrink-0">
+                    <span className="num text-small text-ink">{s.value.toLocaleString()}</span>
+                    {s.conv != null && (
+                      <span className={`num text-small w-12 text-right ${s.conv < 40 ? 'text-red-300' : 'text-emerald-300'}`}>
+                        {s.conv.toFixed(0)}%
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div className="h-full rounded-full bg-white/60" style={{ width: `${Math.max(2, s.width)}%` }} />
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="text-small text-ink-soft mt-4">% = conversion from the stage above. Red flags a leak under 40%.</p>
+        </>
       )}
-    </div>
+    </Panel>
   );
 }

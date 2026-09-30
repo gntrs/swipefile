@@ -7,6 +7,7 @@ import { useMediaUrl } from '@/lib/media';
 import { isMissingColumn, isMissingTable } from '@/lib/db';
 import MigrationCard from '@/components/MigrationCard';
 import { RowsSkeleton } from '@/components/Skeleton';
+import { Panel, IconButton, inputCls, selectedCls } from '@/components/ui';
 
 const MAX_MESSAGES = 80; // plenty for a quick team ping board
 const POLL_MS = 15000; // fallback when realtime is off
@@ -35,8 +36,8 @@ function renderBody(body, bySlug, myEmail) {
     parts.push(
       <span
         key={m.index}
-        className={`font-semibold rounded px-1 py-0.5 ${
-          person.email === myEmail ? 'bg-accent text-black' : 'bg-accent-wash text-accent-dim'
+        className={`font-semibold rounded-md px-1 py-0.5 ${
+          person.email === myEmail ? 'bg-accent text-black' : 'bg-white/[0.08] text-ink'
         }`}
       >
         @{person.label}
@@ -66,10 +67,10 @@ function Message({ msg, reactions, myEmail, mentionsMe, bySlug, pickerOpen, onTo
   }, [reactions, myEmail]);
 
   return (
-    <div className={`flex items-start gap-2.5 py-1.5 px-1.5 -mx-1.5 rounded-xl ${mentionsMe ? 'bg-accent-wash/50' : ''}`}>
+    <div className={`flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-xl ${mentionsMe ? 'bg-white/[0.04]' : ''}`}>
       <span
-        className={`w-7 h-7 rounded-full border flex items-center justify-center overflow-hidden flex-shrink-0 mt-0.5 ${
-          isClaude ? 'bg-accent border-accent text-black' : 'bg-canvas border-line'
+        className={`w-8 h-8 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 mt-0.5 ${
+          isClaude ? 'bg-accent text-black' : 'bg-white/[0.06]'
         }`}
       >
         {isClaude ? (
@@ -77,32 +78,34 @@ function Message({ msg, reactions, myEmail, mentionsMe, bySlug, pickerOpen, onTo
         ) : avatar ? (
           <img src={avatar} alt="" className="w-full h-full object-cover" />
         ) : (
-          <User size={14} className="text-ink-soft" />
+          <User size={16} className="text-ink-soft" aria-hidden="true" />
         )}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[12px] text-ink-soft leading-tight">
+        <p className="text-small">
           <span className="font-semibold text-ink">{displayName(msg.author_email)}</span>
-          {' · '}
-          {timeLabel(msg.created_at)}
+          <span className="text-ink-soft ml-2">{timeLabel(msg.created_at)}</span>
         </p>
-        <p className="text-[14px] leading-snug break-words whitespace-pre-wrap">
-          {renderBody(msg.body, bySlug, myEmail)}
-        </p>
+        <p className="text-body text-ink break-words whitespace-pre-wrap">{renderBody(msg.body, bySlug, myEmail)}</p>
 
         {(pills.length > 0 || pickerOpen) && (
-          <div className="flex items-center flex-wrap gap-1 mt-1">
+          <div className="flex items-center flex-wrap -ml-1.5 -mb-1.5">
             {pills.map((p) => (
               <button
                 key={p.emoji}
                 type="button"
                 onClick={() => onReact(msg, p.emoji)}
                 aria-label={`${p.emoji} ${p.count}, tap to toggle`}
-                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[12px] border transition-colors ${
-                  p.mine ? 'bg-accent-wash border-accent text-accent-dim' : 'bg-canvas border-line text-ink-soft'
-                }`}
+                aria-pressed={p.mine}
+                className="group inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-0.5"
               >
-                {p.emoji} <span className="tabular-nums font-semibold">{p.count}</span>
+                <span
+                  className={`inline-flex items-center gap-1 h-7 px-2 rounded-full text-small transition-colors ${
+                    p.mine ? selectedCls : 'bg-white/[0.04] text-ink-soft group-hover:text-ink'
+                  }`}
+                >
+                  {p.emoji} <span className="num">{p.count}</span>
+                </span>
               </button>
             ))}
             {pickerOpen &&
@@ -112,7 +115,7 @@ function Message({ msg, reactions, myEmail, mentionsMe, bySlug, pickerOpen, onTo
                   type="button"
                   onClick={() => onReact(msg, e)}
                   aria-label={`React ${e}`}
-                  className="px-1.5 py-0.5 rounded-full text-[15px] hover:bg-canvas active:scale-110 transition-transform"
+                  className="w-11 h-11 rounded-xl text-lead hover:bg-white/[0.06] active:scale-110 transition-transform"
                 >
                   {e}
                 </button>
@@ -120,16 +123,13 @@ function Message({ msg, reactions, myEmail, mentionsMe, bySlug, pickerOpen, onTo
           </div>
         )}
       </div>
-      <button
-        type="button"
+      <IconButton
+        label="React to message"
+        icon={Smiley}
+        variant={pickerOpen ? 'secondary' : 'ghost'}
         onClick={() => onTogglePicker(msg.id)}
-        aria-label="React to message"
-        className={`w-11 h-11 -my-2.5 -mr-2.5 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-          pickerOpen ? 'bg-accent-wash text-accent-dim' : 'text-ink-soft/50 hover:bg-canvas'
-        }`}
-      >
-        <Smiley size={15} weight="bold" />
-      </button>
+        className={`-my-1.5 -mr-2 ${pickerOpen ? '' : '!text-ink-soft/60 hover:!text-ink'}`}
+      />
     </div>
   );
 }
@@ -415,17 +415,13 @@ export default function TeamChat() {
   if (missing) return <MigrationCard title="Team chat" />;
 
   return (
-    <div className="bg-card rounded-xl3 shadow-card p-5 flex flex-col">
-      <h2 className="font-semibold text-[15px] mb-2">Team chat</h2>
-
-      <div className="relative flex-1">
-        <div ref={listRef} onScroll={onScroll} className="h-[380px] overflow-y-auto -mx-1 px-1">
+    <Panel title="Team chat" className="flex flex-col">
+      <div className="relative">
+        <div ref={listRef} onScroll={onScroll} className="max-h-[28rem] overflow-y-auto overscroll-contain -mx-2 px-2">
           {loading ? (
-            <RowsSkeleton rows={3} className="py-1" />
+            <RowsSkeleton rows={3} className="!bg-transparent" />
           ) : messages.length === 0 ? (
-            <p className="text-ink-soft text-[13px] py-2">
-              Quiet in here. Say hi, drop a link, @mention the team.
-            </p>
+            <p className="text-body text-ink-soft py-1">Quiet in here. Say hi, drop a link, @mention the team.</p>
           ) : (
             messages.map((m) => (
               <Message
@@ -447,35 +443,35 @@ export default function TeamChat() {
           <button
             type="button"
             onClick={jumpToLatest}
-            className="press absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 rounded-full bg-ink text-black text-[12px] font-semibold"
+            className="press absolute bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-full bg-card-hi text-ink text-ui font-semibold shadow-cardhover"
           >
-            {newCount} new <ArrowDown size={13} weight="bold" />
+            {newCount} new <ArrowDown size={14} weight="bold" aria-hidden="true" />
           </button>
         )}
       </div>
 
-      <form onSubmit={send} className="relative flex items-center gap-2 mt-3">
+      <form onSubmit={send} className="relative flex items-center gap-2 mt-4">
         {mentionQuery !== null && mentionMatches.length > 0 && (
-          <div className="absolute bottom-full left-0 mb-2 w-56 bg-card border border-line rounded-xl2 shadow-card overflow-hidden">
+          <div className="absolute bottom-full left-0 mb-2 w-64 bg-card-hi rounded-xl shadow-cardhover overflow-hidden z-10">
             {mentionMatches.map((person, i) => (
               <button
                 key={person.email}
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pickMention(person)}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-[13px] text-left ${
-                  i === mentionIndex ? 'bg-accent-wash' : 'hover:bg-canvas'
+                className={`w-full flex items-center gap-2.5 min-h-[44px] px-3 text-ui text-left ${
+                  i === mentionIndex ? 'bg-white/[0.08]' : 'hover:bg-white/[0.04]'
                 }`}
               >
                 <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    person.email === 'claude@analysis' ? 'bg-accent text-black' : 'bg-canvas border border-line'
+                  className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    person.email === 'claude@analysis' ? 'bg-accent text-black' : 'bg-white/[0.06]'
                   }`}
                 >
-                  {person.email === 'claude@analysis' ? <Sparkle size={11} weight="fill" /> : null}
+                  {person.email === 'claude@analysis' ? <Sparkle size={12} weight="fill" aria-hidden="true" /> : null}
                 </span>
                 <span className="font-medium text-ink">{person.label}</span>
-                <span className="text-ink-soft">@{person.slug}</span>
+                <span className="text-small text-ink-soft">@{person.slug}</span>
               </button>
             ))}
           </div>
@@ -486,18 +482,12 @@ export default function TeamChat() {
           onChange={onTextChange}
           onKeyDown={onInputKeyDown}
           placeholder="Message the team, @mention someone"
+          aria-label="Message the team"
           maxLength={500}
-          className="flex-1 min-w-0 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[16px] sm:text-[14px]"
+          className={`${inputCls} flex-1 min-w-0`}
         />
-        <button
-          type="submit"
-          disabled={!text.trim()}
-          aria-label="Send"
-          className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40 disabled:shadow-none"
-        >
-          <PaperPlaneRight size={17} weight="bold" />
-        </button>
+        <IconButton type="submit" label="Send" variant="secondary" icon={PaperPlaneRight} disabled={!text.trim()} />
       </form>
-    </div>
+    </Panel>
   );
 }

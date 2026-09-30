@@ -30,7 +30,6 @@ export const NAV_ITEMS = {
   intel: { id: 'intel', to: '/intel', label: 'Market intel', short: 'Intel', icon: ChartLineUp, module: 'intel' },
   outreach: { id: 'outreach', to: '/outreach', label: 'Outreach', short: 'Reach', icon: PaperPlaneTilt, module: 'team' },
   availability: { id: 'availability', to: '/availability', label: 'Availability', short: 'When', icon: CalendarBlank, module: 'team' },
-  overview: { id: 'overview', to: '/overview', label: 'Overview', short: 'Overview', icon: SquaresFour, module: 'library' },
   capture: { id: 'capture', to: '/capture/setup', label: 'Capture', short: 'Capture', icon: BookmarkSimple, module: 'library', ready: 'capture' },
   // The shortlist is a destination, not a hidden chip state. It leads the More
   // sheet because it is the list people come back to.
@@ -46,12 +45,12 @@ export const NAV_ITEMS = {
   profile: { id: 'profile', to: '/profile', label: 'Profile', short: 'Profile', icon: User, module: 'library' },
 };
 
-const SIDEBAR_SOLO = ['ads', 'hooks', 'briefs', 'competitors', 'intel', 'overview', 'capture'];
+const SIDEBAR_SOLO = ['dashboard', 'ads', 'hooks', 'briefs', 'competitors', 'intel', 'capture'];
 const SIDEBAR_TEAM = ['dashboard', 'ads', 'hooks', 'briefs', 'posts', 'competitors', 'intel', 'outreach', 'availability', 'capture'];
-const TABS_SOLO = ['ads', 'hooks', 'briefs', 'competitors'];
+const TABS_SOLO = ['dashboard', 'ads', 'hooks', 'competitors'];
 const TABS_TEAM = ['dashboard', 'ads', 'posts', 'competitors'];
 // Where a tab whose module is off gets its replacement from, in this order.
-const TAB_FILL = ['ads', 'hooks', 'briefs', 'competitors', 'intel', 'overview'];
+const TAB_FILL = ['ads', 'hooks', 'briefs', 'competitors', 'intel'];
 const MORE_TEAM = ['starred', 'hooks', 'briefs', 'intel', 'outreach', 'availability', 'profile', 'capture'];
 
 function context({ modules = MODULES, teamMode, ready = FEATURE_READY } = {}) {

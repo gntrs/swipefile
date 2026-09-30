@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, PencilSimple, Plus, Trash, Warning, X } from '@phosphor-icons/react';
+import { Check, PencilSimple, Plus, Trash, Warning } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { isMissingTable } from '@/lib/db';
 import MigrationCard from '@/components/MigrationCard';
 import { RowsSkeleton } from '@/components/Skeleton';
+import { Panel, Badge, Button, IconButton, inputCls, selectCls } from '@/components/ui';
 
 const POLL_MS = 15000; // fallback when realtime is off
 
@@ -32,24 +33,20 @@ function DeadlineChip({ goal }) {
     day: 'numeric',
   });
   const left = daysUntil(goal.deadline);
-  let cls = 'bg-canvas text-ink-soft';
-  let text = `due ${label}`;
+  let tone = 'neutral';
+  let text = `Due ${label}`;
   if (!goal.done) {
     if (left < 0) {
-      cls = 'bg-red-100 text-red-600';
-      text = `was due ${label}`;
+      tone = 'bad';
+      text = `Was due ${label}`;
     } else if (left === 0) {
-      cls = 'bg-amber-100 text-amber-700';
-      text = 'due today';
+      tone = 'warn';
+      text = 'Due today';
     } else if (left <= 3) {
-      cls = 'bg-amber-100 text-amber-700';
+      tone = 'warn';
     }
   }
-  return (
-    <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full ${cls}`}>
-      {text}
-    </span>
-  );
+  return <Badge tone={tone}>{text}</Badge>;
 }
 
 // Team goals grouped by horizon. Everyone sees the same card and ticks goals
@@ -202,58 +199,54 @@ export default function Goals() {
 
   if (missing) return <MigrationCard title="Goals" />;
 
+  const smallSelect = `${selectCls} !w-auto flex-shrink-0`;
+
   return (
-    <div className="bg-card rounded-xl3 shadow-card p-5 flex flex-col">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="font-semibold text-[15px]">Goals</h2>
-        {isAdmin && (
-          <button
+    <Panel
+      title="Goals"
+      className="flex flex-col"
+      action={
+        isAdmin && (
+          <IconButton
+            label="Toggle goal editing"
+            icon={PencilSimple}
+            variant={editing ? 'secondary' : 'ghost'}
+            pressed={editing}
             onClick={() => {
               setEditing((e) => !e);
               setEditId(null);
             }}
-            aria-label="Toggle goal editing"
-            className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
-              editing ? 'bg-accent text-black' : 'text-ink-soft hover:bg-canvas'
-            }`}
-          >
-            <PencilSimple size={15} weight="bold" />
-          </button>
-        )}
-      </div>
-
-      {/* Fixed height like the chat list next door: flex-1 let the content
-          stretch the card to the full goal list (min-height:auto), so the
-          overflow scroll never engaged and the card ate the whole page. */}
-      <div className="h-[380px] overflow-y-auto -mx-1 px-1">
+            className="-my-2 -mr-2"
+          />
+        )
+      }
+    >
+      <div className="max-h-[28rem] overflow-y-auto overscroll-contain -mx-2 px-2">
         {loading ? (
-          <RowsSkeleton rows={3} className="py-1" />
+          <RowsSkeleton rows={3} className="!bg-transparent" />
         ) : groups.length === 0 ? (
-          <p className="text-ink-soft text-[13px] py-2">
-            No goals yet. Add the first one for this week.
-          </p>
+          <p className="text-body text-ink-soft py-1">No goals yet. Add the first one for this week.</p>
         ) : (
           groups.map((h) => (
-            <div key={h.key} className="mb-3 last:mb-0">
-              <p className="kicker mb-1">
-                {h.label}
-              </p>
+            <div key={h.key} className="mb-4 last:mb-0">
+              <p className="text-small font-semibold text-ink-soft mb-1">{h.label}</p>
               {h.items.map((g) =>
                 editId === g.id ? (
-                  <div key={g.id} className="py-1.5 flex flex-col gap-1.5">
+                  <div key={g.id} className="py-2 flex flex-col gap-2">
                     <input
                       value={draft.title}
                       onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
                       maxLength={140}
                       autoFocus
-                      className="w-full py-2 px-3 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[16px] sm:text-[14px]"
+                      aria-label="Goal"
+                      className={inputCls}
                     />
                     <div className="flex items-center gap-1.5">
                       <select
                         value={draft.horizon}
                         onChange={(e) => setDraft((d) => ({ ...d, horizon: e.target.value }))}
                         aria-label="Horizon"
-                        className="py-2 px-2.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[13px] text-ink-soft"
+                        className={smallSelect}
                       >
                         {HORIZONS.map((hh) => (
                           <option key={hh.key} value={hh.key}>
@@ -266,116 +259,92 @@ export default function Goals() {
                         value={draft.deadline}
                         onChange={(e) => setDraft((d) => ({ ...d, deadline: e.target.value }))}
                         aria-label="Deadline"
-                        className="flex-1 min-w-0 py-2 px-2.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[13px] text-ink-soft"
+                        className={`${inputCls} flex-1 min-w-0 !px-2.5`}
                       />
-                      <button
-                        type="button"
+                      <IconButton
+                        label="Toggle urgent"
+                        icon={Warning}
+                        pressed={draft.urgent}
+                        variant={draft.urgent ? 'danger' : 'ghost'}
                         onClick={() => setDraft((d) => ({ ...d, urgent: !d.urgent }))}
-                        aria-label="Toggle urgent"
-                        aria-pressed={draft.urgent}
-                        className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-                          draft.urgent ? 'bg-red-100 text-red-600' : 'text-ink-soft hover:bg-canvas'
-                        }`}
-                      >
-                        <Warning size={14} weight="bold" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => saveEdit(g)}
-                        disabled={!draft.title.trim()}
-                        aria-label="Save goal"
-                        className="w-8 h-8 rounded-xl bg-accent text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40"
-                      >
-                        <Check size={14} weight="bold" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditId(null)}
-                        aria-label="Cancel edit"
-                        className="w-8 h-8 rounded-xl text-ink-soft hover:bg-canvas flex items-center justify-center flex-shrink-0"
-                      >
-                        <X size={14} weight="bold" />
-                      </button>
+                        className={draft.urgent ? '!bg-red-500/15' : ''}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="secondary" icon={Check} onClick={() => saveEdit(g)} disabled={!draft.title.trim()} aria-label="Save goal">
+                        Save
+                      </Button>
+                      <Button variant="ghost" onClick={() => setEditId(null)} aria-label="Cancel edit">
+                        Cancel
+                      </Button>
                     </div>
                   </div>
                 ) : (
-                  <label
-                    key={g.id}
-                    className="flex items-start gap-2.5 min-h-[44px] py-1.5 cursor-pointer group"
-                  >
+                  <label key={g.id} className="flex items-start gap-3 min-h-[44px] py-2 cursor-pointer group">
                     <input
                       type="checkbox"
                       checked={!!g.done}
                       onChange={() => toggle(g)}
-                      className="sr-only"
+                      className="sr-only peer"
                       data-probe-skip
                     />
                     <span
                       aria-hidden="true"
-                      className={`w-[18px] h-[18px] rounded-md border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
-                        g.done ? 'bg-mint border-mint' : 'border-line bg-canvas group-hover:border-accent'
+                      className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-ink ${
+                        g.done ? 'bg-mint border-mint' : 'border-white/25 group-hover:border-ink'
                       }`}
                     >
-                      {g.done && <Check size={12} weight="bold" className="text-ink" />}
+                      {g.done && <Check size={13} weight="bold" className="text-black" />}
                     </span>
                     <span className="min-w-0 flex-1">
                       {g.brief_id ? (
                         <Link
                           to={`/briefs?open=${g.brief_id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className={`block min-h-[44px] text-[14px] leading-snug break-words underline decoration-line underline-offset-2 hover:decoration-accent ${
-                            g.done ? 'line-through text-ink-soft/60' : ''
+                          className={`block min-h-[44px] py-2 -my-2 text-body break-words underline decoration-line underline-offset-2 hover:decoration-ink ${
+                            g.done ? 'line-through text-ink-soft/60' : 'text-ink'
                           }`}
                         >
                           {g.title}
                         </Link>
                       ) : (
-                        <span
-                          className={`block text-[14px] leading-snug break-words ${
-                            g.done ? 'line-through text-ink-soft/60' : ''
-                          }`}
-                        >
+                        <span className={`block text-body break-words ${g.done ? 'line-through text-ink-soft/60' : 'text-ink'}`}>
                           {g.title}
                         </span>
                       )}
-                      <span className="flex items-center flex-wrap gap-1.5 mt-0.5">
-                        {g.urgent && !g.done && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
-                            <Warning size={11} weight="bold" /> urgent
-                          </span>
-                        )}
-                        <DeadlineChip goal={g} />
-                        {g.created_by_email && (
-                          <span className="text-[11px] text-ink-soft/70">
-                            by {displayName(g.created_by_email)}
-                          </span>
-                        )}
-                      </span>
+                      {(g.urgent || g.deadline || g.created_by_email) && (
+                        <span className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-1">
+                          {g.urgent && !g.done && (
+                            <Badge tone="bad">
+                              <Warning size={12} weight="bold" aria-hidden="true" /> Urgent
+                            </Badge>
+                          )}
+                          <DeadlineChip goal={g} />
+                          {g.created_by_email && (
+                            <span className="text-small text-ink-soft">by {displayName(g.created_by_email)}</span>
+                          )}
+                        </span>
+                      )}
                     </span>
                     {isAdmin && editing && (
-                      <span className="flex flex-shrink-0">
-                        <button
-                          type="button"
+                      <span className="flex flex-shrink-0 -my-1.5">
+                        <IconButton
+                          label={`Edit goal: ${g.title}`}
+                          icon={PencilSimple}
                           onClick={(e) => {
                             e.preventDefault();
                             startEdit(g);
                           }}
-                          aria-label={`Edit goal: ${g.title}`}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-soft hover:bg-canvas"
-                        >
-                          <PencilSimple size={14} weight="bold" />
-                        </button>
-                        <button
-                          type="button"
+                        />
+                        <IconButton
+                          label={`Delete goal: ${g.title}`}
+                          icon={Trash}
+                          variant="danger"
                           onClick={(e) => {
                             e.preventDefault();
                             remove(g);
                           }}
-                          aria-label={`Delete goal: ${g.title}`}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50"
-                        >
-                          <Trash size={14} weight="bold" />
-                        </button>
+                        />
                       </span>
                     )}
                   </label>
@@ -387,21 +356,17 @@ export default function Goals() {
       </div>
 
       {isAdmin && editing && (
-        <form onSubmit={add} className="flex flex-col gap-2 mt-3">
+        <form onSubmit={add} className="flex flex-col gap-2 mt-4 pt-4 border-t border-line">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Add a goal"
+            aria-label="Add a goal"
             maxLength={140}
-            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[16px] sm:text-[14px]"
+            className={inputCls}
           />
-          <div className="flex items-center gap-2">
-            <select
-              value={horizon}
-              onChange={(e) => setHorizon(e.target.value)}
-              aria-label="Horizon"
-              className="py-2.5 px-3 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[16px] sm:text-[13px] text-ink-soft flex-shrink-0"
-            >
+          <div className="flex items-center gap-1.5">
+            <select value={horizon} onChange={(e) => setHorizon(e.target.value)} aria-label="Horizon" className={smallSelect}>
               {HORIZONS.map((h) => (
                 <option key={h.key} value={h.key}>
                   {h.label}
@@ -413,30 +378,20 @@ export default function Goals() {
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
               aria-label="Deadline (optional)"
-              className="flex-1 min-w-0 py-2.5 px-3 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[16px] sm:text-[13px] text-ink-soft"
+              className={`${inputCls} flex-1 min-w-0 !px-2.5`}
             />
-            <button
-              type="button"
+            <IconButton
+              label="Mark as urgent"
+              icon={Warning}
+              pressed={urgent}
+              variant={urgent ? 'danger' : 'ghost'}
               onClick={() => setUrgent((u) => !u)}
-              aria-label="Mark as urgent"
-              aria-pressed={urgent}
-              className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors ${
-                urgent ? 'bg-red-100 text-red-600' : 'text-ink-soft border border-line bg-card'
-              }`}
-            >
-              <Warning size={16} weight="bold" />
-            </button>
-            <button
-              type="submit"
-              disabled={!title.trim()}
-              aria-label="Add goal"
-              className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40 disabled:shadow-none"
-            >
-              <Plus size={17} weight="bold" />
-            </button>
+              className={urgent ? '!bg-red-500/15' : ''}
+            />
+            <IconButton type="submit" label="Add goal" icon={Plus} variant="secondary" disabled={!title.trim()} />
           </div>
         </form>
       )}
-    </div>
+    </Panel>
   );
 }

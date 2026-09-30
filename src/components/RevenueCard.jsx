@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CurrencyEur, TrendUp, Sparkle, X } from '@phosphor-icons/react';
+import { Sparkle, X } from '@phosphor-icons/react';
 import { db, fetchAll } from '@/lib/db';
 import { confettiBurst } from '@/lib/confetti';
 import { triggerCelebration } from '@/lib/celebration';
-import Pill from '@/components/Pill';
+import { Panel, Badge, Meta, Notice, IconButton } from '@/components/ui';
 
 // The money counter. YT-subscriber-counter energy: lifetime revenue GENERATED
 // (not what was paid out), MRR, sales today, and confetti the moment a new
@@ -127,74 +127,57 @@ export default function RevenueCard() {
   const empty = sales !== null && sales.length === 0 && !summary;
 
   return (
-    <div
-      className={`relative overflow-hidden bg-card rounded-xl3 border shadow-card p-5 mb-4 transition-colors duration-700 ${
-        flash ? 'border-emerald-400 ring-2 ring-emerald-300/40' : 'border-line'
-      }`}
+    <Panel
+      title="Revenue"
+      className={`transition-shadow duration-700 ${flash ? 'ring-2 ring-emerald-400/60' : ''}`}
+      action={
+        flash && (
+          <Badge tone="good">
+            <Sparkle size={12} weight="fill" aria-hidden="true" /> New sale
+          </Badge>
+        )
+      }
     >
-      <div className="relative flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="w-8 h-8 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
-            <CurrencyEur size={17} weight="bold" />
-          </span>
-          <div>
-            <h2 className="font-semibold text-[15px]">Revenue</h2>
-            <p className="text-ink-soft text-[12px]">
-              Generated, lifetime · updates every ~5 min
-              {stats.last ? ` · last sale ${ago(stats.last.paid_at)}` : ''}
-            </p>
-          </div>
-        </div>
-        {flash && (
-          <Pill tone="good">
-            <Sparkle size={12} weight="fill" /> New sale
-          </Pill>
-        )}
-      </div>
+      <p className="text-small text-ink-soft -mt-3 mb-5">
+        <Meta items={['Generated, lifetime', 'updates every ~5 min', stats.last && `last sale ${ago(stats.last.paid_at)}`]} />
+      </p>
 
       {empty ? (
-        <div className="text-[13px] text-ink-soft bg-canvas/60 rounded-2xl px-4 py-3">
-          Waiting for Stripe. Add <span className="font-mono text-[12px]">STRIPE_API_KEY</span> to{' '}
-          <span className="font-mono text-[12px]">.env</span> on your cron machine, apply{' '}
-          <span className="font-mono text-[12px]">db-setup.sql</span>, then run{' '}
-          <span className="font-mono text-[12px]">node scripts/stripe-pull.mjs</span> to backfill
-          every sale.
-        </div>
+        <Notice tone="info">
+          Waiting for Stripe. Add <code className="font-mono text-small">STRIPE_API_KEY</code> to{' '}
+          <code className="font-mono text-small">.env</code> on your cron machine, apply{' '}
+          <code className="font-mono text-small">db-setup.sql</code>, then run{' '}
+          <code className="font-mono text-small">node scripts/stripe-pull.mjs</code> to backfill every sale.
+        </Notice>
       ) : (
-        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-5">
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="col-span-2 text-left bg-card rounded-xl px-4 py-3.5 hover:border-emerald-300 hover:shadow-cardhover transition-all active:scale-[0.99]"
+            className="press col-span-2 -m-3 p-3 text-left rounded-xl hover:bg-white/[0.03] transition-colors"
           >
-            <p className="kicker mb-1.5">Total generated</p>
-            <p className="font-mono text-[38px] sm:text-[42px] font-bold tabular-nums tracking-tight leading-none">
+            <p className="text-small font-medium text-ink-soft">Total generated</p>
+            <p className="num text-num-lg text-ink mt-2">
               {sym(stats.currency)}
               {shownTotal.toFixed(2)}
             </p>
-            <p className="font-mono text-[11px] text-ink-soft tabular-nums mt-1.5">
+            <p className="text-small text-ink-soft mt-2">
               {stats.count} sale{stats.count === 1 ? '' : 's'} all time · tap to expand
             </p>
           </button>
-          <div className="bg-card rounded-xl px-3.5 py-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <TrendUp size={14} weight="bold" className="text-emerald-600" />
-              <p className="text-[12px] font-medium text-ink-soft">MRR</p>
-            </div>
-            <p className="font-mono text-[19px] font-semibold tabular-nums tracking-tight leading-none">
+          <div>
+            <p className="text-small font-medium text-ink-soft">MRR</p>
+            <p className="num text-lead text-ink mt-2">
               {stats.mrr == null ? '-' : `${sym(stats.currency)}${shownMrr.toFixed(2)}`}
             </p>
           </div>
-          <div className="bg-card rounded-xl px-3.5 py-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Sparkle size={14} weight="bold" className="text-accent-dim" />
-              <p className="text-[12px] font-medium text-ink-soft">Today</p>
-            </div>
-            <p className="font-mono text-[19px] font-semibold tabular-nums tracking-tight leading-none">
+          <div>
+            <p className="text-small font-medium text-ink-soft">Today</p>
+            <p className={`num text-lead mt-2 ${stats.todayCount > 0 ? 'text-emerald-300' : 'text-ink-soft'}`}>
               {stats.todayCount > 0 ? `${sym(stats.currency)}${stats.todayAmount.toFixed(2)}` : '-'}
             </p>
             {stats.todayCount > 0 && (
-              <p className="font-mono text-[11px] text-ink-soft tabular-nums mt-1">
+              <p className="text-small text-ink-soft mt-1">
                 {stats.todayCount} sale{stats.todayCount === 1 ? '' : 's'}
               </p>
             )}
@@ -204,33 +187,30 @@ export default function RevenueCard() {
 
       {expanded && (
         <div
-          className="fixed inset-0 z-[100] bg-card flex flex-col items-center justify-center px-6"
+          className="fixed inset-0 z-[100] bg-canvas flex flex-col items-center justify-center px-[var(--gutter)]"
           role="dialog"
           aria-modal="true"
           aria-label="Total revenue, full screen"
         >
-          <button
-            type="button"
+          <IconButton
+            label="Close"
+            icon={X}
+            variant="secondary"
             onClick={() => setExpanded(false)}
-            aria-label="Close"
-            className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 w-10 h-10 rounded-full border border-line flex items-center justify-center text-ink-soft hover:bg-canvas"
-          >
-            <X size={18} weight="bold" />
-          </button>
-          <span className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-5">
-            <CurrencyEur size={24} weight="bold" />
-          </span>
-          <p className="text-[14px] font-medium text-ink-soft mb-2">Total revenue generated, lifetime</p>
-          <p className="font-mono font-bold tabular-nums tracking-tight leading-none text-center text-[15vw] sm:text-[96px]">
+            className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4"
+          />
+          <p className="text-body text-ink-soft mb-3">Total revenue generated, lifetime</p>
+          {/* The one screen sized number in the app: it scales with the window. */}
+          <p className="num text-ink leading-none text-center" style={{ fontSize: 'clamp(3rem, 14vw, 7rem)' }}>
             {sym(stats.currency)}
             {shownTotal.toFixed(2)}
           </p>
-          <p className="font-mono text-[13px] text-ink-soft tabular-nums mt-4">
+          <p className="text-body text-ink-soft mt-5">
             {stats.count} sale{stats.count === 1 ? '' : 's'} all time
             {stats.mrr != null ? ` · ${sym(stats.currency)}${stats.mrr.toFixed(2)} MRR` : ''}
           </p>
         </div>
       )}
-    </div>
+    </Panel>
   );
 }

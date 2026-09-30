@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CaretLeft, X } from '@phosphor-icons/react';
+import { X } from '@phosphor-icons/react';
 import { db, IS_DEMO } from '@/lib/db';
 import { VERDICTS, humanVerdictPatch } from '@/lib/ads';
 import { isOwnBrand } from '@/lib/brand';
@@ -11,11 +11,11 @@ import LinkPaste, { EMPTY_LINK, linkMetrics } from '@/features/save/LinkPaste';
 import DropZone from '@/features/save/DropZone';
 import BatchSave from '@/features/save/BatchSave';
 import SelectBox from '@/features/save/SelectBox';
+import { Page, PageHeader, Panel, Field, Button, IconButton, Notice, inputCls, selectCls, textareaCls } from '@/components/ui';
 
 const PLATFORMS = ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'Other'];
 
-const field = 'w-full min-h-[44px] py-2.5 px-3.5 rounded-xl border border-line focus:outline-none focus:border-accent bg-card text-[16px] sm:text-[15px] placeholder:text-ink-soft/70';
-const label = 'kicker mb-1.5 block';
+const VERDICT_LABEL = { unsure: 'Unsure', winner: 'Winner', testing: 'Testing', loser: 'Loser' };
 
 let fileKey = 0;
 
@@ -204,174 +204,178 @@ export default function AddAd() {
       : 'Save ad';
 
   return (
-    <div data-page="add-ad" onPaste={onPaste} className="px-5 sm:px-8 pt-4 sm:pt-6 pb-10 max-w-[720px] mx-auto">
-      <button
-        type="button"
-        onClick={() => navigate('/ads')}
-        className="press flex items-center gap-1 min-h-[44px] -ml-2 px-2 rounded-xl text-ink-soft hover:text-ink text-[15px] font-medium mb-3"
-      >
-        <CaretLeft size={16} weight="bold" /> Library
-      </button>
-      <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mb-6">Add an ad</h1>
+    <Page id="add-ad" onPaste={onPaste}>
+      <div className="max-w-[720px] xl:max-w-none">
+        <PageHeader back={{ to: '/ads', label: 'Library' }} title="Add an ad" />
 
-      <form onSubmit={submit} className="grid gap-5">
-        <LinkPaste value={link} onChange={setLink} />
+        {/* One column up to xl, start from first. From xl the start panel
+            sits left and the form right. */}
+        <form onSubmit={submit} className="grid xl:grid-cols-12 items-start gap-4 lg:gap-6">
+          <Panel title="Start from" className="xl:col-span-5 xl:sticky xl:top-6" bodyClassName="grid gap-5">
+            <LinkPaste value={link} onChange={setLink} />
 
-        {/* Media */}
-        <DropZone onFiles={addFiles} compact={items.length > 0}>
-          {single && (
-            <div className="relative p-3 pb-0">
-              {formatFor(single.file) === 'video' ? (
-                <video src={single.url} className="max-h-64 mx-auto rounded-xl" controls playsInline />
-              ) : (
-                <img src={single.url} className="max-h-64 mx-auto rounded-xl" alt="Preview of the ad" />
+            <DropZone onFiles={addFiles} compact={items.length > 0}>
+              {single && (
+                <div className="relative p-3 pb-0">
+                  {formatFor(single.file) === 'video' ? (
+                    <video src={single.url} className="max-h-64 mx-auto rounded-xl" controls playsInline />
+                  ) : (
+                    <img src={single.url} className="max-h-64 mx-auto rounded-xl" alt="Preview of the ad" />
+                  )}
+                  <IconButton
+                    label="Remove file"
+                    icon={X}
+                    variant="secondary"
+                    onClick={() => removeItem(single)}
+                    className="absolute top-4 right-4 !bg-canvas/90"
+                  />
+                </div>
               )}
-              <button
-                type="button"
-                onClick={() => removeItem(single)}
-                aria-label="Remove file"
-                className="press absolute top-4 right-4 w-11 h-11 rounded-full bg-canvas/90 flex items-center justify-center text-ink"
-              >
-                <X size={16} weight="bold" />
-              </button>
-            </div>
-          )}
-          {batch && (
-            <div className="p-3 pb-0">
-              <p className="text-[15px] leading-relaxed text-ink-soft mb-3">
-                {items.length} files, one ad each. The fields below apply to all of them; each ad gets an empty hook to fill in later.
-              </p>
-              <BatchSave items={items} status={status} onRemove={removeItem} onRetry={(item) => submitBatch(item)} running={running} />
-            </div>
-          )}
-        </DropZone>
+              {batch && (
+                <div className="px-4 pt-3">
+                  <p className="text-small text-ink-soft mb-1">
+                    {items.length} files, one ad each. The fields apply to all of them; each ad gets an empty hook to fill in later.
+                  </p>
+                  <BatchSave items={items} status={status} onRemove={removeItem} onRetry={(item) => submitBatch(item)} running={running} />
+                </div>
+              )}
+            </DropZone>
 
-        {rejected.length > 0 && (
-          <ul role="alert" className="grid gap-1 text-[15px] text-red-600">
-            {rejected.map((r, i) => (
-              <li key={`${r.name}-${i}`}>{r.message.includes(r.name) ? r.message : `${r.name}: ${r.message}`}</li>
-            ))}
-          </ul>
-        )}
+            {rejected.length > 0 && (
+              <ul role="alert" className="grid gap-1 text-small text-red-300">
+                {rejected.map((r, i) => (
+                  <li key={`${r.name}-${i}`}>{r.message.includes(r.name) ? r.message : `${r.name}: ${r.message}`}</li>
+                ))}
+              </ul>
+            )}
+          </Panel>
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="add-brand" className={label}>Brand / competitor</label>
-            <input id="add-brand" className={field} value={f.brand} onChange={set('brand')} placeholder="e.g. Acme Labs" />
-          </div>
-          <div>
-            <label htmlFor="add-platform" className={label}>Platform</label>
-            <select id="add-platform" className={field} value={f.platform} onChange={set('platform')}>
-              {PLATFORMS.map((p) => (
-                <option key={p}>{p}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+          <div className="xl:col-span-7 grid gap-4 lg:gap-6 min-w-0">
+            <Panel title="What it says" bodyClassName="grid gap-5">
+              <div className="grid sm:grid-cols-2 gap-5 sm:gap-4">
+                <Field label="Brand or competitor" htmlFor="add-brand">
+                  <input id="add-brand" className={inputCls} value={f.brand} onChange={set('brand')} placeholder="e.g. Acme Labs" />
+                </Field>
+                <Field label="Platform" htmlFor="add-platform">
+                  <select id="add-platform" className={selectCls} value={f.platform} onChange={set('platform')}>
+                    {PLATFORMS.map((p) => (
+                      <option key={p}>{p}</option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
 
-        {canTrack && (
-          <div className="flex items-center gap-1 -ml-3 text-[15px] text-ink">
-            <SelectBox checked={track} onChange={setTrack} label="Also track this brand on Competitors" />
-            <span aria-hidden="true" onClick={() => setTrack((v) => !v)} className="cursor-pointer">
-              Also track this brand on Competitors
-            </span>
-          </div>
-        )}
+              {canTrack && (
+                <div className="flex items-center gap-1 -ml-3 -my-2 text-ui text-ink">
+                  <SelectBox checked={track} onChange={setTrack} label="Also track this brand on Competitors" />
+                  <span aria-hidden="true" onClick={() => setTrack((v) => !v)} className="cursor-pointer">
+                    Also track this brand on Competitors
+                  </span>
+                </div>
+              )}
 
-        {!batch && (
-          <>
-            <div>
-              <label htmlFor="add-hook" className={label}>Hook (the opening line / first 3 seconds)</label>
-              <input id="add-hook" className={field} value={f.hook} onChange={set('hook')} placeholder="e.g. The first line that stops the scroll" />
-            </div>
+              {!batch && (
+                <>
+                  <Field label="Hook" hint="The opening line or first 3 seconds" htmlFor="add-hook">
+                    <input
+                      id="add-hook"
+                      className={inputCls}
+                      value={f.hook}
+                      onChange={set('hook')}
+                      placeholder="e.g. The first line that stops the scroll"
+                      aria-describedby="add-hook-hint"
+                    />
+                  </Field>
+                  <Field label="Ad copy" htmlFor="add-copy">
+                    <textarea id="add-copy" className={textareaCls} value={f.ad_copy} onChange={set('ad_copy')} placeholder="Paste the full primary text..." />
+                  </Field>
+                </>
+              )}
+            </Panel>
 
-            <div>
-              <label htmlFor="add-copy" className={label}>Ad copy</label>
-              <textarea id="add-copy" className={`${field} min-h-[90px]`} value={f.ad_copy} onChange={set('ad_copy')} placeholder="Paste the full primary text..." />
-            </div>
-          </>
-        )}
+            <Panel title="Links and labels" bodyClassName="grid gap-5">
+              <Field label="Ad link" hint="Ad Library or post URL" htmlFor="add-source">
+                <input
+                  id="add-source"
+                  className={inputCls}
+                  value={f.source_url}
+                  onChange={set('source_url')}
+                  placeholder="https://facebook.com/ads/library/..."
+                  aria-describedby="add-source-hint"
+                />
+              </Field>
+              {!batch && (
+                <Field label="Landing page" htmlFor="add-landing">
+                  <input id="add-landing" className={inputCls} value={f.landing_url} onChange={set('landing_url')} placeholder="https://..." />
+                </Field>
+              )}
+              <Field label="Tags" hint="Comma separated" htmlFor="add-tags">
+                <input
+                  id="add-tags"
+                  className={inputCls}
+                  value={f.tags}
+                  onChange={set('tags')}
+                  placeholder="ugc, testimonial, offer"
+                  aria-describedby="add-tags-hint"
+                />
+              </Field>
+              <div className="grid sm:grid-cols-2 gap-5 sm:gap-4">
+                <Field label="Verdict" htmlFor="add-verdict">
+                  <select id="add-verdict" className={selectCls} value={f.verdict} onChange={set('verdict')}>
+                    {VERDICTS.map((v) => (
+                      <option key={v} value={v}>
+                        {VERDICT_LABEL[v] || v}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Status" htmlFor="add-status">
+                  <select id="add-status" className={selectCls} value={f.status} onChange={set('status')}>
+                    <option value="running">Running</option>
+                    <option value="dead">Dead</option>
+                    <option value="saved">Saved (inspiration)</option>
+                  </select>
+                </Field>
+              </div>
+            </Panel>
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="add-source" className={label}>Ad link (Ad Library, post url...)</label>
-            <input id="add-source" className={field} value={f.source_url} onChange={set('source_url')} placeholder="https://facebook.com/ads/library/..." />
-          </div>
-          {!batch && (
-            <div>
-              <label htmlFor="add-landing" className={label}>Landing URL</label>
-              <input id="add-landing" className={field} value={f.landing_url} onChange={set('landing_url')} placeholder="https://..." />
-            </div>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="add-tags" className={label}>Tags (comma separated)</label>
-          <input id="add-tags" className={field} value={f.tags} onChange={set('tags')} placeholder="ugc, testimonial, offer" />
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="add-verdict" className={label}>Verdict</label>
-            <select id="add-verdict" className={`${field} capitalize`} value={f.verdict} onChange={set('verdict')}>
-              {VERDICTS.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="add-status" className={label}>Status</label>
-            <select id="add-status" className={field} value={f.status} onChange={set('status')}>
-              <option value="running">Running</option>
-              <option value="dead">Dead</option>
-              <option value="saved">Saved (inspiration)</option>
-            </select>
-          </div>
-        </div>
-
-        {error && (
-          <p role="alert" className="text-red-600 text-[15px]">
-            {error}
-          </p>
-        )}
-        {notice && (
-          <p role="status" className="text-amber-600 text-[15px]">
-            {notice.text}{' '}
-            <Link to={`/ad/${notice.adId}`} className="underline underline-offset-4 decoration-ink-soft hover:decoration-ink text-ink">
-              Open the ad
-            </Link>
-          </p>
-        )}
-
-        <div>
-          {allSaved ? (
-            <Link to="/ads" className="press inline-flex items-center min-h-[44px] px-6 py-3 rounded-xl bg-accent text-black text-[15px] font-semibold hover:bg-accent-dim transition-colors">
-              Open library
-            </Link>
-          ) : (
-            <button
-              type="submit"
-              disabled={busy || running}
-              className="press w-full sm:w-auto min-h-[44px] px-6 py-3 rounded-xl bg-accent text-black text-[15px] font-semibold hover:bg-accent-dim transition-colors disabled:opacity-60"
-            >
-              {busy || running ? 'Saving...' : saveLabel}
-            </button>
-          )}
-          {summary && (
-            <p role="status" className="mt-3 text-[15px] text-ink">
-              {summary}{' '}
-              {!allSaved && (
-                <Link to="/ads" className="underline underline-offset-4 decoration-ink-soft hover:decoration-ink text-ink">
-                  Open library
+            {error && <Notice tone="bad">{error}</Notice>}
+            {notice && (
+              <Notice tone="warn">
+                {notice.text}{' '}
+                <Link to={`/ad/${notice.adId}`} className="underline underline-offset-4 decoration-ink-soft hover:decoration-ink text-ink">
+                  Open the ad
                 </Link>
+              </Notice>
+            )}
+
+            <div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+                {allSaved ? (
+                  <Button variant="primary" to="/ads">
+                    Open library
+                  </Button>
+                ) : (
+                  <Button variant="primary" type="submit" disabled={busy || running} className="w-full sm:w-auto">
+                    {busy || running ? 'Saving...' : saveLabel}
+                  </Button>
+                )}
+                {IS_DEMO && <p className="text-small text-ink-soft">Demo: saved until you reload.</p>}
+              </div>
+              {summary && (
+                <p role="status" className="mt-3 text-body text-ink">
+                  {summary}{' '}
+                  {!allSaved && (
+                    <Link to="/ads" className="underline underline-offset-4 decoration-ink-soft hover:decoration-ink text-ink">
+                      Open library
+                    </Link>
+                  )}
+                </p>
               )}
-            </p>
-          )}
-          {IS_DEMO && <p className="mt-3 font-mono text-[12px] text-ink-soft">Demo: saved until you reload.</p>}
-        </div>
-      </form>
-    </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </Page>
   );
 }

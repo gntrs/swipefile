@@ -5,7 +5,7 @@ import { APP_NAME } from '@/lib/brand';
 // accent dot. One look everywhere the name appears.
 export default function Wordmark({ className = '' }) {
   return (
-    <span className={`inline-flex items-center gap-2.5 font-semibold text-[17px] leading-none tracking-[-0.01em] ${className}`}>
+    <span className={`inline-flex items-center gap-2.5 font-bold text-lead leading-none tracking-[-0.02em] ${className}`}>
       <img src="/favicon.svg" alt="" aria-hidden="true" width="24" height="24" className="w-6 h-6 flex-shrink-0" />
       <span>
         {APP_NAME}

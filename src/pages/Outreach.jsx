@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { PaperPlaneTilt, PencilSimple, Plus, Trash, LinkSimple } from '@phosphor-icons/react';
+import { PencilSimple, Plus, Trash, LinkSimple } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
@@ -7,16 +7,33 @@ import { isMissingTable } from '@/lib/db';
 import MigrationCard from '@/components/MigrationCard';
 import CreatorFinder from '@/components/CreatorFinder';
 import { RowsSkeleton } from '@/components/Skeleton';
+import { shortDate } from '@/features/ai/dates';
+import {
+  Page,
+  PageHeader,
+  Panel,
+  Field,
+  Button,
+  IconButton,
+  Segmented,
+  List,
+  Row,
+  Meta,
+  EmptyState,
+  inputCls,
+  selectCls,
+} from '@/components/ui';
 
 const PLATFORMS = ['email', 'instagram', 'tiktok', 'youtube', 'other'];
 const STATUSES = [
-  { key: 'sent', label: 'Sent', cls: 'bg-canvas text-ink-soft' },
-  { key: 'followup', label: 'Follow up', cls: 'bg-amber-100 text-amber-700' },
-  { key: 'replied', label: 'Replied', cls: 'bg-accent-wash text-accent-dim' },
+  { key: 'sent', label: 'Sent', cls: 'bg-white/[0.06] text-ink-soft' },
+  { key: 'followup', label: 'Follow up', cls: 'bg-amber-500/15 text-amber-300' },
+  { key: 'replied', label: 'Replied', cls: 'bg-white/[0.12] text-ink' },
   { key: 'deal', label: 'Deal', cls: 'bg-emerald-500/15 text-emerald-300' },
-  { key: 'dead', label: 'Dead', cls: 'bg-red-100 text-red-600' },
+  { key: 'dead', label: 'Dead', cls: 'bg-red-500/15 text-red-300' },
 ];
 const FILTERS = ['all', ...STATUSES.map((s) => s.key)];
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // Creator collab outreach: one row per person contacted, quick status flips.
 // Everyone adds and updates; the admin pen unlocks delete.
@@ -95,138 +112,149 @@ export default function Outreach() {
 
   const filtered = filter === 'all' ? rows : rows.filter((r) => r.status === filter);
 
+  // Status, link and delete for one row. Beside the row from sm, under it on a
+  // phone so the name keeps the width.
+  const controls = (r, st) => (
+    <>
+      <select
+        value={r.status}
+        onChange={(e) => setStatus(r, e.target.value)}
+        aria-label="Status"
+        className={`w-[7.5rem] min-h-[44px] pl-3 pr-1 rounded-xl text-ui font-semibold border-0 cursor-pointer ${st.cls}`}
+      >
+        {STATUSES.map((s) => (
+          <option key={s.key} value={s.key}>
+            {s.label}
+          </option>
+        ))}
+      </select>
+      {r.link && <IconButton label="Open link" href={r.link} target="_blank" rel="noreferrer" icon={LinkSimple} />}
+      {isAdmin && editing && <IconButton label={`Delete ${r.creator}`} variant="danger" icon={Trash} onClick={() => remove(r)} />}
+    </>
+  );
+
+  const header = (
+    <PageHeader
+      title="Creator outreach"
+      context={`${stats.week} sent this week · ${stats.replied} replied · ${stats.deals} deal${stats.deals === 1 ? '' : 's'}`}
+      actions={
+        isAdmin && (
+          <IconButton
+            label="Toggle edit mode"
+            icon={PencilSimple}
+            variant={editing ? 'secondary' : 'ghost'}
+            pressed={editing}
+            onClick={() => setEditing((e) => !e)}
+          />
+        )
+      }
+    />
+  );
+
   if (missing) {
     return (
-      <div data-page="outreach" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[900px] mx-auto">
+      <Page id="outreach">
+        {header}
         <MigrationCard title="Creator outreach" migration="db-setup.sql" />
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div data-page="outreach" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[900px] mx-auto">
-      <div className="flex items-center justify-between gap-3 mb-1">
-        <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Creator outreach</h1>
-        {isAdmin && (
-          <button
-            onClick={() => setEditing((e) => !e)}
-            aria-label="Toggle edit mode"
-            className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors ${
-              editing ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
-            }`}
-          >
-            <PencilSimple size={16} weight="bold" />
-          </button>
-        )}
-      </div>
-      <p className="text-ink-soft text-[14px] mb-5">
-        {stats.week} sent this week · {stats.replied} replied · {stats.deals} deal{stats.deals === 1 ? '' : 's'}
-      </p>
+    <Page id="outreach">
+      {header}
 
       {/* Quick add: name + platform + optional link, one line on desktop */}
-      <form onSubmit={add} className="flex flex-col sm:flex-row gap-2 mb-4">
-        <input
-          value={f.creator}
-          onChange={(e) => setF((cur) => ({ ...cur, creator: e.target.value }))}
-          placeholder="Creator name or @handle"
-          maxLength={120}
-          className="flex-1 min-w-0 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-card text-[16px] sm:text-[14px]"
-        />
-        <div className="flex gap-2">
-          <select
-            value={f.platform}
-            onChange={(e) => setF((cur) => ({ ...cur, platform: e.target.value }))}
-            aria-label="Platform"
-            className="flex-1 sm:flex-none min-w-0 min-h-[44px] py-2.5 px-3 rounded-2xl border border-line focus:outline-none focus:border-accent bg-card text-[16px] sm:text-[13px] text-ink-soft capitalize"
-          >
-            {PLATFORMS.map((p) => (
-              <option key={p} value={p} className="capitalize">{p}</option>
-            ))}
-          </select>
-          <input
-            value={f.link}
-            onChange={(e) => setF((cur) => ({ ...cur, link: e.target.value }))}
-            placeholder="Link (optional)"
-            className="w-28 min-w-0 sm:w-44 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-card text-[16px] sm:text-[14px]"
-          />
-          <button
-            type="submit"
-            disabled={!f.creator.trim()}
-            aria-label="Add outreach"
-            className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40 disabled:shadow-none"
-          >
-            <Plus size={18} weight="bold" />
-          </button>
-        </div>
-      </form>
+      <Panel title="Log a creator" className="mb-6">
+        <form onSubmit={add} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_10rem_minmax(0,14rem)_auto] lg:items-end">
+          <Field label="Creator" htmlFor="outreach-creator">
+            <input
+              id="outreach-creator"
+              value={f.creator}
+              onChange={(e) => setF((cur) => ({ ...cur, creator: e.target.value }))}
+              placeholder="Name or @handle"
+              maxLength={120}
+              className={inputCls}
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-4 lg:contents">
+            <Field label="Platform" htmlFor="outreach-platform">
+              <select
+                id="outreach-platform"
+                value={f.platform}
+                onChange={(e) => setF((cur) => ({ ...cur, platform: e.target.value }))}
+                className={selectCls}
+              >
+                {PLATFORMS.map((p) => (
+                  <option key={p} value={p}>
+                    {cap(p)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Link" htmlFor="outreach-link">
+              <input
+                id="outreach-link"
+                value={f.link}
+                onChange={(e) => setF((cur) => ({ ...cur, link: e.target.value }))}
+                placeholder="Optional"
+                className={inputCls}
+              />
+            </Field>
+          </div>
+          <Button type="submit" variant="primary" icon={Plus} disabled={!f.creator.trim()} aria-label="Add outreach" className="justify-self-start">
+            Add
+          </Button>
+        </form>
+      </Panel>
 
       {/* Status filter */}
-      <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 mb-4">
-        {FILTERS.map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilter(s)}
-            className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold capitalize transition-colors ${
-              filter === s ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
-            }`}
-          >
-            {s === 'followup' ? 'Follow up' : s}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        label="Status"
+        options={FILTERS.map((k) => ({ id: k, label: k === 'all' ? 'All' : STATUSES.find((s) => s.key === k).label }))}
+        value={filter}
+        onChange={setFilter}
+        className="mb-4"
+      />
 
       {loading ? (
         <RowsSkeleton rows={3} />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-ink-soft">
-          <PaperPlaneTilt size={32} className="mx-auto mb-2" />
-          <p>{rows.length === 0 ? 'No outreach logged yet. Add the first creator above.' : 'Nothing with this status.'}</p>
-        </div>
+        <Panel>
+          <EmptyState
+            text={rows.length === 0 ? 'No outreach logged yet. Add the first creator above.' : 'Nothing with this status.'}
+          />
+        </Panel>
       ) : (
-        <div className="bg-card rounded-xl3 shadow-card divide-y divide-line">
-          {filtered.map((r) => (
-            <div key={r.id} className="flex items-center gap-3 px-4 py-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-semibold truncate flex items-center gap-1.5">
-                  {r.creator}
-                  {r.link && (
-                    <a href={r.link} target="_blank" rel="noreferrer" aria-label="Open link" className="text-accent-dim flex-shrink-0">
-                      <LinkSimple size={14} weight="bold" />
-                    </a>
-                  )}
-                </p>
-                <p className="text-[12px] text-ink-soft truncate capitalize">
-                  {r.platform} · by {displayName(r.added_by_email)} · {new Date(r.created_at).toLocaleDateString()}
-                </p>
-              </div>
-              <select
-                value={r.status}
-                onChange={(e) => setStatus(r, e.target.value)}
-                aria-label="Status"
-                className={`py-1.5 px-2.5 rounded-xl text-[13px] font-semibold border-0 focus:outline-none flex-shrink-0 ${
-                  (STATUSES.find((s) => s.key === r.status) || STATUSES[0]).cls
-                }`}
-              >
-                {STATUSES.map((s) => (
-                  <option key={s.key} value={s.key}>{s.label}</option>
-                ))}
-              </select>
-              {isAdmin && editing && (
-                <button
-                  onClick={() => remove(r)}
-                  aria-label={`Delete ${r.creator}`}
-                  className="w-11 h-11 rounded-xl flex items-center justify-center text-red-500 hover:bg-red-50 flex-shrink-0"
+        <Panel flush>
+          <List>
+            {filtered.map((r) => {
+              const st = STATUSES.find((s) => s.key === r.status) || STATUSES[0];
+              return (
+                <Row
+                  key={r.id}
+                  title={r.creator}
+                  meta={
+                    <Meta
+                      items={[
+                        cap(r.platform || ''),
+                        <span key="by" className="whitespace-nowrap">by {displayName(r.added_by_email)}</span>,
+                        shortDate(r.created_at),
+                      ]}
+                    />
+                  }
+                  trailing={<span className="hidden sm:flex items-center gap-1">{controls(r, st)}</span>}
                 >
-                  <Trash size={15} weight="bold" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
+                  <div className="flex sm:hidden items-center gap-1 px-5 pb-3 -mt-1">{controls(r, st)}</div>
+                </Row>
+              );
+            })}
+          </List>
+        </Panel>
       )}
 
       {/* Scraped Instagram leads, one tap to pull into the log above */}
       <CreatorFinder onOutreachAdded={load} />
-    </div>
+    </Page>
   );
 }

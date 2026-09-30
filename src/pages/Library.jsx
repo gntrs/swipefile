@@ -1,27 +1,34 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  PlusCircle,
-  MagnifyingGlass,
-  Tray,
-  Star,
-  Trophy,
-  CheckSquare,
-  ClockCounterClockwise,
-  DownloadSimple,
-  Keyboard,
-  CaretLeft,
-  CaretRight,
-} from '@phosphor-icons/react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, Star, CheckSquare, DownloadSimple, Keyboard, CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { db, IS_DEMO } from '@/lib/db';
 import { GEO_STATUS, VERDICTS, FOCUS_COUNTRIES, countryName, humanVerdictPatch } from '@/lib/ads';
 import { ANGLE_IDS, angleLabel } from '@/lib/angles';
-import { SORTS, filtersFromParams, paramsFromFilters, isFiltered, clearFilters, withFilter } from '@/lib/library/filters';
+import { SORTS, DEFAULT_FILTERS, filtersFromParams, paramsFromFilters, isFiltered, clearFilters, withFilter } from '@/lib/library/filters';
 import { loadPage, loadFacets, invalidateLocalCache, computeFacets, PAGE_SIZE, LOCAL_HINT_THRESHOLD } from '@/lib/library/query';
 import { saveListContext } from '@/lib/library/listContext';
 import { MAX_SELECT } from '@/lib/library/bulk';
 import AdCard from '@/components/AdCard';
 import { CardSkeleton } from '@/components/Skeleton';
+import {
+  Page,
+  PageHeader,
+  Button,
+  IconButton,
+  Toolbar,
+  SearchField,
+  Segmented,
+  Chip,
+  FilterPanel,
+  FilterGroup,
+  ActiveFilters,
+  Meta,
+  Notice,
+  EmptyState,
+  GRID_CARDS,
+  selectCls,
+  useMedia,
+} from '@/components/ui';
 import BulkBar from '@/features/save/BulkBar';
 import KeyHelp from '@/features/save/KeyHelp';
 import useLibraryKeys from '@/features/save/useLibraryKeys';
@@ -32,23 +39,18 @@ const WHO = [
   { id: 'rivals', label: 'Rivals' },
 ];
 
+// Unsure goes last: it is the "not decided" bucket.
+const VERDICT_OPTIONS = [
+  { id: 'all', label: 'All' },
+  ...[...VERDICTS.filter((v) => v !== 'unsure'), 'unsure'].map((v) => ({ id: v, label: v[0].toUpperCase() + v.slice(1) })),
+];
+
 const EMPTY_FACETS = computeFacets([]);
 const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 
-// Every chip in the filter rows is a thumb target first and a label second:
-// 44px tall minimum, never smaller, on every viewport.
-const pill = (active) =>
-  `press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-xl text-[14px] font-medium transition-colors ${
-    active ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
-  }`;
-const selectCls = (active) =>
-  `flex-shrink-0 min-h-[44px] pl-3 pr-2 rounded-xl text-[14px] font-medium focus:outline-none ${
-    active ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
-  }`;
-const headerBtn = (active) =>
-  `press flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-3 sm:px-3.5 rounded-xl text-[14px] font-semibold transition-colors ${
-    active ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink hover:bg-white/[0.1]'
-  }`;
+// The sort box in the toolbar: the same edge as the search, sized to its text.
+const sortCls =
+  'min-h-[44px] rounded-xl bg-white/[0.03] border border-line pl-3.5 pr-2 text-ui text-ink cursor-pointer transition-colors';
 
 // The ad library. Filters, sort and page live in the URL, so a view survives a
 // reload and can be linked to (/ads?starred=1, /ads?q=Brand, /ads?who=rivals).
@@ -293,197 +295,214 @@ export default function Library() {
   const showLocalHint = result?.mode === 'local' && !IS_DEMO && (result?.scanned ?? facets.total) > LOCAL_HINT_THRESHOLD;
   const selected = [...selection.values()];
 
+  // The sort box joins the toolbar row only when the search keeps its room;
+  // under 1280 it is the first group inside Filters.
+  const wide = useMedia('(min-width: 1280px)');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const selecting = selectMode || selection.size > 0;
+  const reset = (k) => () => change(k, DEFAULT_FILTERS[k]);
+
+  // Every filter that is on, as a chip that clears its own key. Search, who,
+  // sort and starred have their own controls in the toolbar, so they stay out.
+  const active = [
+    filters.recent && { key: 'recent', label: 'New', onRemove: reset('recent') },
+    filters.proven && { key: 'proven', label: 'Proven', onRemove: reset('proven') },
+    filters.verdict !== 'all' && {
+      key: 'verdict',
+      label: VERDICT_OPTIONS.find((o) => o.id === filters.verdict)?.label || filters.verdict,
+      onRemove: reset('verdict'),
+    },
+    filters.angle !== 'all' && {
+      key: 'angle',
+      label: `Angle: ${filters.angle === 'none' ? 'No angle yet' : angleLabel(filters.angle)}`,
+      onRemove: reset('angle'),
+    },
+    filters.tag && { key: 'tag', label: `Tag: ${filters.tag}`, onRemove: reset('tag') },
+    filters.country !== 'all' && { key: 'country', label: `Country: ${countryName(filters.country)}`, onRemove: reset('country') },
+    filters.geo !== 'all' && {
+      key: 'geo',
+      label: `Location: ${GEO_STATUS.find((g) => g.id === filters.geo)?.label || filters.geo}`,
+      onRemove: reset('geo'),
+    },
+  ].filter(Boolean);
+
+  const sortSelect = (cls, id) => (
+    <select id={id} value={filters.sort} onChange={(e) => change('sort', e.target.value)} aria-label="Sort ads" className={cls}>
+      {SORTS.map((s) => (
+        <option key={s.id} value={s.id}>
+          {s.label}
+        </option>
+      ))}
+    </select>
+  );
+
+  const toggleSelectMode = () => {
+    if (selectMode) {
+      setSelectMode(false);
+      clearSelection();
+    } else setSelectMode(true);
+  };
+
   return (
-    <div data-page="library" className={`px-5 sm:px-8 pt-6 sm:pt-8 max-w-[1220px] mx-auto ${selectMode || selection.size ? 'pb-72 sm:pb-48' : 'pb-24'}`}>
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="min-w-0 text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">
-          {filters.starred ? 'Starred ads' : 'Ad library'}
-        </h1>
-        <div className="flex flex-shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => (selectMode ? (setSelectMode(false), clearSelection()) : setSelectMode(true))}
-            aria-pressed={selectMode}
-            aria-label={selectMode ? 'Stop selecting' : 'Select ads'}
-            className={headerBtn(selectMode)}
-          >
-            <CheckSquare size={18} weight="bold" />
-            <span className="hidden lg:inline">{selectMode ? 'Done' : 'Select'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setHelp(true)}
-            aria-label="Keyboard shortcuts"
-            className={`${headerBtn(false)} hidden sm:flex`}
-          >
-            <Keyboard size={18} weight="bold" />
-            <span className="hidden lg:inline">Keys</span>
-          </button>
-          <Link to="/ads/import" aria-label="Import ads" className={headerBtn(false)}>
-            <DownloadSimple size={18} weight="bold" />
-            <span className="hidden lg:inline">Import</span>
-          </Link>
-          <Link
-            to="/ads/add"
-            aria-label="Add ad"
-            className="press flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-3 sm:px-4 rounded-xl bg-accent text-black text-[14px] font-semibold hover:bg-accent-dim transition-colors"
-          >
-            <PlusCircle size={20} weight="bold" />
-            <span className="hidden sm:inline">Add ad</span>
-          </Link>
-        </div>
-      </div>
-      <p className="font-mono text-ink-soft text-[12px] tabular-nums mt-2 mb-6">
-        {filters.starred
-          ? `${fmt(facets.starred)} starred`
-          : `${fmt(facets.total)} saved · ${fmt(facets.proven)} proven · ${fmt(facets.starred)} starred`}
-      </p>
+    <Page id="library">
+      <PageHeader
+        title={filters.starred ? 'Starred ads' : 'Ad library'}
+        context={
+          filters.starred ? (
+            `${fmt(facets.starred)} starred`
+          ) : (
+            <Meta items={[`${fmt(facets.total)} saved`, `${fmt(facets.proven)} proven`, `${fmt(facets.starred)} starred`]} />
+          )
+        }
+        actions={
+          <>
+            <IconButton label="Keyboard shortcuts" icon={Keyboard} onClick={() => setHelp(true)} className="hidden lg:inline-flex" />
+            <Button variant="ghost" to="/ads/import" icon={DownloadSimple} aria-label="Import ads">
+              <span className="hidden sm:inline">Import</span>
+            </Button>
+            <Button
+              variant="secondary"
+              icon={CheckSquare}
+              onClick={toggleSelectMode}
+              aria-pressed={selectMode}
+              aria-label={selectMode ? 'Stop selecting' : 'Select ads'}
+            >
+              <span className="hidden sm:inline">{selectMode ? 'Done' : 'Select'}</span>
+            </Button>
+            <Button variant="primary" to="/ads/add" icon={Plus} aria-label="Add ad">
+              <span className="hidden sm:inline">Add ad</span>
+            </Button>
+          </>
+        }
+      />
 
       {showLocalHint && (
-        <p className="text-[14px] text-ink-soft -mt-3 mb-4">
+        <Notice tone="info" className="mb-4">
           Searching in the browser. Re-run db-setup.sql to search on the server.
-        </p>
+        </Notice>
       )}
 
-      {/* Controls */}
-      <div className="flex flex-col lg:flex-row gap-2 mb-2">
-        <div className="flex-1 flex items-center gap-2 min-h-[44px] bg-card border border-line rounded-xl px-3 focus-within:border-ink-soft transition-colors">
-          <MagnifyingGlass size={18} className="text-ink-soft flex-shrink-0" />
-          <input
-            ref={searchRef}
+      {/* One row from lg. On a phone the search sits alone and the row under
+          it sticks to the top of the scroll, so the controls you steer with
+          never scroll out of reach. */}
+      <Toolbar
+        sticky
+        search={
+          <SearchField
+            inputRef={searchRef}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={setSearch}
             placeholder="Search brand, hook, copy, tags..."
-            aria-label="Search ads"
+            label="Search ads"
             maxLength={200}
-            className="w-full min-w-0 min-h-[44px] py-2.5 bg-transparent focus:outline-none focus-visible:shadow-none text-[16px] sm:text-[15px] placeholder:text-ink-soft"
           />
-        </div>
-        <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 flex-shrink-0">
-          {WHO.map((w) => (
-            <button
-              key={w.id}
-              type="button"
-              onClick={() => change('who', w.id)}
-              aria-pressed={filters.who === w.id}
-              className={pill(filters.who === w.id)}
-            >
-              {w.label}
-            </button>
-          ))}
-          <select
-            value={filters.sort}
-            onChange={(e) => change('sort', e.target.value)}
-            aria-label="Sort ads"
-            className={selectCls(false)}
-          >
-            {SORTS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Quick filters. Sticks to the top of the scroll on phones so the row you
-          steer with never scrolls out of reach; static from sm up. */}
-      <div className="sticky top-0 z-30 sm:static flex gap-1.5 scroll-x lg:flex-wrap lg:overflow-visible -mx-5 px-5 py-2 sm:mx-0 sm:px-0 mb-4 sm:mb-6 bg-canvas/95 sm:bg-transparent">
-        <button
-          type="button"
+        }
+      >
+        <Segmented label="Whose ads" options={WHO} value={filters.who} onChange={(id) => change('who', id)} className="flex-shrink-0" />
+        <Chip
+          pressed={filters.starred}
           onClick={() => change('starred', !filters.starred)}
-          aria-pressed={filters.starred}
-          className={`press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-xl text-[14px] font-medium transition-colors ${
-            filters.starred ? 'bg-amber-400 text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
-          }`}
+          aria-label="Starred"
+          icon={<Star size={16} weight={filters.starred ? 'fill' : 'bold'} aria-hidden="true" className="flex-shrink-0 text-amber-400" />}
         >
-          <Star size={16} weight={filters.starred ? 'fill' : 'bold'} className={filters.starred ? '' : 'text-amber-400'} />
-          Starred
-          {facets.starred > 0 && (
-            <span className={`font-mono text-[12px] tabular-nums ${filters.starred ? 'text-black/60' : 'text-ink-soft/70'}`}>{fmt(facets.starred)}</span>
+          {/* Icon only on a phone, where the row has no room for words. */}
+          <span className="hidden sm:inline">Starred</span>
+          {facets.starred > 0 && <span className={`hidden sm:inline num text-small ${filters.starred ? 'text-ink' : 'text-ink-soft'}`}>{fmt(facets.starred)}</span>}
+        </Chip>
+        {wide && sortSelect(sortCls)}
+        <FilterPanel count={active.length} open={filtersOpen} onOpenChange={setFiltersOpen} onClear={() => setFilters(clearFilters(filters))}>
+          {!wide && <FilterGroup label="Sort by">{sortSelect(selectCls)}</FilterGroup>}
+          <FilterGroup label="Show">
+            {(facets.recent > 0 || filters.recent) && (
+              <Chip pressed={filters.recent} onClick={() => change('recent', !filters.recent)} count={fmt(facets.recent)}>
+                New
+              </Chip>
+            )}
+            <Chip pressed={filters.proven} onClick={() => change('proven', !filters.proven)}>
+              Proven
+            </Chip>
+          </FilterGroup>
+          <FilterGroup label="Verdict">
+            {/* One pick of five. Chips rather than a segmented track, so the
+                options wrap inside the popover instead of scrolling. */}
+            {VERDICT_OPTIONS.map((o) => (
+              <Chip key={o.id} pressed={filters.verdict === o.id} onClick={() => change('verdict', o.id)}>
+                {o.label}
+              </Chip>
+            ))}
+          </FilterGroup>
+          {(angles.length > 0 || filters.angle !== 'all') && (
+            <FilterGroup label="Angle">
+              <select value={filters.angle} onChange={(e) => change('angle', e.target.value)} aria-label="Filter by angle" className={selectCls}>
+                <option value="all">Any angle</option>
+                <option value="none">No angle yet</option>
+                {angles.map((a) => (
+                  <option key={a.angle} value={a.angle}>
+                    {angleLabel(a.angle)} ({fmt(a.count)})
+                  </option>
+                ))}
+              </select>
+            </FilterGroup>
           )}
-        </button>
-        {(facets.recent > 0 || filters.recent) && (
-          <button type="button" onClick={() => change('recent', !filters.recent)} aria-pressed={filters.recent} className={pill(filters.recent)}>
-            <ClockCounterClockwise size={15} weight="bold" /> New <span className={`font-mono text-[12px] tabular-nums ${filters.recent ? 'text-black/60' : 'text-ink-soft/70'}`}>{fmt(facets.recent)}</span>
-          </button>
-        )}
-        <button type="button" onClick={() => change('proven', !filters.proven)} aria-pressed={filters.proven} className={pill(filters.proven)}>
-          <Trophy size={15} weight="bold" /> Proven
-        </button>
-        <span className="lg:hidden w-px bg-line flex-shrink-0 mx-1.5 my-2.5" />
-        {['all', ...VERDICTS.filter((v) => v !== 'unsure'), 'unsure'].map((v) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => change('verdict', v)}
-            aria-pressed={filters.verdict === v}
-            className={`${pill(filters.verdict === v)} capitalize`}
-          >
-            {v}
-          </button>
-        ))}
-        {(countries.length > 0 || facets.geo_checked > 0 || angles.length > 0 || tags.length > 0) && (
-          <span className="lg:hidden w-px bg-line flex-shrink-0 mx-1.5 my-2.5" />
-        )}
-        {angles.length > 0 && (
-          <select value={filters.angle} onChange={(e) => change('angle', e.target.value)} aria-label="Filter by angle" className={selectCls(filters.angle !== 'all')}>
-            <option value="all">Any angle</option>
-            <option value="none">No angle yet</option>
-            {angles.map((a) => (
-              <option key={a.angle} value={a.angle}>
-                {angleLabel(a.angle)} ({fmt(a.count)})
-              </option>
-            ))}
-          </select>
-        )}
-        {tags.length > 0 && (
-          <select value={filters.tag} onChange={(e) => change('tag', e.target.value)} aria-label="Filter by tag" className={`${selectCls(Boolean(filters.tag))} max-w-[200px]`}>
-            <option value="">Any tag</option>
-            {tags.map((t) => (
-              <option key={t.tag} value={t.tag}>
-                {t.tag} ({fmt(t.count)})
-              </option>
-            ))}
-          </select>
-        )}
-        {/* Geo. Hidden until sync-geo has written something: an empty
-            country picker is just noise in the row. */}
-        {countries.length > 0 && (
-          <select value={filters.country} onChange={(e) => change('country', e.target.value)} aria-label="Filter by country" className={selectCls(filters.country !== 'all')}>
-            <option value="all">All countries</option>
-            {countries.map((c) => (
-              <option key={c.code} value={c.code}>
-                {countryName(c.code)} ({fmt(c.count)})
-              </option>
-            ))}
-          </select>
-        )}
-        {(facets.geo_checked > 0 || filters.geo !== 'all') && (
-          <select value={filters.geo} onChange={(e) => change('geo', e.target.value)} aria-label="Filter by location data" className={selectCls(filters.geo !== 'all')}>
-            <option value="all">Any geo</option>
-            {GEO_STATUS.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.label}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
+          {tags.length > 0 && (
+            <FilterGroup label="Tag">
+              <select value={filters.tag} onChange={(e) => change('tag', e.target.value)} aria-label="Filter by tag" className={selectCls}>
+                <option value="">Any tag</option>
+                {tags.map((t) => (
+                  <option key={t.tag} value={t.tag}>
+                    {t.tag} ({fmt(t.count)})
+                  </option>
+                ))}
+              </select>
+            </FilterGroup>
+          )}
+          {/* Geo. Hidden until sync-geo has written something: an empty
+              country picker is just noise. */}
+          {countries.length > 0 && (
+            <FilterGroup label="Country">
+              <select value={filters.country} onChange={(e) => change('country', e.target.value)} aria-label="Filter by country" className={selectCls}>
+                <option value="all">All countries</option>
+                {countries.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {countryName(c.code)} ({fmt(c.count)})
+                  </option>
+                ))}
+              </select>
+            </FilterGroup>
+          )}
+          {(facets.geo_checked > 0 || filters.geo !== 'all') && (
+            <FilterGroup label="Location data">
+              <select value={filters.geo} onChange={(e) => change('geo', e.target.value)} aria-label="Filter by location data" className={selectCls}>
+                <option value="all">Any geo</option>
+                {GEO_STATUS.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.label}
+                  </option>
+                ))}
+              </select>
+            </FilterGroup>
+          )}
+        </FilterPanel>
+      </Toolbar>
+
+      <ActiveFilters items={active} onClearAll={() => setFilters(clearFilters(filters))} />
 
       {selectMode && !selection.size && (
-        <p className="text-[15px] text-ink-soft mb-4">Tap ads to select them, up to {MAX_SELECT} at a time.</p>
+        <p className="text-body text-ink-soft mb-4">Tap ads to select them, up to {MAX_SELECT} at a time.</p>
       )}
 
       {result?.partial && (
-        <div role="alert" className="flex items-center gap-3 bg-amber-50 rounded-xl pl-4 pr-1.5 py-1.5 mb-4">
-          <p className="flex-1 min-w-0 text-[15px] text-ink leading-snug">
-            Some ads failed to load: {result.error?.message}. The list may be incomplete.
-          </p>
-          <button type="button" onClick={reloadAll} className="press min-h-[44px] min-w-[44px] px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold">
-            Retry
-          </button>
-        </div>
+        <Notice
+          tone="warn"
+          className="mb-4"
+          action={
+            <Button variant="secondary" onClick={reloadAll}>
+              Retry
+            </Button>
+          }
+        >
+          Some ads failed to load: {result.error?.message}. The list may be incomplete.
+        </Notice>
       )}
 
       <p aria-live="polite" className="sr-only">
@@ -491,52 +510,56 @@ export default function Library() {
       </p>
 
       {loading && !result ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 min-[1360px]:grid-cols-4 gap-3 sm:gap-4" aria-busy="true">
-          {Array.from({ length: 8 }, (_, i) => (
+        <div className={GRID_CARDS} aria-busy="true">
+          {Array.from({ length: 6 }, (_, i) => (
             <CardSkeleton key={i} />
           ))}
         </div>
       ) : result?.error && !result.partial ? (
-        <div role="alert" className="max-w-[480px] mx-auto my-16 text-center">
-          <p className="text-[17px] font-semibold text-ink mb-1">Could not load the ads.</p>
-          <p className="text-[15px] text-ink-soft mb-5 break-words">{result.error.message}</p>
-          <button type="button" onClick={reloadAll} className="press inline-flex items-center min-h-[44px] px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold">
-            Retry
-          </button>
+        <div role="alert">
+          <EmptyState
+            page
+            title="Could not load the ads."
+            text={<span className="break-words">{result.error.message}</span>}
+            action={
+              <Button variant="secondary" onClick={reloadAll}>
+                Retry
+              </Button>
+            }
+          />
         </div>
       ) : firstRun ? (
-        <div className="max-w-[440px] mx-auto my-16 text-center">
-          <Tray size={32} weight="bold" className="mx-auto mb-4 text-ink-soft" />
-          <h2 className="text-[22px] font-semibold tracking-[-0.02em] mb-2">Your swipe file is empty</h2>
-          <p className="text-[16px] text-ink-soft leading-relaxed mb-6">
-            Save an ad you liked, or bring in a batch from a CSV export.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-2 justify-center">
-            <Link to="/ads/add" className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-accent text-black text-[14px] font-semibold hover:bg-accent-dim transition-colors">
-              Add your first ad
-            </Link>
-            <Link to="/ads/import" className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold text-ink">
-              Import a CSV
-            </Link>
-          </div>
-        </div>
+        <EmptyState
+          page
+          title="Your swipe file is empty"
+          text="Save an ad you liked, or bring in a batch from a CSV export."
+          action={
+            <>
+              <Button variant="primary" to="/ads/add">
+                Add your first ad
+              </Button>
+              <Button variant="secondary" to="/ads/import">
+                Import a CSV
+              </Button>
+            </>
+          }
+        />
       ) : !rows.length ? (
-        <div className="text-center py-20">
-          <MagnifyingGlass size={32} weight="bold" className="mx-auto mb-4 text-ink-soft" />
-          <p className="mb-5 text-[17px] font-semibold text-ink">No ads match.</p>
-          {filtered && (
-            <button
-              type="button"
-              onClick={() => setFilters(clearFilters(filters))}
-              className="press inline-flex items-center min-h-[44px] px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold text-ink"
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
+        <EmptyState
+          page
+          title="No ads match."
+          text={filtered ? 'Try fewer filters or a shorter search.' : undefined}
+          action={
+            filtered && (
+              <Button variant="secondary" onClick={() => setFilters(clearFilters(filters))}>
+                Clear filters
+              </Button>
+            )
+          }
+        />
       ) : (
         <>
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 min-[1360px]:grid-cols-4 gap-3 sm:gap-4 transition-opacity ${loading ? 'opacity-60' : ''}`} aria-busy={loading}>
+          <div className={`${GRID_CARDS} transition-opacity ${loading ? 'opacity-60' : ''}`} aria-busy={loading}>
             {rows.map((ad, i) => (
               <AdCard
                 key={ad.id}
@@ -555,35 +578,28 @@ export default function Library() {
           </div>
 
           <nav aria-label="Pages" className="mt-8 flex flex-wrap items-center justify-between gap-3">
-            <p className="font-mono text-[12px] text-ink-soft tabular-nums">
+            <p className="text-small text-ink-soft">
               Showing {fmt(from)} to {fmt(to)} of {fmt(total)}
             </p>
             {pages > 1 && (
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => goPage(page - 1)}
-                  disabled={page <= 1 || loading}
-                  className="press inline-flex items-center gap-1 min-h-[44px] min-w-[44px] px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold disabled:opacity-40"
-                >
-                  <CaretLeft size={14} weight="bold" /> Previous
-                </button>
-                <span className="font-mono text-[12px] text-ink-soft tabular-nums whitespace-nowrap px-1">
+                <Button variant="secondary" icon={CaretLeft} onClick={() => goPage(page - 1)} disabled={page <= 1 || loading}>
+                  Previous
+                </Button>
+                <span className="text-small text-ink-soft whitespace-nowrap px-1">
                   Page {fmt(page)} of {fmt(pages)}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => goPage(page + 1)}
-                  disabled={page >= pages || loading}
-                  className="press inline-flex items-center gap-1 min-h-[44px] min-w-[44px] px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold disabled:opacity-40"
-                >
-                  Next <CaretRight size={14} weight="bold" />
-                </button>
+                <Button variant="secondary" onClick={() => goPage(page + 1)} disabled={page >= pages || loading}>
+                  Next <CaretRight size={16} weight="bold" aria-hidden="true" />
+                </Button>
               </div>
             )}
           </nav>
         </>
       )}
+
+      {/* Room under the last card so the bulk bar never covers it. */}
+      {selecting && <div aria-hidden="true" className="h-56 lg:h-32" />}
 
       <BulkBar
         selected={selected}
@@ -597,6 +613,6 @@ export default function Library() {
         onChanged={() => setFacetsKey((n) => n + 1)}
       />
       <KeyHelp open={help} onClose={() => setHelp(false)} />
-    </div>
+    </Page>
   );
 }

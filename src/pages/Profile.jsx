@@ -7,35 +7,32 @@ import { useMediaUrl } from '@/lib/media';
 import { MEDIA_BUCKET, avatarPathFor, validateFile, friendlyStorageError, removeMedia, uploadBody } from '@/lib/saveAd';
 import { triggerCelebration, celebrationEnabled, setCelebrationEnabled } from '@/lib/celebration';
 import { isOn } from '@/lib/modules';
+import { Page, PageHeader, Panel, Button, Badge, Field, inputCls, List, Row } from '@/components/ui';
+
+const roleLabel = (role) => (role ? role.charAt(0).toUpperCase() + role.slice(1) : '');
 
 function TeamMember({ member, isMe }) {
   const avatar = useMediaUrl(member.avatar_path);
   return (
-    <div className="flex items-center gap-3 py-2.5">
-      <span
-        className={`w-10 h-10 rounded-full bg-canvas border flex items-center justify-center overflow-hidden flex-shrink-0 ${
-          isMe ? 'border-accent ring-2 ring-accent/30' : 'border-line'
-        }`}
-      >
-        {avatar ? (
-          <img src={avatar} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <User size={17} className="text-ink-soft" />
-        )}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold text-[14px] truncate">
+    <Row
+      leading={
+        <span
+          className={`w-10 h-10 rounded-full bg-canvas flex items-center justify-center overflow-hidden ${
+            isMe ? 'ring-2 ring-accent/40' : ''
+          }`}
+        >
+          {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <User size={18} className="text-ink-soft" aria-hidden="true" />}
+        </span>
+      }
+      title={
+        <>
           {member.nickname?.trim() || member.email?.split('@')[0]}
           {isMe && <span className="text-ink-soft font-normal"> (you)</span>}
-        </p>
-        <p className="text-[12px] text-ink-soft truncate">{member.email}</p>
-      </div>
-      {member.role === 'admin' && (
-        <span className="font-mono text-[11px] font-medium uppercase tracking-[0.08em] bg-white/[0.06] text-ink-soft px-2 py-0.5 rounded-full flex-shrink-0">
-          admin
-        </span>
-      )}
-    </div>
+        </>
+      }
+      meta={<span className="block truncate">{member.email}</span>}
+      trailing={member.role === 'admin' && <Badge>Admin</Badge>}
+    />
   );
 }
 
@@ -100,143 +97,129 @@ export default function Profile() {
     }
   };
 
-  return (
-    <div data-page="profile" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[480px] mx-auto">
-      <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mb-5">Your profile</h1>
+  const name = me?.nickname || user?.email?.split('@')[0];
 
-      <div className="bg-card rounded-xl3 shadow-card p-6">
-        {/* Avatar */}
-        <div className="flex items-center gap-4 mb-6">
+  return (
+    <Page id="profile" width="narrow">
+      <PageHeader title="Profile" />
+
+      <Panel>
+        <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="relative w-20 h-20 rounded-full bg-canvas border border-line flex items-center justify-center overflow-hidden group"
+            className="press relative w-16 h-16 rounded-full bg-canvas flex items-center justify-center overflow-hidden group flex-shrink-0"
             title="Change photo"
+            aria-label="Change photo"
           >
             {avatar ? (
               <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
             ) : (
-              <User size={30} className="text-ink-soft" />
+              <User size={26} className="text-ink-soft" aria-hidden="true" />
             )}
             <span className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <Camera size={20} color="#fff" weight="bold" />
+              <Camera size={18} color="#fff" weight="bold" aria-hidden="true" />
             </span>
           </button>
-          <div>
-            <p className="font-semibold text-[15px] flex items-center gap-2">
-              {me?.nickname || user?.email?.split('@')[0]}
-              {me?.role && (
-                <span className="font-mono text-[11px] font-medium uppercase tracking-[0.08em] bg-white/[0.06] text-ink-soft px-2 py-0.5 rounded-full">
-                  {me.role}
-                </span>
-              )}
-            </p>
-            <p className="text-ink-soft text-[13px]">{user?.email}</p>
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="inline-flex items-center min-h-[44px] text-accent-dim text-[13px] font-medium"
-            >
-              Change photo
-            </button>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <p className="text-title text-ink min-w-0 truncate">{name}</p>
+              {me?.role && <Badge>{roleLabel(me.role)}</Badge>}
+            </div>
+            <p className="text-small text-ink-soft truncate mt-0.5">{user?.email}</p>
           </div>
           <input ref={fileRef} type="file" accept="image/*" onChange={uploadAvatar} className="hidden" />
         </div>
+        <Button onClick={() => fileRef.current?.click()} disabled={busy} icon={Camera} className="mt-4">
+          Change photo
+        </Button>
 
-        {/* Nickname */}
-        <form onSubmit={save}>
-          <label className="text-[13px] font-semibold text-ink-soft mb-1 block">Nickname</label>
-          <input
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            placeholder="How the team sees you"
-            maxLength={30}
-            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]"
-          />
-          <p className="text-[12px] text-ink-soft mt-1.5">
-            Shown on everything you add and every note you leave.
-          </p>
-          <button
-            type="submit"
-            disabled={busy}
-            className="press mt-4 px-6 py-2.5 rounded-2xl bg-accent text-black font-semibold disabled:opacity-60"
-          >
-            {busy ? 'Saving...' : 'Save'}
-          </button>
-          {msg && <p className="text-[13px] text-ink-soft mt-3">{msg}</p>}
+        <form onSubmit={save} className="mt-6 pt-6 border-t border-line">
+          <Field label="Nickname" htmlFor="profile-nickname" hint="Shown on everything you add and every note you leave.">
+            <input
+              id="profile-nickname"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="How the team sees you"
+              maxLength={30}
+              aria-describedby="profile-nickname-hint"
+              className={inputCls}
+            />
+          </Field>
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Button type="submit" variant="primary" disabled={busy}>
+              {busy ? 'Saving...' : 'Save'}
+            </Button>
+            {msg && (
+              <p role="status" className="text-small text-ink-soft">
+                {msg}
+              </p>
+            )}
+          </div>
         </form>
-      </div>
+      </Panel>
 
       {/* Party mode: fullscreen celebration clip when a sale lands. Shows on
-          phones too - Test taps count as user gestures, so playback works.
+          phones too: Test taps count as user gestures, so playback works.
           Clips are user-supplied: see public/memes/README.md. Ops module. */}
       {isOn('ops') && (
-      <div className="bg-card rounded-xl3 shadow-card p-6 mt-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h2 className="font-semibold text-[15px] flex items-center gap-2">
-              <Confetti size={18} weight="bold" className="text-emerald-400" /> Party mode
-            </h2>
-            <p className="text-[13px] text-ink-soft mt-1">
-              Play a fullscreen celebration clip when a new sale lands, while a tab is open.
-              Drop clips in public/memes and list them in src/lib/celebration.js.
-            </p>
-          </div>
-          {/* Toggle switch */}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={partyOn}
-            onClick={() => {
-              const next = !partyOn;
-              setPartyOn(next);
-              setCelebrationEnabled(next);
-            }}
-            aria-label="Party mode"
-            className="flex-shrink-0 min-h-[44px] min-w-[48px] flex items-center justify-center"
-          >
-            <span
-              className={`relative block w-12 h-7 rounded-full transition-colors ${
-                partyOn ? 'bg-emerald-500' : 'bg-line'
-              }`}
+        <Panel
+          title="Party mode"
+          className="mt-4 lg:mt-6"
+          action={
+            <button
+              type="button"
+              role="switch"
+              aria-checked={partyOn}
+              onClick={() => {
+                const next = !partyOn;
+                setPartyOn(next);
+                setCelebrationEnabled(next);
+              }}
+              aria-label="Party mode"
+              className="-my-2 -mr-1 flex-shrink-0 min-h-[44px] min-w-[48px] flex items-center justify-center"
             >
-              <span
-                className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${
-                  partyOn ? 'translate-x-5' : ''
-                }`}
-              />
-            </span>
-          </button>
-        </div>
-        <button
-          type="button"
-          onClick={() => triggerCelebration({ force: true })}
-          className="mt-4 inline-flex items-center gap-1.5 min-h-[44px] px-4 py-2 rounded-2xl border border-line text-[13px] font-semibold text-ink hover:bg-white/[0.04] transition-colors"
+              <span className={`relative block w-12 h-7 rounded-full transition-colors ${partyOn ? 'bg-emerald-500' : 'bg-line'}`}>
+                <span
+                  className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${partyOn ? 'translate-x-5' : ''}`}
+                />
+              </span>
+            </button>
+          }
         >
-          <Confetti size={15} weight="bold" /> Test it
-        </button>
-      </div>
+          <p className="text-body text-ink-soft max-w-[60ch]">
+            Play a fullscreen celebration clip when a new sale lands, while a tab is open. Drop clips in{' '}
+            <code className="font-mono text-small text-ink">public/memes</code> and list them in{' '}
+            <code className="font-mono text-small text-ink">src/lib/celebration.js</code>.
+          </p>
+          <Button onClick={() => triggerCelebration({ force: true })} icon={Confetti} className="mt-4">
+            Test it
+          </Button>
+        </Panel>
       )}
 
       {/* The whole team, everyone's face and name in one place. Team module. */}
       {isOn('team') && (
-      <div className="bg-card rounded-xl3 shadow-card p-6 mt-4">
-        <h2 className="font-semibold text-[15px] mb-1">Team</h2>
-        <p className="text-[13px] text-ink-soft mb-2">
-          {members.length} {members.length === 1 ? 'member' : 'members'}
-        </p>
-        <div className="divide-y divide-line">
-          {[...members]
-            .sort((a, b) =>
-              (a.nickname || a.email || '').localeCompare(b.nickname || b.email || '')
-            )
-            .map((m) => (
-              <TeamMember key={m.id} member={m} isMe={m.id === user?.id} />
-            ))}
-        </div>
-      </div>
+        <Panel
+          flush
+          title="Team"
+          className="mt-4 lg:mt-6"
+          action={
+            <span className="text-small text-ink-soft">
+              {members.length} {members.length === 1 ? 'member' : 'members'}
+            </span>
+          }
+        >
+          <List className="pb-2">
+            {[...members]
+              .sort((a, b) => (a.nickname || a.email || '').localeCompare(b.nickname || b.email || ''))
+              .map((m) => (
+                <TeamMember key={m.id} member={m} isMe={m.id === user?.id} />
+              ))}
+          </List>
+        </Panel>
       )}
-    </div>
+    </Page>
   );
 }
