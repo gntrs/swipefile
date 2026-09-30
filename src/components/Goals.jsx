@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { isMissingTable } from '@/lib/db';
 import MigrationCard from '@/components/MigrationCard';
+import { RowsSkeleton } from '@/components/Skeleton';
 
 const POLL_MS = 15000; // fallback when realtime is off
 
@@ -31,7 +32,7 @@ function DeadlineChip({ goal }) {
     day: 'numeric',
   });
   const left = daysUntil(goal.deadline);
-  let cls = 'bg-cream text-ink-soft';
+  let cls = 'bg-canvas text-ink-soft';
   let text = `due ${label}`;
   if (!goal.done) {
     if (left < 0) {
@@ -202,7 +203,7 @@ export default function Goals() {
   if (missing) return <MigrationCard title="Goals" />;
 
   return (
-    <div className="bg-card rounded-xl3 border border-line shadow-card p-5 flex flex-col">
+    <div className="bg-card rounded-xl3 shadow-card p-5 flex flex-col">
       <div className="flex items-center justify-between mb-2">
         <h2 className="font-semibold text-[15px]">Goals</h2>
         {isAdmin && (
@@ -212,8 +213,8 @@ export default function Goals() {
               setEditId(null);
             }}
             aria-label="Toggle goal editing"
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
-              editing ? 'bg-coral text-black shadow-cta' : 'text-ink-soft hover:bg-cream'
+            className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
+              editing ? 'bg-accent text-black' : 'text-ink-soft hover:bg-canvas'
             }`}
           >
             <PencilSimple size={15} weight="bold" />
@@ -226,7 +227,7 @@ export default function Goals() {
           overflow scroll never engaged and the card ate the whole page. */}
       <div className="h-[380px] overflow-y-auto -mx-1 px-1">
         {loading ? (
-          <p className="text-ink-soft text-[13px] py-2">Loading...</p>
+          <RowsSkeleton rows={3} className="py-1" />
         ) : groups.length === 0 ? (
           <p className="text-ink-soft text-[13px] py-2">
             No goals yet. Add the first one for this week.
@@ -234,7 +235,7 @@ export default function Goals() {
         ) : (
           groups.map((h) => (
             <div key={h.key} className="mb-3 last:mb-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft/80 mb-1">
+              <p className="kicker mb-1">
                 {h.label}
               </p>
               {h.items.map((g) =>
@@ -245,14 +246,14 @@ export default function Goals() {
                       onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
                       maxLength={140}
                       autoFocus
-                      className="w-full py-2 px-3 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[16px] sm:text-[14px]"
+                      className="w-full py-2 px-3 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[16px] sm:text-[14px]"
                     />
                     <div className="flex items-center gap-1.5">
                       <select
                         value={draft.horizon}
                         onChange={(e) => setDraft((d) => ({ ...d, horizon: e.target.value }))}
                         aria-label="Horizon"
-                        className="py-2 px-2.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[13px] text-ink-soft"
+                        className="py-2 px-2.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[13px] text-ink-soft"
                       >
                         {HORIZONS.map((hh) => (
                           <option key={hh.key} value={hh.key}>
@@ -265,15 +266,15 @@ export default function Goals() {
                         value={draft.deadline}
                         onChange={(e) => setDraft((d) => ({ ...d, deadline: e.target.value }))}
                         aria-label="Deadline"
-                        className="flex-1 min-w-0 py-2 px-2.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[13px] text-ink-soft"
+                        className="flex-1 min-w-0 py-2 px-2.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[13px] text-ink-soft"
                       />
                       <button
                         type="button"
                         onClick={() => setDraft((d) => ({ ...d, urgent: !d.urgent }))}
                         aria-label="Toggle urgent"
                         aria-pressed={draft.urgent}
-                        className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-                          draft.urgent ? 'bg-red-100 text-red-600' : 'text-ink-soft hover:bg-cream'
+                        className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+                          draft.urgent ? 'bg-red-100 text-red-600' : 'text-ink-soft hover:bg-canvas'
                         }`}
                       >
                         <Warning size={14} weight="bold" />
@@ -283,7 +284,7 @@ export default function Goals() {
                         onClick={() => saveEdit(g)}
                         disabled={!draft.title.trim()}
                         aria-label="Save goal"
-                        className="w-8 h-8 rounded-xl bg-coral text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40"
+                        className="w-8 h-8 rounded-xl bg-accent text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40"
                       >
                         <Check size={14} weight="bold" />
                       </button>
@@ -291,7 +292,7 @@ export default function Goals() {
                         type="button"
                         onClick={() => setEditId(null)}
                         aria-label="Cancel edit"
-                        className="w-8 h-8 rounded-xl text-ink-soft hover:bg-cream flex items-center justify-center flex-shrink-0"
+                        className="w-8 h-8 rounded-xl text-ink-soft hover:bg-canvas flex items-center justify-center flex-shrink-0"
                       >
                         <X size={14} weight="bold" />
                       </button>
@@ -300,18 +301,19 @@ export default function Goals() {
                 ) : (
                   <label
                     key={g.id}
-                    className="flex items-start gap-2.5 py-1.5 cursor-pointer group"
+                    className="flex items-start gap-2.5 min-h-[44px] py-1.5 cursor-pointer group"
                   >
                     <input
                       type="checkbox"
                       checked={!!g.done}
                       onChange={() => toggle(g)}
                       className="sr-only"
+                      data-probe-skip
                     />
                     <span
                       aria-hidden="true"
                       className={`w-[18px] h-[18px] rounded-md border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
-                        g.done ? 'bg-mint border-mint' : 'border-line bg-cream group-hover:border-coral'
+                        g.done ? 'bg-mint border-mint' : 'border-line bg-canvas group-hover:border-accent'
                       }`}
                     >
                       {g.done && <Check size={12} weight="bold" className="text-ink" />}
@@ -321,7 +323,7 @@ export default function Goals() {
                         <Link
                           to={`/briefs?open=${g.brief_id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className={`block text-[14px] leading-snug break-words underline decoration-line underline-offset-2 hover:decoration-coral ${
+                          className={`block min-h-[44px] text-[14px] leading-snug break-words underline decoration-line underline-offset-2 hover:decoration-accent ${
                             g.done ? 'line-through text-ink-soft/60' : ''
                           }`}
                         >
@@ -359,7 +361,7 @@ export default function Goals() {
                             startEdit(g);
                           }}
                           aria-label={`Edit goal: ${g.title}`}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-soft hover:bg-cream"
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-soft hover:bg-canvas"
                         >
                           <PencilSimple size={14} weight="bold" />
                         </button>
@@ -391,14 +393,14 @@ export default function Goals() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Add a goal"
             maxLength={140}
-            className="w-full py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[16px] sm:text-[14px]"
+            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[16px] sm:text-[14px]"
           />
           <div className="flex items-center gap-2">
             <select
               value={horizon}
               onChange={(e) => setHorizon(e.target.value)}
               aria-label="Horizon"
-              className="py-2.5 px-3 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[16px] sm:text-[13px] text-ink-soft flex-shrink-0"
+              className="py-2.5 px-3 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[16px] sm:text-[13px] text-ink-soft flex-shrink-0"
             >
               {HORIZONS.map((h) => (
                 <option key={h.key} value={h.key}>
@@ -411,7 +413,7 @@ export default function Goals() {
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
               aria-label="Deadline (optional)"
-              className="flex-1 min-w-0 py-2.5 px-3 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[16px] sm:text-[13px] text-ink-soft"
+              className="flex-1 min-w-0 py-2.5 px-3 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[16px] sm:text-[13px] text-ink-soft"
             />
             <button
               type="button"
@@ -428,7 +430,7 @@ export default function Goals() {
               type="submit"
               disabled={!title.trim()}
               aria-label="Add goal"
-              className="press w-10 h-10 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta disabled:opacity-40 disabled:shadow-none"
+              className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40 disabled:shadow-none"
             >
               <Plus size={17} weight="bold" />
             </button>

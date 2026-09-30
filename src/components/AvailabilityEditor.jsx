@@ -50,7 +50,7 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
       onClick={onClose}
     >
       <div
@@ -61,7 +61,7 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
           <h2 className="text-[18px] font-semibold tracking-tight">
             {editing ? 'Edit availability' : 'Add availability'}
           </h2>
-          <button onClick={onClose} aria-label="Close" className="w-8 h-8 rounded-xl flex items-center justify-center text-ink-soft hover:bg-cream">
+          <button onClick={onClose} aria-label="Close" className="w-11 h-11 rounded-xl flex items-center justify-center text-ink-soft hover:bg-canvas">
             <X size={18} weight="bold" />
           </button>
         </div>
@@ -90,12 +90,12 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
             type="date"
             value={day}
             onChange={(e) => setDay(e.target.value)}
-            className="w-full py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[15px] mb-4"
+            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[15px] mb-4"
           />
 
           {/* Time */}
           <label className="flex items-center gap-2 mb-2 cursor-pointer select-none">
-            <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} className="accent-coral w-4 h-4" />
+            <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} className="accent-accent w-4 h-4" />
             <span className="text-[13px] font-semibold text-ink-soft">All day</span>
           </label>
           {!allDay && (
@@ -104,14 +104,14 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
                 type="time"
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
-                className="flex-1 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[15px]"
+                className="flex-1 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[15px]"
               />
               <span className="text-ink-soft text-[13px]">to</span>
               <input
                 type="time"
                 value={end}
                 onChange={(e) => setEnd(e.target.value)}
-                className="flex-1 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[15px]"
+                className="flex-1 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[15px]"
               />
             </div>
           )}
@@ -122,7 +122,7 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
             onChange={(e) => setNote(e.target.value)}
             placeholder="Note (optional) e.g. dentist, half day"
             maxLength={120}
-            className="w-full py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[15px] mb-4"
+            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[15px] mb-4"
           />
 
           {err && <p className="text-[13px] text-red-500 mb-3">{err}</p>}
@@ -131,7 +131,7 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
             <button
               type="submit"
               disabled={busy}
-              className="press flex-1 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
+              className="press flex-1 py-2.5 rounded-2xl bg-accent text-black font-semibold disabled:opacity-60"
             >
               {busy ? 'Saving...' : editing ? 'Save' : 'Add'}
             </button>

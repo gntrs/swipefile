@@ -1,38 +1,30 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { isOwnBrand } from '@/lib/brand';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   PlusCircle,
   MagnifyingGlass,
+  Tray,
   Star,
   Trophy,
-  Scales,
+  CheckSquare,
   ClockCounterClockwise,
-  X,
+  DownloadSimple,
+  Keyboard,
+  CaretLeft,
+  CaretRight,
 } from '@phosphor-icons/react';
-import { fetchAll } from '@/lib/db';
-import {
-  isProven,
-  isStarred,
-  isRecent,
-  adCountries,
-  countryOptions,
-  geoStatus,
-  GEO_STATUS,
-} from '@/lib/ads';
+import { db, IS_DEMO } from '@/lib/db';
+import { GEO_STATUS, VERDICTS, FOCUS_COUNTRIES, countryName, humanVerdictPatch } from '@/lib/ads';
+import { ANGLE_IDS, angleLabel } from '@/lib/angles';
+import { SORTS, filtersFromParams, paramsFromFilters, isFiltered, clearFilters, withFilter } from '@/lib/library/filters';
+import { loadPage, loadFacets, invalidateLocalCache, computeFacets, PAGE_SIZE, LOCAL_HINT_THRESHOLD } from '@/lib/library/query';
+import { saveListContext } from '@/lib/library/listContext';
+import { MAX_SELECT } from '@/lib/library/bulk';
 import AdCard from '@/components/AdCard';
-
-const FILTERS = ['all', 'winner', 'testing', 'loser', 'unsure'];
-
-const SORTS = [
-  { id: 'newest', label: 'Newest' },
-  { id: 'longest', label: 'Longest running' },
-  { id: 'impressions', label: 'Most impressions' },
-  { id: 'roas', label: 'Best ROAS' },
-  { id: 'ctr', label: 'Best CTR' },
-  { id: 'cpc', label: 'Lowest CPC' },
-  { id: 'spend', label: 'Most spent' },
-];
+import { CardSkeleton } from '@/components/Skeleton';
+import BulkBar from '@/features/save/BulkBar';
+import KeyHelp from '@/features/save/KeyHelp';
+import useLibraryKeys from '@/features/save/useLibraryKeys';
 
 const WHO = [
   { id: 'all', label: 'All' },
@@ -40,189 +32,350 @@ const WHO = [
   { id: 'rivals', label: 'Rivals' },
 ];
 
-const isOurs = (a) => isOwnBrand(a.brand);
-const MAX_COMPARE = 4;
+const EMPTY_FACETS = computeFacets([]);
+const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 
+// Every chip in the filter rows is a thumb target first and a label second:
+// 44px tall minimum, never smaller, on every viewport.
+const pill = (active) =>
+  `press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-xl text-[14px] font-medium transition-colors ${
+    active ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
+  }`;
+const selectCls = (active) =>
+  `flex-shrink-0 min-h-[44px] pl-3 pr-2 rounded-xl text-[14px] font-medium focus:outline-none ${
+    active ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
+  }`;
+const headerBtn = (active) =>
+  `press flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-3 sm:px-3.5 rounded-xl text-[14px] font-semibold transition-colors ${
+    active ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink hover:bg-white/[0.1]'
+  }`;
+
+// The ad library. Filters, sort and page live in the URL, so a view survives a
+// reload and can be linked to (/ads?starred=1, /ads?q=Brand, /ads?who=rivals).
+// The database does the searching and paging when db-setup.sql has the
+// library search functions; otherwise the same rules run in the browser.
 export default function Library() {
-  // /ads?q=Brand deep-links a pre-filled search (used by the competitors page).
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
-  const [ads, setAds] = useState([]);
+  const location = useLocation();
+  const filters = useMemo(() => filtersFromParams(params), [params]);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  const key = paramsFromFilters(filters).toString();
+  const selectionKey = paramsFromFilters({ ...filters, page: 1 }).toString();
+
+  // The ref moves at once, so two quick changes in a row both land even
+  // before the page renders the first.
+  const setFilters = useCallback(
+    (next) => {
+      const params = paramsFromFilters(next);
+      filtersRef.current = filtersFromParams(params);
+      setParams(params, { replace: true });
+    },
+    [setParams]
+  );
+  const change = (k, v) => setFilters(withFilter(filtersRef.current, k, v));
+
+  // ---- search box: its own text, written to the URL after 250 ms ---------
+  const [search, setSearch] = useState(filters.q);
+  const written = useRef(filters.q);
+  const searchRef = useRef(null);
+  useEffect(() => {
+    // Only a change from outside (Clear filters, a link) resets the box.
+    if (filters.q !== written.current) {
+      written.current = filters.q;
+      setSearch(filters.q);
+    }
+  }, [filters.q]);
+  useEffect(() => {
+    if (search === filtersRef.current.q) return undefined;
+    const t = setTimeout(() => {
+      written.current = search;
+      setFilters(withFilter(filtersRef.current, 'q', search));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [search, setFilters]);
+
+  // ---- data ---------------------------------------------------------------
+  // Other pages (the ad page, Compare) write without telling the local copy,
+  // so every visit starts from a fresh one. Within the visit it is reused.
+  useState(() => invalidateLocalCache());
+  const [result, setResult] = useState(null);
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState(params.get('q') || '');
-  const [verdict, setVerdict] = useState('all');
-  const [sort, setSort] = useState('newest');
-  const [who, setWho] = useState(params.get('who') || 'all');
-  const [provenOnly, setProvenOnly] = useState(params.get('proven') === '1');
-  // /ads?starred=1 is a real destination, not just a chip state: the mobile nav
-  // links straight into the shortlist.
-  const [starredOnly, setStarredOnly] = useState(params.get('starred') === '1');
-  const [recentOnly, setRecentOnly] = useState(false);
-  const [country, setCountry] = useState('all');
-  const [geo, setGeo] = useState('all');
-  const [compareMode, setCompareMode] = useState(false);
-  const [selected, setSelected] = useState([]); // ad objects
+  const [reloadKey, setReloadKey] = useState(0);
+  const [facets, setFacets] = useState(EMPTY_FACETS);
+  const [facetsKey, setFacetsKey] = useState(0);
+  const request = useRef(0);
 
   useEffect(() => {
-    let mounted = true;
-    fetchAll((q) => q.order('created_at', { ascending: false }), 'ads').then((data) => {
-      if (!mounted) return;
-      setAds(data);
+    const id = ++request.current;
+    setLoading(true);
+    loadPage(filtersRef.current).then((r) => {
+      if (id !== request.current) return; // a newer request won
+      setResult(r);
+      setRows(r.rows);
       setLoading(false);
+      if (!r.error && r.page !== filtersRef.current.page) setFilters({ ...filtersRef.current, page: r.page });
+    });
+  }, [key, reloadKey, setFilters]);
+
+  useEffect(() => {
+    let live = true;
+    loadFacets().then((r) => {
+      if (live) setFacets(r.facets || EMPTY_FACETS);
     });
     return () => {
-      mounted = false;
+      live = false;
     };
+  }, [facetsKey]);
+
+  // The ad page walks this list with J and K.
+  useEffect(() => {
+    if (!loading) saveListContext({ ids: rows.map((a) => a.id), search: location.search });
+  }, [rows, loading, location.search]);
+
+  const reloadAll = useCallback(() => {
+    invalidateLocalCache();
+    setReloadKey((n) => n + 1);
+    setFacetsKey((n) => n + 1);
   }, []);
 
-  // Tapping the nav link while already on /ads changes the query string without
-  // remounting, so mirror it back into state.
+  // Anything saved anywhere (Add, import, capture) shows up here.
   useEffect(() => {
-    setStarredOnly(params.get('starred') === '1');
-  }, [params]);
+    window.addEventListener('sf:ads-saved', reloadAll);
+    return () => window.removeEventListener('sf:ads-saved', reloadAll);
+  }, [reloadAll]);
 
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    return ads.filter((a) => {
-      if (who === 'ours' && !isOurs(a)) return false;
-      if (who === 'rivals' && isOurs(a)) return false;
-      if (verdict !== 'all' && a.verdict !== verdict) return false;
-      if (provenOnly && !isProven(a)) return false;
-      if (starredOnly && !isStarred(a)) return false;
-      if (recentOnly && !isRecent(a)) return false;
-      if (geo !== 'all' && geoStatus(a) !== geo) return false;
-      if (country !== 'all' && !adCountries(a).includes(country)) return false;
-      if (!term) return true;
-      return [a.brand, a.hook, a.ad_copy, a.platform, ...(a.tags || [])]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(term);
+  // ---- selection ----------------------------------------------------------
+  const [selectMode, setSelectMode] = useState(false);
+  const [selection, setSelection] = useState(() => new Map());
+  const [full, setFull] = useState(false);
+  const firstKey = useRef(selectionKey);
+  useEffect(() => {
+    // New filters, new list: the selection goes. Paging keeps it.
+    if (firstKey.current === selectionKey) return;
+    firstKey.current = selectionKey;
+    setSelection(new Map());
+    setFull(false);
+  }, [selectionKey]);
+
+  const toggleSelect = useCallback((ad) => {
+    setSelection((cur) => {
+      const next = new Map(cur);
+      if (next.has(ad.id)) next.delete(ad.id);
+      else if (next.size < MAX_SELECT) next.set(ad.id, ad);
+      setFull(next.size >= MAX_SELECT);
+      return next;
     });
-  }, [ads, q, verdict, who, provenOnly, starredOnly, recentOnly, country, geo]);
+  }, []);
 
-  // Ads without the number being sorted on sink to the bottom.
-  const ranked = useMemo(() => {
-    const num = (a, key) => {
-      const v = Number(a.metrics?.[key]);
-      return Number.isFinite(v) && v > 0 ? v : null;
-    };
-    const desc = (get) => (a, b) => (get(b) ?? -1) - (get(a) ?? -1);
-    const days = (a) => (typeof a.metrics?.days_running === 'number' ? a.metrics.days_running : null);
-    const imps = (a) => num(a, 'impressions') ?? num(a, 'reach');
-    if (sort === 'longest') return [...filtered].sort(desc(days));
-    if (sort === 'impressions') return [...filtered].sort(desc(imps));
-    if (sort === 'roas') return [...filtered].sort(desc((a) => num(a, 'roas')));
-    if (sort === 'ctr') return [...filtered].sort(desc((a) => num(a, 'ctr')));
-    if (sort === 'spend') return [...filtered].sort(desc((a) => num(a, 'spend')));
-    if (sort === 'cpc')
-      return [...filtered].sort((a, b) => (num(a, 'cpc') ?? Infinity) - (num(b, 'cpc') ?? Infinity));
-    return filtered; // query already orders by newest
-  }, [filtered, sort]);
-
-  // The freshest batch floats to the top of whatever sort is active, so a new
-  // drop is the first thing you see without having to touch a filter. Stable
-  // partition: inside each half the chosen sort order still holds. Self-clears
-  // when the next batch takes the tag.
-  const sorted = useMemo(() => {
-    if (recentOnly) return ranked; // already nothing but the batch
-    const fresh = ranked.filter(isRecent);
-    return fresh.length ? [...fresh, ...ranked.filter((a) => !isRecent(a))] : ranked;
-  }, [ranked, recentOnly]);
-
-  const provenCount = useMemo(() => ads.filter(isProven).length, [ads]);
-  const starredCount = useMemo(() => ads.filter(isStarred).length, [ads]);
-  const recentCount = useMemo(() => ads.filter(isRecent).length, [ads]);
-
-  // Both geo controls are data-derived: no countries and no synced rows means
-  // the sync has not run, so they stay out of the row entirely (same rule the
-  // New pill uses with recentCount).
-  const countries = useMemo(() => countryOptions(ads), [ads]);
-  const geoChecked = useMemo(() => ads.filter((a) => geoStatus(a) !== 'unknown').length, [ads]);
-
-  const toggleSelect = (ad) => {
-    setSelected((cur) => {
-      if (cur.find((a) => a.id === ad.id)) return cur.filter((a) => a.id !== ad.id);
-      if (cur.length >= MAX_COMPARE) return cur; // cap
-      return [...cur, ad];
+  const selectPage = () => {
+    setSelection((cur) => {
+      const next = new Map(cur);
+      for (const a of rows) {
+        if (next.size >= MAX_SELECT) break;
+        next.set(a.id, a);
+      }
+      setFull(next.size >= MAX_SELECT);
+      return next;
     });
   };
 
-  const exitCompare = () => {
-    setCompareMode(false);
-    setSelected([]);
+  const clearSelection = () => {
+    setSelection(new Map());
+    setFull(false);
   };
 
-  // Every chip in the filter rows is a thumb target first and a label second:
-  // 44px tall minimum, never smaller, on every viewport.
-  const pill = (active) =>
-    `press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-2xl text-[13px] font-semibold transition-colors ${
-      active ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
-    }`;
+  // Rows changed by a bulk action or a key: update the page and the selection.
+  const applyRows = useCallback((changed) => {
+    const byId = new Map(changed.map((a) => [a.id, a]));
+    setRows((cur) => cur.map((a) => (byId.has(a.id) ? { ...a, ...byId.get(a.id) } : a)));
+    setSelection((cur) => {
+      if (![...byId.keys()].some((id) => cur.has(id))) return cur;
+      const next = new Map(cur);
+      for (const [id, a] of byId) if (next.has(id)) next.set(id, { ...next.get(id), ...a });
+      return next;
+    });
+  }, []);
+
+  const onDeleted = (ids) => {
+    setSelection((cur) => {
+      const next = new Map(cur);
+      for (const id of ids) next.delete(id);
+      return next;
+    });
+    setReloadKey((n) => n + 1);
+  };
+
+  // ---- keyboard -----------------------------------------------------------
+  const [focusIndex, setFocusIndex] = useState(-1);
+  const [announce, setAnnounce] = useState('');
+  const [help, setHelp] = useState(false);
+  useEffect(() => setFocusIndex(-1), [key, reloadKey]);
+
+  const focusedAd = focusIndex >= 0 ? rows[focusIndex] : null;
+
+  const moveFocus = (delta) => {
+    if (!rows.length) return;
+    const next = focusIndex < 0 ? 0 : Math.min(rows.length - 1, Math.max(0, focusIndex + delta));
+    setFocusIndex(next);
+    const id = rows[next]?.id;
+    requestAnimationFrame(() => document.querySelector(`[data-ad-id="${id}"]`)?.scrollIntoView({ block: 'nearest' }));
+  };
+
+  const patchAd = async (ad, patch, okText) => {
+    applyRows([{ ...ad, ...patch }]);
+    const { error } = await db.from('ads').update(patch).eq('id', ad.id);
+    if (error) {
+      applyRows([ad]);
+      setAnnounce(`Could not save: ${error.message}`);
+      return;
+    }
+    invalidateLocalCache();
+    setFacetsKey((n) => n + 1);
+    setAnnounce(okText);
+  };
+
+  useLibraryKeys((action) => {
+    if (action === 'search') searchRef.current?.focus();
+    else if (action === 'new') navigate('/ads/add');
+    else if (action === 'next') moveFocus(1);
+    else if (action === 'prev') moveFocus(-1);
+    else if (action === 'help') setHelp(true);
+    else if (action === 'escape') {
+      if (selection.size) clearSelection();
+      else if (selectMode) setSelectMode(false);
+      else if (focusIndex >= 0) setFocusIndex(-1);
+      else return false;
+    } else if (!focusedAd) return false;
+    else if (action === 'open') navigate(`/ad/${focusedAd.id}`);
+    else if (action === 'select') {
+      setSelectMode(true);
+      toggleSelect(focusedAd);
+    } else if (action === 'winner' || action === 'loser') {
+      patchAd(focusedAd, humanVerdictPatch(focusedAd, action), `Marked ${action}.`);
+    } else if (action === 'star') {
+      const starred = focusedAd.metrics?.starred !== true;
+      patchAd(focusedAd, { metrics: { ...(focusedAd.metrics || {}), starred } }, starred ? 'Starred.' : 'Star removed.');
+    }
+    return undefined;
+  });
+
+  // ---- view ---------------------------------------------------------------
+  const goPage = (n) => {
+    setFilters(withFilter(filtersRef.current, 'page', n));
+    document.querySelector('main')?.scrollTo({ top: 0 });
+  };
+
+  const filtered = isFiltered(filters);
+  const countries = useMemo(() => {
+    const list = [...(facets.countries || [])];
+    const focus = FOCUS_COUNTRIES.filter((c) => list.some((x) => x.code === c));
+    const rest = list.filter((x) => !FOCUS_COUNTRIES.includes(x.code));
+    const ordered = [...focus.map((c) => list.find((x) => x.code === c)), ...rest];
+    if (filters.country !== 'all' && !ordered.some((x) => x.code === filters.country)) ordered.unshift({ code: filters.country, count: 0 });
+    return ordered;
+  }, [facets.countries, filters.country]);
+  const angles = useMemo(() => (facets.angles || []).filter((a) => ANGLE_IDS.includes(a.angle)), [facets.angles]);
+  const tags = useMemo(() => {
+    const list = [...(facets.tags || [])];
+    if (filters.tag && !list.some((t) => t.tag === filters.tag)) list.unshift({ tag: filters.tag, count: 0 });
+    return list;
+  }, [facets.tags, filters.tag]);
+
+  const total = result?.total ?? 0;
+  const page = result?.page ?? filters.page;
+  const pages = result?.pages ?? 1;
+  const from = total ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const to = total ? Math.min(total, from + rows.length - 1) : 0;
+  const firstRun = !loading && !result?.error && facets.total === 0 && total === 0 && !filtered;
+  const showLocalHint = result?.mode === 'local' && !IS_DEMO && (result?.scanned ?? facets.total) > LOCAL_HINT_THRESHOLD;
+  const selected = [...selection.values()];
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[1200px] mx-auto pb-24">
-      <div className="flex items-start justify-between gap-3 mb-5">
-        <div className="min-w-0">
-          <h1 className="text-[26px] sm:text-[22px] font-semibold tracking-[-0.02em] leading-tight">
-            {starredOnly ? 'Starred ads' : 'Ad library'}
-          </h1>
-          <p className="text-ink-soft text-[13px] sm:text-[14px] tabular-nums">
-            {starredOnly
-              ? `${starredCount} starred`
-              : `${ads.length} saved · ${provenCount} proven · ${starredCount} starred`}
-          </p>
-        </div>
+    <div data-page="library" className={`px-5 sm:px-8 pt-6 sm:pt-8 max-w-[1220px] mx-auto ${selectMode || selection.size ? 'pb-72 sm:pb-48' : 'pb-24'}`}>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="min-w-0 text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">
+          {filters.starred ? 'Starred ads' : 'Ad library'}
+        </h1>
         <div className="flex flex-shrink-0 items-center gap-2">
           <button
-            onClick={() => (compareMode ? exitCompare() : setCompareMode(true))}
-            aria-pressed={compareMode}
-            className={`press flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-3 sm:px-3.5 rounded-2xl font-semibold transition-colors ${
-              compareMode ? 'bg-ink text-black' : 'bg-card border border-line text-ink-soft'
-            }`}
+            type="button"
+            onClick={() => (selectMode ? (setSelectMode(false), clearSelection()) : setSelectMode(true))}
+            aria-pressed={selectMode}
+            aria-label={selectMode ? 'Stop selecting' : 'Select ads'}
+            className={headerBtn(selectMode)}
           >
-            <Scales size={18} weight="bold" />
-            <span className="hidden sm:inline">{compareMode ? 'Cancel' : 'Compare'}</span>
+            <CheckSquare size={18} weight="bold" />
+            <span className="hidden lg:inline">{selectMode ? 'Done' : 'Select'}</span>
           </button>
+          <button
+            type="button"
+            onClick={() => setHelp(true)}
+            aria-label="Keyboard shortcuts"
+            className={`${headerBtn(false)} hidden sm:flex`}
+          >
+            <Keyboard size={18} weight="bold" />
+            <span className="hidden lg:inline">Keys</span>
+          </button>
+          <Link to="/ads/import" aria-label="Import ads" className={headerBtn(false)}>
+            <DownloadSimple size={18} weight="bold" />
+            <span className="hidden lg:inline">Import</span>
+          </Link>
           <Link
             to="/ads/add"
             aria-label="Add ad"
-            className="press flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-3 sm:px-4 rounded-2xl bg-coral text-black font-semibold shadow-cta"
+            className="press flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] px-3 sm:px-4 rounded-xl bg-accent text-black text-[14px] font-semibold hover:bg-accent-dim transition-colors"
           >
             <PlusCircle size={20} weight="bold" />
             <span className="hidden sm:inline">Add ad</span>
           </Link>
         </div>
       </div>
+      <p className="font-mono text-ink-soft text-[12px] tabular-nums mt-2 mb-6">
+        {filters.starred
+          ? `${fmt(facets.starred)} starred`
+          : `${fmt(facets.total)} saved · ${fmt(facets.proven)} proven · ${fmt(facets.starred)} starred`}
+      </p>
+
+      {showLocalHint && (
+        <p className="text-[14px] text-ink-soft -mt-3 mb-4">
+          Searching in the browser. Re-run db-setup.sql to search on the server.
+        </p>
+      )}
 
       {/* Controls */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="flex-1 flex items-center gap-2 min-h-[44px] bg-card border border-line rounded-2xl px-3">
+      <div className="flex flex-col lg:flex-row gap-2 mb-2">
+        <div className="flex-1 flex items-center gap-2 min-h-[44px] bg-card border border-line rounded-xl px-3 focus-within:border-ink-soft transition-colors">
           <MagnifyingGlass size={18} className="text-ink-soft flex-shrink-0" />
           <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            ref={searchRef}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search brand, hook, copy, tags..."
-            className="w-full min-w-0 py-2.5 bg-transparent focus:outline-none text-[14px]"
+            aria-label="Search ads"
+            maxLength={200}
+            className="w-full min-w-0 min-h-[44px] py-2.5 bg-transparent focus:outline-none focus-visible:shadow-none text-[16px] sm:text-[15px] placeholder:text-ink-soft"
           />
         </div>
-        <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0">
+        <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 flex-shrink-0">
           {WHO.map((w) => (
             <button
               key={w.id}
-              onClick={() => setWho(w.id)}
-              className={`press flex-shrink-0 min-h-[44px] px-3.5 rounded-2xl text-[13px] font-semibold transition-colors ${
-                who === w.id ? 'bg-ink text-black' : 'bg-card border border-line text-ink-soft'
-              }`}
+              type="button"
+              onClick={() => change('who', w.id)}
+              aria-pressed={filters.who === w.id}
+              className={pill(filters.who === w.id)}
             >
               {w.label}
             </button>
           ))}
           <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
+            value={filters.sort}
+            onChange={(e) => change('sort', e.target.value)}
             aria-label="Sort ads"
-            className="flex-shrink-0 min-h-[44px] px-3 rounded-2xl text-[13px] font-semibold bg-card border border-line text-ink-soft focus:outline-none focus:border-coral"
+            className={selectCls(false)}
           >
             {SORTS.map((s) => (
               <option key={s.id} value={s.id}>
@@ -235,85 +388,79 @@ export default function Library() {
 
       {/* Quick filters. Sticks to the top of the scroll on phones so the row you
           steer with never scrolls out of reach; static from sm up. */}
-      <div className="sticky top-0 z-30 sm:static flex gap-1.5 scroll-x -mx-5 px-5 py-2 sm:py-0 sm:mx-0 sm:px-0 mb-4 sm:mb-5 bg-cream/85 backdrop-blur-xl sm:bg-transparent sm:backdrop-blur-none">
-        {/* Starred leads the row on purpose: it is the shortlist you actually
-            come back for, so it is one tap from anywhere in the list. */}
+      <div className="sticky top-0 z-30 sm:static flex gap-1.5 scroll-x lg:flex-wrap lg:overflow-visible -mx-5 px-5 py-2 sm:mx-0 sm:px-0 mb-4 sm:mb-6 bg-canvas/95 sm:bg-transparent">
         <button
-          onClick={() => setStarredOnly((v) => !v)}
-          aria-pressed={starredOnly}
-          className={`press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-2xl text-[13px] font-semibold transition-colors ${
-            starredOnly
-              ? 'bg-amber-400 text-black'
-              : 'bg-card border border-line text-ink-soft'
+          type="button"
+          onClick={() => change('starred', !filters.starred)}
+          aria-pressed={filters.starred}
+          className={`press flex-shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center px-3.5 rounded-xl text-[14px] font-medium transition-colors ${
+            filters.starred ? 'bg-amber-400 text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
           }`}
         >
-          <Star size={16} weight={starredOnly ? 'fill' : 'bold'} />
+          <Star size={16} weight={filters.starred ? 'fill' : 'bold'} className={filters.starred ? '' : 'text-amber-400'} />
           Starred
-          {starredCount > 0 && (
-            <span className={`tabular-nums ${starredOnly ? 'text-black/60' : 'text-ink-soft/70'}`}>
-              {starredCount}
-            </span>
+          {facets.starred > 0 && (
+            <span className={`font-mono text-[12px] tabular-nums ${filters.starred ? 'text-black/60' : 'text-ink-soft/70'}`}>{fmt(facets.starred)}</span>
           )}
         </button>
-        {/* Newest batch. Only worth a slot while a batch is actually flagged. */}
-        {recentCount > 0 && (
-          <button onClick={() => setRecentOnly((v) => !v)} aria-pressed={recentOnly} className={pill(recentOnly)}>
-            <ClockCounterClockwise size={15} weight="bold" /> New{' '}
-            <span className="tabular-nums">{recentCount}</span>
+        {(facets.recent > 0 || filters.recent) && (
+          <button type="button" onClick={() => change('recent', !filters.recent)} aria-pressed={filters.recent} className={pill(filters.recent)}>
+            <ClockCounterClockwise size={15} weight="bold" /> New <span className={`font-mono text-[12px] tabular-nums ${filters.recent ? 'text-black/60' : 'text-ink-soft/70'}`}>{fmt(facets.recent)}</span>
           </button>
         )}
-        <button onClick={() => setProvenOnly((v) => !v)} aria-pressed={provenOnly} className={pill(provenOnly)}>
+        <button type="button" onClick={() => change('proven', !filters.proven)} aria-pressed={filters.proven} className={pill(filters.proven)}>
           <Trophy size={15} weight="bold" /> Proven
         </button>
-        <span className="w-px bg-line flex-shrink-0 mx-1 my-1.5" />
-        {FILTERS.map((f) => (
+        <span className="lg:hidden w-px bg-line flex-shrink-0 mx-1.5 my-2.5" />
+        {['all', ...VERDICTS.filter((v) => v !== 'unsure'), 'unsure'].map((v) => (
           <button
-            key={f}
-            onClick={() => setVerdict(f)}
-            aria-pressed={verdict === f}
-            className={`press flex-shrink-0 flex items-center min-h-[44px] px-3.5 rounded-2xl text-[13px] font-semibold capitalize transition-colors ${
-              verdict === f ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
-            }`}
+            key={v}
+            type="button"
+            onClick={() => change('verdict', v)}
+            aria-pressed={filters.verdict === v}
+            className={`${pill(filters.verdict === v)} capitalize`}
           >
-            {f}
+            {v}
           </button>
         ))}
-        {/* Geo. Hidden until sync-geo has written something, the same way the
-            New pill only shows while a batch is flagged - an empty country
-            picker is just noise in the row. */}
-        {(countries.length > 0 || geoChecked > 0) && (
-          <span className="w-px bg-line flex-shrink-0 mx-1 my-1.5" />
+        {(countries.length > 0 || facets.geo_checked > 0 || angles.length > 0 || tags.length > 0) && (
+          <span className="lg:hidden w-px bg-line flex-shrink-0 mx-1.5 my-2.5" />
         )}
-        {countries.length > 0 && (
-          <select
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            aria-label="Filter by country"
-            className={`flex-shrink-0 min-h-[44px] px-3 rounded-2xl text-[13px] font-semibold focus:outline-none ${
-              country === 'all'
-                ? 'bg-card border border-line text-ink-soft focus:border-coral'
-                : 'bg-coral text-black'
-            }`}
-          >
-            <option value="all">All countries</option>
-            {countries.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.label} ({c.count})
+        {angles.length > 0 && (
+          <select value={filters.angle} onChange={(e) => change('angle', e.target.value)} aria-label="Filter by angle" className={selectCls(filters.angle !== 'all')}>
+            <option value="all">Any angle</option>
+            <option value="none">No angle yet</option>
+            {angles.map((a) => (
+              <option key={a.angle} value={a.angle}>
+                {angleLabel(a.angle)} ({fmt(a.count)})
               </option>
             ))}
           </select>
         )}
-        {geoChecked > 0 && (
-          <select
-            value={geo}
-            onChange={(e) => setGeo(e.target.value)}
-            aria-label="Filter by location data"
-            className={`flex-shrink-0 min-h-[44px] px-3 rounded-2xl text-[13px] font-semibold focus:outline-none ${
-              geo === 'all'
-                ? 'bg-card border border-line text-ink-soft focus:border-coral'
-                : 'bg-coral text-black'
-            }`}
-          >
+        {tags.length > 0 && (
+          <select value={filters.tag} onChange={(e) => change('tag', e.target.value)} aria-label="Filter by tag" className={`${selectCls(Boolean(filters.tag))} max-w-[200px]`}>
+            <option value="">Any tag</option>
+            {tags.map((t) => (
+              <option key={t.tag} value={t.tag}>
+                {t.tag} ({fmt(t.count)})
+              </option>
+            ))}
+          </select>
+        )}
+        {/* Geo. Hidden until sync-geo has written something: an empty
+            country picker is just noise in the row. */}
+        {countries.length > 0 && (
+          <select value={filters.country} onChange={(e) => change('country', e.target.value)} aria-label="Filter by country" className={selectCls(filters.country !== 'all')}>
+            <option value="all">All countries</option>
+            {countries.map((c) => (
+              <option key={c.code} value={c.code}>
+                {countryName(c.code)} ({fmt(c.count)})
+              </option>
+            ))}
+          </select>
+        )}
+        {(facets.geo_checked > 0 || filters.geo !== 'all') && (
+          <select value={filters.geo} onChange={(e) => change('geo', e.target.value)} aria-label="Filter by location data" className={selectCls(filters.geo !== 'all')}>
             <option value="all">Any geo</option>
             {GEO_STATUS.map((g) => (
               <option key={g.id} value={g.id}>
@@ -324,83 +471,132 @@ export default function Library() {
         )}
       </div>
 
-      {compareMode && (
-        <p className="text-[13px] text-ink-soft mb-3">
-          Pick up to {MAX_COMPARE} ads to compare side by side.
-        </p>
+      {selectMode && !selection.size && (
+        <p className="text-[15px] text-ink-soft mb-4">Tap ads to select them, up to {MAX_SELECT} at a time.</p>
       )}
 
-      {loading ? (
-        <p className="text-ink-soft">Loading...</p>
-      ) : sorted.length === 0 ? (
-        <div className="text-center py-20 text-ink-soft">
-          <p className="mb-3">No ads match.</p>
-          {(provenOnly || starredOnly || recentOnly || verdict !== 'all' || country !== 'all' || geo !== 'all' || q) && (
+      {result?.partial && (
+        <div role="alert" className="flex items-center gap-3 bg-amber-50 rounded-xl pl-4 pr-1.5 py-1.5 mb-4">
+          <p className="flex-1 min-w-0 text-[15px] text-ink leading-snug">
+            Some ads failed to load: {result.error?.message}. The list may be incomplete.
+          </p>
+          <button type="button" onClick={reloadAll} className="press min-h-[44px] min-w-[44px] px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold">
+            Retry
+          </button>
+        </div>
+      )}
+
+      <p aria-live="polite" className="sr-only">
+        {announce}
+      </p>
+
+      {loading && !result ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 min-[1360px]:grid-cols-4 gap-3 sm:gap-4" aria-busy="true">
+          {Array.from({ length: 8 }, (_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      ) : result?.error && !result.partial ? (
+        <div role="alert" className="max-w-[480px] mx-auto my-16 text-center">
+          <p className="text-[17px] font-semibold text-ink mb-1">Could not load the ads.</p>
+          <p className="text-[15px] text-ink-soft mb-5 break-words">{result.error.message}</p>
+          <button type="button" onClick={reloadAll} className="press inline-flex items-center min-h-[44px] px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold">
+            Retry
+          </button>
+        </div>
+      ) : firstRun ? (
+        <div className="max-w-[440px] mx-auto my-16 text-center">
+          <Tray size={32} weight="bold" className="mx-auto mb-4 text-ink-soft" />
+          <h2 className="text-[22px] font-semibold tracking-[-0.02em] mb-2">Your swipe file is empty</h2>
+          <p className="text-[16px] text-ink-soft leading-relaxed mb-6">
+            Save an ad you liked, or bring in a batch from a CSV export.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <Link to="/ads/add" className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-accent text-black text-[14px] font-semibold hover:bg-accent-dim transition-colors">
+              Add your first ad
+            </Link>
+            <Link to="/ads/import" className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold text-ink">
+              Import a CSV
+            </Link>
+          </div>
+        </div>
+      ) : !rows.length ? (
+        <div className="text-center py-20">
+          <MagnifyingGlass size={32} weight="bold" className="mx-auto mb-4 text-ink-soft" />
+          <p className="mb-5 text-[17px] font-semibold text-ink">No ads match.</p>
+          {filtered && (
             <button
-              onClick={() => {
-                setProvenOnly(false);
-                setStarredOnly(false);
-                setRecentOnly(false);
-                setVerdict('all');
-                setCountry('all');
-                setGeo('all');
-                setQ('');
-              }}
-              className="press inline-flex items-center min-h-[44px] px-4 rounded-2xl border border-line text-coral-dark font-semibold"
+              type="button"
+              onClick={() => setFilters(clearFilters(filters))}
+              className="press inline-flex items-center min-h-[44px] px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold text-ink"
             >
               Clear filters
             </button>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-          {sorted.map((ad) => (
-            <AdCard
-              key={ad.id}
-              ad={ad}
-              selectable={compareMode}
-              selected={compareMode && selected.some((a) => a.id === ad.id)}
-              onToggleSelect={toggleSelect}
-            />
-          ))}
-        </div>
+        <>
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 min-[1360px]:grid-cols-4 gap-3 sm:gap-4 transition-opacity ${loading ? 'opacity-60' : ''}`} aria-busy={loading}>
+            {rows.map((ad, i) => (
+              <AdCard
+                key={ad.id}
+                ad={ad}
+                selectable={selectMode}
+                selected={selection.has(ad.id)}
+                onToggleSelect={toggleSelect}
+                focused={i === focusIndex}
+                onAdChange={(next) => {
+                  applyRows([next]);
+                  invalidateLocalCache();
+                  setFacetsKey((n) => n + 1);
+                }}
+              />
+            ))}
+          </div>
+
+          <nav aria-label="Pages" className="mt-8 flex flex-wrap items-center justify-between gap-3">
+            <p className="font-mono text-[12px] text-ink-soft tabular-nums">
+              Showing {fmt(from)} to {fmt(to)} of {fmt(total)}
+            </p>
+            {pages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => goPage(page - 1)}
+                  disabled={page <= 1 || loading}
+                  className="press inline-flex items-center gap-1 min-h-[44px] min-w-[44px] px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold disabled:opacity-40"
+                >
+                  <CaretLeft size={14} weight="bold" /> Previous
+                </button>
+                <span className="font-mono text-[12px] text-ink-soft tabular-nums whitespace-nowrap px-1">
+                  Page {fmt(page)} of {fmt(pages)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => goPage(page + 1)}
+                  disabled={page >= pages || loading}
+                  className="press inline-flex items-center gap-1 min-h-[44px] min-w-[44px] px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold disabled:opacity-40"
+                >
+                  Next <CaretRight size={14} weight="bold" />
+                </button>
+              </div>
+            )}
+          </nav>
+        </>
       )}
 
-      {/* Floating compare bar */}
-      {compareMode && selected.length > 0 && (
-        <div className="fixed bottom-0 inset-x-0 z-40 px-5 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-cream via-cream to-transparent sm:pl-64">
-          <div className="max-w-[900px] mx-auto flex items-center gap-3 bg-ink text-black rounded-2xl shadow-cardhover px-4 py-3">
-            <div className="flex -space-x-2 flex-shrink-0">
-              {selected.slice(0, 4).map((a) => (
-                <span
-                  key={a.id}
-                  className="w-8 h-8 rounded-full bg-card/15 border border-white/30 flex items-center justify-center text-[10px] font-semibold"
-                  title={a.brand}
-                >
-                  {(a.brand || '?').slice(0, 2)}
-                </span>
-              ))}
-            </div>
-            <p className="text-[13px] font-medium flex-1 min-w-0 truncate">
-              {selected.length} selected
-            </p>
-            <button
-              onClick={() => setSelected([])}
-              className="press w-11 h-11 -mx-1 rounded-full hover:bg-card/10 flex items-center justify-center flex-shrink-0"
-              aria-label="Clear selection"
-            >
-              <X size={16} weight="bold" />
-            </button>
-            <button
-              disabled={selected.length < 2}
-              onClick={() => navigate(`/compare?ids=${selected.map((a) => a.id).join(',')}`)}
-              className="press inline-flex items-center min-h-[44px] px-4 rounded-xl bg-coral text-black text-[13px] font-semibold disabled:opacity-40 flex-shrink-0"
-            >
-              Compare {selected.length}
-            </button>
-          </div>
-        </div>
-      )}
+      <BulkBar
+        selected={selected}
+        active={selectMode}
+        pageCount={rows.length}
+        full={full}
+        onSelectPage={selectPage}
+        onClear={clearSelection}
+        onRowsChanged={applyRows}
+        onDeleted={onDeleted}
+        onChanged={() => setFacetsKey((n) => n + 1)}
+      />
+      <KeyHelp open={help} onClose={() => setHelp(false)} />
     </div>
   );
 }

@@ -74,11 +74,11 @@ export default function TrackCompetitors() {
   }
 
   const field =
-    'w-full px-3 py-2 rounded-xl border border-line bg-cream/50 text-[14px] focus:outline-none focus:border-coral';
+    'w-full px-3 py-2 rounded-xl border border-line bg-canvas/50 text-[14px] focus:outline-none focus:border-accent';
 
   return (
-    <div className="bg-card rounded-xl3 border border-line shadow-card px-4 py-3.5 mb-6">
-      <button onClick={() => setOpenForm(!openForm)} className="w-full flex items-center gap-3 text-left">
+    <div className="bg-card rounded-xl3 shadow-card px-4 py-3.5 mb-6">
+      <button onClick={() => setOpenForm(!openForm)} className="w-full min-h-[44px] flex items-center gap-3 text-left">
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-[15px]">Auto-tracked competitors</p>
           <p className="text-[12px] text-ink-soft">
@@ -147,12 +147,12 @@ export default function TrackCompetitors() {
                 onChange={(e) => setHandle(e.target.value)}
               />
             </div>
-            {error && <p className="text-[12px] text-coral-dark">{error}</p>}
+            {error && <p className="text-[12px] text-accent-dim">{error}</p>}
             <div className="flex items-center gap-3">
               <button
                 type="submit"
                 disabled={saving || !brand.trim()}
-                className="press flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-coral text-black text-[13px] font-semibold shadow-cta disabled:opacity-50"
+                className="press flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent text-black text-[13px] font-semibold disabled:opacity-50"
               >
                 <PlusCircle size={16} weight="bold" /> Track brand
               </button>

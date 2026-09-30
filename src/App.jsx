@@ -1,65 +1,124 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, lazy } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { DB_MODE } from '@/lib/db';
+import { useSetup } from '@/lib/setup/SetupContext';
 import Layout from '@/components/Layout';
+import PageFallback from '@/components/PageFallback';
 import Login from '@/pages/Login';
-import Dashboard from '@/pages/Dashboard';
-import Library from '@/pages/Library';
-import Compare from '@/pages/Compare';
-import AddAd from '@/pages/AddAd';
-import AdDetail from '@/pages/AdDetail';
-import Posts from '@/pages/Posts';
-import AddPost from '@/pages/AddPost';
-import PostDetail from '@/pages/PostDetail';
-import Outreach from '@/pages/Outreach';
-import Competitors from '@/pages/Competitors';
-import HookBank from '@/pages/HookBank';
-import Briefs from '@/pages/Briefs';
-import Intel from '@/pages/Intel';
-import Availability from '@/pages/Availability';
-import Profile from '@/pages/Profile';
+import Setup from '@/pages/Setup';
+import { isOn, TEAM_MODE } from '@/lib/modules';
 
-function Protected({ children }) {
-  const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center text-ink-soft">Loading...</div>
-    );
-  }
-  if (!user) return <Navigate to="/login" replace />;
+// Every page except Login and Setup loads on demand, so the first paint only
+// ships what the first screen needs.
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Library = lazy(() => import('@/pages/Library'));
+const Compare = lazy(() => import('@/pages/Compare'));
+const AddAd = lazy(() => import('@/pages/AddAd'));
+const AdDetail = lazy(() => import('@/pages/AdDetail'));
+const Posts = lazy(() => import('@/pages/Posts'));
+const AddPost = lazy(() => import('@/pages/AddPost'));
+const PostDetail = lazy(() => import('@/pages/PostDetail'));
+const Outreach = lazy(() => import('@/pages/Outreach'));
+const Competitors = lazy(() => import('@/pages/Competitors'));
+const HookBank = lazy(() => import('@/pages/HookBank'));
+const Briefs = lazy(() => import('@/pages/Briefs'));
+const Intel = lazy(() => import('@/pages/Intel'));
+const Availability = lazy(() => import('@/pages/Availability'));
+const Profile = lazy(() => import('@/pages/Profile'));
+const ImportPage = lazy(() => import('@/features/save/ImportPage'));
+const CapturePage = lazy(() => import('@/features/capture/CapturePage'));
+const CaptureSetup = lazy(() => import('@/features/capture/CaptureSetup'));
+
+// The app mark, quiet, while auth and the setup check answer. The words stay
+// for screen readers.
+function Loading() {
+  return (
+    <div className="h-full flex items-center justify-center bg-canvas" aria-busy="true">
+      <span className="sr-only">Loading...</span>
+      <img src="/favicon.svg" alt="" aria-hidden="true" width="40" height="40" className="w-10 h-10 opacity-60" />
+    </div>
+  );
+}
+
+// Keeps every route behind /setup while the setup check has found something
+// that stops the app from working (missing .env values, no tables...).
+function SetupGate({ children }) {
+  const { status, loading, checks } = useSetup();
+  if (DB_MODE === 'misconfigured' || status === 'blocking') return <Navigate to="/setup" replace />;
+  if (loading && checks.length === 0) return <Loading />;
   return children;
 }
+
+// Remembers where the visitor was going, so Login can send them back there.
+function Protected({ children }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return <Loading />;
+  if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
+  return children;
+}
+
+const page = (el) => <Suspense fallback={<PageFallback />}>{el}</Suspense>;
+
+// A route whose module is off sends you to the library. Hidden, never deleted:
+// the data stays and the page comes back when the module is switched on.
+const gated = (module, el) => (isOn(module) ? page(el) : <Navigate to="/ads" replace />);
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="/setup" element={<Setup />} />
+      <Route
+        path="/login"
+        element={
+          <SetupGate>
+            <Login />
+          </SetupGate>
+        }
+      />
       <Route
         path="/"
         element={
-          <Protected>
-            <Layout />
-          </Protected>
+          <SetupGate>
+            <Protected>
+              <Layout />
+            </Protected>
+          </SetupGate>
         }
       >
-        <Route index element={<Dashboard />} />
-        <Route path="ads" element={<Library />} />
-        <Route path="compare" element={<Compare />} />
-        <Route path="ads/add" element={<AddAd />} />
-        <Route path="ad/:id" element={<AdDetail />} />
-        <Route path="posts" element={<Posts />} />
-        <Route path="posts/add" element={<AddPost />} />
-        <Route path="post/:id" element={<PostDetail />} />
-        <Route path="outreach" element={<Outreach />} />
-        <Route path="competitors" element={<Competitors />} />
-        <Route path="hooks" element={<HookBank />} />
-        <Route path="briefs" element={<Briefs />} />
-        <Route path="intel" element={<Intel />} />
-        <Route path="availability" element={<Availability />} />
-        <Route path="profile" element={<Profile />} />
+        {/* Home: the dashboard for a team, the library for one person. */}
+        <Route index element={TEAM_MODE ? page(<Dashboard />) : <Navigate to="/ads" replace />} />
+        <Route path="overview" element={page(<Dashboard />)} />
+        <Route path="ads" element={page(<Library />)} />
+        <Route path="ads/import" element={page(<ImportPage />)} />
+        <Route path="compare" element={page(<Compare />)} />
+        <Route path="ads/add" element={page(<AddAd />)} />
+        <Route path="ad/:id" element={page(<AdDetail />)} />
+        <Route path="posts" element={gated('team', <Posts />)} />
+        <Route path="posts/add" element={gated('team', <AddPost />)} />
+        <Route path="post/:id" element={gated('team', <PostDetail />)} />
+        <Route path="outreach" element={gated('team', <Outreach />)} />
+        <Route path="competitors" element={gated('competitors', <Competitors />)} />
+        <Route path="hooks" element={gated('hooks', <HookBank />)} />
+        <Route path="briefs" element={gated('briefs', <Briefs />)} />
+        <Route path="intel" element={gated('intel', <Intel />)} />
+        <Route path="availability" element={gated('team', <Availability />)} />
+        <Route path="profile" element={page(<Profile />)} />
+        <Route path="capture/setup" element={page(<CaptureSetup />)} />
         {/* legacy v1 path */}
         <Route path="add" element={<Navigate to="/ads/add" replace />} />
       </Route>
+      {/* The capture page opens in its own tab from the bookmarklet or the
+          extension, so it sits outside the app shell but still needs a login. */}
+      <Route
+        path="/capture"
+        element={
+          <SetupGate>
+            <Protected>{page(<CapturePage />)}</Protected>
+          </SetupGate>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

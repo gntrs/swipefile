@@ -17,18 +17,18 @@ const compact = (v) =>
   v == null ? '-' : v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k` : `${v}`;
 
 const ACCENT = {
-  coral: 'text-coral-dark',
+  base: 'text-accent-dim',
   emerald: 'text-emerald-600',
-  blue: 'text-blue-600',
-  violet: 'text-violet-600',
+  blue: 'text-ink-soft',
+  violet: 'text-ink-soft',
   amber: 'text-amber-600',
 };
 
-function Stat({ icon: Icon, label, value, sub, accent = 'coral' }) {
+function Stat({ icon: Icon, label, value, sub, accent = 'base' }) {
   return (
-    <div className="bg-card rounded-2xl border border-line px-3.5 py-3">
+    <div className="bg-card rounded-xl px-3.5 py-3">
       <div className="flex items-center gap-1.5 mb-1">
-        <Icon size={15} weight="bold" className={ACCENT[accent] || ACCENT.coral} />
+        <Icon size={15} weight="bold" className={ACCENT[accent] || ACCENT.base} />
         <span className="text-[12px] font-medium text-ink-soft">{label}</span>
       </div>
       <p className="font-mono text-[19px] font-semibold tabular-nums leading-none tracking-tight">{value}</p>
@@ -101,10 +101,10 @@ export default function AdAnalytics({ ads }) {
   return (
     <div className="grid lg:grid-cols-2 gap-4 mb-4">
       {/* Our ads */}
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-5">
+      <div className="bg-card rounded-xl3 shadow-card p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-[15px]">Our ad performance</h2>
-          <Link to={`/ads?q=${encodeURIComponent(OWN_BRAND)}`} className="text-[12px] text-coral-dark font-semibold">
+          <Link to={`/ads?q=${encodeURIComponent(OWN_BRAND)}`} className="inline-flex items-center justify-end min-h-[44px] min-w-[44px] text-[12px] text-accent-dim font-semibold">
             All ours
           </Link>
         </div>
@@ -116,7 +116,7 @@ export default function AdAnalytics({ ads }) {
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-              <Stat icon={CurrencyEur} label="Spend" value={eur(our.totalSpend)} accent="coral" />
+              <Stat icon={CurrencyEur} label="Spend" value={eur(our.totalSpend)} accent="base" />
               <Stat icon={CursorClick} label="CTR" value={pct(our.blendedCtr)} accent="blue" />
               <Stat icon={Target} label="CPC" value={eur(our.blendedCpc)} accent="violet" />
               <Stat
@@ -132,9 +132,9 @@ export default function AdAnalytics({ ads }) {
                 read; money + cost sit in the label line. */}
             <div className="flex flex-col gap-2.5">
               {our.rows.map((r) => (
-                <Link key={r.id} to={`/ad/${r.id}`} className="block group">
+                <Link key={r.id} to={`/ad/${r.id}`} className="block min-h-[44px] group">
                   <div className="flex items-baseline justify-between gap-2 mb-1">
-                    <span className="text-[13px] font-medium truncate group-hover:text-coral-dark transition-colors">
+                    <span className="text-[13px] font-medium truncate group-hover:text-accent-dim transition-colors">
                       {r.name}
                     </span>
                     <span className="font-mono text-[12px] text-ink-soft tabular-nums flex-shrink-0">
@@ -144,7 +144,7 @@ export default function AdAnalytics({ ads }) {
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-2.5 rounded-full bg-card overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-coral"
+                        className="h-full rounded-full bg-accent"
                         style={{ width: `${Math.max(3, ((r.ctr || 0) / our.maxCtr) * 100)}%` }}
                       />
                     </div>
@@ -160,10 +160,10 @@ export default function AdAnalytics({ ads }) {
       </div>
 
       {/* Competitor pressure */}
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-5">
+      <div className="bg-card rounded-xl3 shadow-card p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-[15px]">Competitor pressure</h2>
-          <Link to="/competitors" className="text-[12px] text-coral-dark font-semibold">
+          <Link to="/competitors" className="inline-flex items-center justify-end min-h-[44px] min-w-[44px] text-[12px] text-accent-dim font-semibold">
             Competitors
           </Link>
         </div>
@@ -181,9 +181,9 @@ export default function AdAnalytics({ ads }) {
         ) : (
           <div className="flex flex-col gap-2.5">
             {pulse.top.map((b) => (
-              <Link key={b.brand} to={`/ads?q=${encodeURIComponent(b.brand)}`} className="block group">
+              <Link key={b.brand} to={`/ads?q=${encodeURIComponent(b.brand)}`} className="block min-h-[44px] group">
                 <div className="flex items-baseline justify-between gap-2 mb-1">
-                  <span className="text-[13px] font-medium truncate group-hover:text-coral-dark transition-colors">
+                  <span className="text-[13px] font-medium truncate group-hover:text-accent-dim transition-colors">
                     {b.brand}
                   </span>
                   <span className="font-mono text-[12px] text-ink-soft tabular-nums flex-shrink-0">

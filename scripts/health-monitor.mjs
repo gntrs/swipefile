@@ -1,4 +1,4 @@
-// Live product health monitor. Runs on the WSL crontab every ~30 min,
+// Live product health monitor. Runs from cron on your cron machine every ~30 min,
 // 24/7, independent of any SSH/Claude session. Watches the REAL product's
 // PostHog stream for the failure classes that have actually bitten us, and on
 // a NEW break fires two ways: (1) an email via Mailjet, (2) one line into the
@@ -282,7 +282,7 @@ async function runSafeAutoFixes() {
   ]);
 
   // One retry on failure before we believe it. A single blip (cold start, flaky
-  // wifi on the WSL box, transient 502) is not an outage, and this monitor's
+  // wifi on the cron machine, transient 502) is not an outage, and this monitor's
   // whole value is that you TRUST it when it buzzes. Costs 8s on the rare bad
   // tick and nothing on a good one.
   if (!api.ok || !web.ok) {

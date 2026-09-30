@@ -1,7 +1,6 @@
-# What to run on WSL (Stripe revenue pipeline)
+# Running the Stripe revenue pull on WSL
 
-One-time setup so the dashboard's revenue counter stays near-live. Run these
-inside your WSL terminal, in the `swipefile` repo folder.
+One time setup so the overview's revenue card (the `ops` module) stays near live. Run these inside your WSL terminal, in the `swipefile` repo folder. docs/SETUP.md has the full scheduling guide.
 
 ## 1. Pull the latest code
 
@@ -13,11 +12,14 @@ git pull
 ## 2. Confirm the Stripe key is in the WSL `.env`
 
 ```bash
-grep -q '^STRIPE_API_KEY=' .env && echo "key is set" || echo "MISSING - add it"
+grep -q '^STRIPE_API_KEY=' .env && echo "key is set" || echo "missing: add it"
 ```
 
-If missing, use the non-nano script from earlier in this chat (upserts the
-line without an interactive editor).
+If it is missing, add the line without an interactive editor:
+
+```bash
+echo 'STRIPE_API_KEY=your-restricted-read-only-key' >> .env
+```
 
 ## 3. Test it once, no writes
 
@@ -25,28 +27,27 @@ line without an interactive editor).
 node scripts/stripe-pull.mjs --dry-run
 ```
 
-Should print your real lifetime revenue + MRR and stop there.
+It prints your lifetime revenue and MRR and stops there.
 
-## 4. Add the near-live cron line
+## 4. Add the cron line
 
 ```bash
 crontab -e
 ```
 
-If `crontab -e` also crashes like nano did, use this non-interactive version
-instead:
+If the editor does not open, add the line without one:
 
 ```bash
-(crontab -l 2>/dev/null; echo "*/5 * * * * cd $HOME/swipefile && node scripts/stripe-pull.mjs >> .claude-data/stripe-cron.log 2>&1") | crontab -
+(crontab -l 2>/dev/null; echo "*/5 * * * * cd $HOME/swipefile && node scripts/stripe-pull.mjs >> /tmp/stripe-pull.log 2>&1") | crontab -
 ```
 
-That's idempotent-ish but can duplicate the line if run twice - check first:
+Running that twice adds the line twice, so check first:
 
 ```bash
 crontab -l | grep stripe-pull
 ```
 
-If it's already there, skip the line above.
+If it is already there, skip the line above.
 
 ## 5. Verify the cron is registered
 
@@ -54,19 +55,14 @@ If it's already there, skip the line above.
 crontab -l
 ```
 
-You should see the `ads-cron.sh` line (already there) and the new
-`stripe-pull.mjs` line every 5 minutes.
+You should see the `stripe-pull.mjs` line, every 5 minutes.
 
 ## 6. Watch it run
 
 ```bash
-tail -f .claude-data/stripe-cron.log
+tail -f /tmp/stripe-pull.log
 ```
 
 Wait up to 5 minutes for the first automatic run, then Ctrl+C.
 
----
-
-That's it. From here, every new Stripe payment shows up in the dashboard's
-Revenue card within ~5 minutes, and if the dashboard tab is open when it
-lands, it pops confetti live.
+From then on, a new Stripe payment shows up in the Revenue card within about 5 minutes. Cron in WSL only runs while WSL is running.

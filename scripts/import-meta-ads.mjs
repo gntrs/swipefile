@@ -50,9 +50,9 @@ if (!url || !key) {
   process.exit(1);
 }
 // The brand label your own ads are stored under in the `ads` table.
-const OUR_BRAND = (process.env.OWN_BRAND || '').trim();
+const OUR_BRAND = (process.env.OWN_BRAND || process.env.VITE_OWN_BRAND || '').trim();
 if (!OUR_BRAND) {
-  console.error('Missing OWN_BRAND in .env - the brand name your own ads are stored under.');
+  console.error('Missing OWN_BRAND (or VITE_OWN_BRAND) in .env: the brand name your own ads are stored under.');
   process.exit(1);
 }
 if (!token || !account) {

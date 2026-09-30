@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Swipefile capture",
+  "version": "0.3.0",
+  "description": "Adds a Save to swipefile button to ads in the Meta Ad Library. It sends the ad to your own swipefile and nowhere else.",
+  "permissions": ["storage"],
+  "content_scripts": [{
+    "matches": ["https://www.facebook.com/ads/library*"],
+    "js": ["parse.js", "content.js"],
+    "css": ["content.css"],
+    "run_at": "document_idle"
+  }],
+  "options_ui": { "page": "options.html", "open_in_tab": true },
+  "icons": { "16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png" }
+}

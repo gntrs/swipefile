@@ -10,11 +10,14 @@ import {
   TrendUp,
 } from '@phosphor-icons/react';
 import { fetchAll } from '@/lib/db';
+import PartialNotice from '@/components/PartialNotice';
 import { isOwnBrand } from '@/lib/brand';
 import { useTeam } from '@/contexts/TeamContext';
 import AdCard from '@/components/AdCard';
 import StatCard from '@/components/StatCard';
 import TrackCompetitors from '@/components/TrackCompetitors';
+import { isOn } from '@/lib/modules';
+import { RowsSkeleton } from '@/components/Skeleton';
 
 const DAY = 86400000;
 
@@ -39,22 +42,26 @@ export default function Competitors() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(null);
+  const [partial, setPartial] = useState(null);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let mounted = true;
+    // Logged social posts belong to the team module: no fetch when it is off.
     Promise.all([
       fetchAll((q) => q.order('created_at', { ascending: false }), 'ads'),
-      fetchAll((q) => q.order('posted_at', { ascending: false, nullsFirst: false }), 'posts'),
+      isOn('team') ? fetchAll((q) => q.order('posted_at', { ascending: false, nullsFirst: false }), 'posts') : [],
     ]).then(([adsData, postsData]) => {
       if (!mounted) return;
       setAds(adsData);
       setPosts(postsData);
+      setPartial([adsData, postsData].find((rows) => rows.error) || null);
       setLoading(false);
     });
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [reload]);
 
   const compAds = useMemo(() => ads.filter((a) => isCompetitor(a.brand)), [ads]);
   const compPosts = useMemo(() => posts.filter((p) => isCompetitor(p.brand)), [posts]);
@@ -95,31 +102,32 @@ export default function Competitors() {
   }, [brands, compAds]);
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[1200px] mx-auto">
-      <div className="flex items-center justify-between gap-3 mb-5">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Competitors</h1>
-          <p className="text-ink-soft text-[14px]">What the other brands are running</p>
+    <div data-page="competitors" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1200px] mx-auto">
+      <div className="flex items-start justify-between gap-3 mb-6">
+        <div className="min-w-0">
+          <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Competitors</h1>
+          <p className="text-ink-soft text-[15px] leading-relaxed mt-2">What the other brands are running</p>
         </div>
         <Link
           to="/ads/add"
-          className="press flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta"
+          className="press flex-shrink-0 flex items-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl bg-accent text-black text-[14px] font-semibold whitespace-nowrap hover:bg-accent-dim transition-colors"
         >
           <PlusCircle size={20} weight="bold" /> Add ad
         </Link>
       </div>
+      <PartialNotice rows={partial} onRetry={() => setReload((n) => n + 1)} className="mb-4" />
 
       <TrackCompetitors />
 
       {loading ? (
-        <p className="text-ink-soft">Loading...</p>
+        <RowsSkeleton rows={3} />
       ) : brands.length === 0 ? (
         <div className="text-center py-20 text-ink-soft">
           <Binoculars size={32} className="mx-auto mb-2" />
           <p className="mb-2">No competitor ads yet.</p>
           <p className="text-[13px]">
             Track a brand above to pull its ads from the Meta Ad Library, or{' '}
-            <Link to="/ads/add" className="text-coral-dark font-semibold">
+            <Link to="/ads/add" className="text-accent-dim font-semibold">
               add one by hand
             </Link>{' '}
             with the brand filled in.
@@ -129,7 +137,7 @@ export default function Competitors() {
         <>
           {/* Activity overview */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <StatCard icon={Binoculars} label="Brands tracked" value={totals.brands} accent="coral" />
+            <StatCard icon={Binoculars} label="Brands tracked" value={totals.brands} accent="base" />
             <StatCard icon={Images} label="Ads tracked" value={totals.ads} accent="violet" />
             <StatCard icon={Lightning} label="Running now" value={totals.running} accent="amber" />
             <StatCard icon={TrendUp} label="New in 30 days" value={totals.new30} accent="blue" />
@@ -140,7 +148,7 @@ export default function Competitors() {
             {brands.map((b) => (
               <div
                 key={b.key}
-                className="bg-card rounded-xl3 border border-line shadow-card overflow-hidden"
+                className="bg-card rounded-xl3 shadow-card overflow-hidden"
               >
                 <button
                   onClick={() => setOpen(open === b.key ? null : b.key)}
@@ -150,12 +158,12 @@ export default function Competitors() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold text-[15px]">{b.name}</p>
                       {b.running > 0 && (
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">
                           {b.running} running
                         </span>
                       )}
                       {b.new30 > 0 && (
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-coral-soft text-coral-dark">
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent-wash text-accent-dim">
                           {b.new30} new in 30d
                         </span>
                       )}
@@ -200,7 +208,7 @@ export default function Competitors() {
                     {b.ads.length > 8 && (
                       <Link
                         to={`/ads?q=${encodeURIComponent(b.name)}`}
-                        className="inline-block mt-3 text-coral-dark text-[13px] font-semibold"
+                        className="inline-block mt-3 text-accent-dim text-[13px] font-semibold"
                       >
                         See all {b.ads.length} in the library
                       </Link>
@@ -211,7 +219,9 @@ export default function Competitors() {
             ))}
           </div>
 
-          {/* Competitor social posts */}
+          {/* Competitor social posts (team module) */}
+          {isOn('team') && (
+          <>
           <div className="flex items-center justify-between gap-3 mt-8 mb-3">
             <div>
               <h2 className="text-[17px] font-semibold tracking-tight">Their social posts</h2>
@@ -221,18 +231,18 @@ export default function Competitors() {
             </div>
             <Link
               to="/posts/add?competitor=1"
-              className="flex items-center gap-1.5 text-coral-dark text-[14px] font-semibold flex-shrink-0"
+              className="flex items-center gap-1.5 min-h-[44px] text-accent-dim text-[14px] font-semibold flex-shrink-0"
             >
               <PlusCircle size={18} weight="bold" /> Log one
             </Link>
           </div>
 
           {compPosts.length === 0 ? (
-            <div className="bg-card rounded-xl3 border border-line shadow-card px-4 py-6 text-center text-ink-soft">
+            <div className="bg-card rounded-xl3 shadow-card px-4 py-6 text-center text-ink-soft">
               <Megaphone size={24} className="mx-auto mb-1.5" />
               <p className="text-[13px]">
                 Nothing logged yet. Spot a competitor post worth remembering?{' '}
-                <Link to="/posts/add?competitor=1" className="text-coral-dark font-semibold">
+                <Link to="/posts/add?competitor=1" className="text-accent-dim font-semibold">
                   Log it
                 </Link>{' '}
                 with the brand filled in.
@@ -244,11 +254,11 @@ export default function Competitors() {
                 <Link
                   key={p.id}
                   to={`/post/${p.id}`}
-                  className="bg-card rounded-xl3 border border-line shadow-card hover:shadow-cardhover transition-all px-4 py-3 flex items-center gap-4"
+                  className="bg-card rounded-xl3 shadow-card hover:shadow-cardhover transition-all px-4 py-3 flex items-center gap-4"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-coral-soft text-coral-dark flex-shrink-0">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent-wash text-accent-dim flex-shrink-0">
                         {p.brand.trim()}
                       </span>
                       <p className="font-semibold text-[15px] truncate">
@@ -269,6 +279,8 @@ export default function Competitors() {
                 </Link>
               ))}
             </div>
+          )}
+          </>
           )}
         </>
       )}

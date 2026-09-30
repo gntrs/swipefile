@@ -1,0 +1,4 @@
+Ad name,Amount spent (EUR),"CTR (link click-through rate)","CPC (cost per link click) (EUR)","CPM (cost per 1,000 impressions) (EUR)",Ad delivery
+Sample_ratio_only_v1,20.00,1.50,0.80,9.10,active
+Sample_ratio_only_v1,10.00,2.10,0.60,8.00,active
+Sample_ratio_only_v2,0,1.00,,,inactive

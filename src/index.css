@@ -31,7 +31,8 @@ html,
 body {
   overflow: hidden;
   overscroll-behavior: none;
-  touch-action: pan-x pan-y;
+  /* manipulation: pinch zoom works, double tap zoom stays off. */
+  touch-action: manipulation;
 }
 
 body {
@@ -44,15 +45,21 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  letter-spacing: -0.006em;
 }
 
-/* Inter's tighter, more editorial headings. Numbers stay tabular for tidy
-   columns of stats. */
+/* Body text is never tracked. Headings track a little tight. */
 h1,
 h2,
 h3 {
   letter-spacing: -0.02em;
+}
+
+@layer components {
+  /* The section label: mono, small, uppercase, wide, muted. Every kicker and
+     field label in the app uses this one class. */
+  .kicker {
+    @apply font-mono text-[11px] font-normal uppercase leading-4 tracking-[0.12em] text-ink-soft;
+  }
 }
 
 /* Long URLs and unbroken strings must wrap, not stretch the layout. */
@@ -85,6 +92,17 @@ textarea:focus-visible {
   outline: none;
   border-color: #ffffff;
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16);
+}
+
+/* Everything else you can reach with the keyboard gets the same white ring,
+   drawn outside the control so it never covers a label. */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+[role='button']:focus-visible,
+[tabindex='0']:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }
 
 /* Instant press feedback. The whole point of "fluid" is that touch is
@@ -169,26 +187,6 @@ textarea:focus-visible {
   }
   .star-halo {
     display: none;
-  }
-}
-
-/* Users who ask for less transparency get frostier, near-solid chrome:
-   the translucent nav/sidebar/sheets would otherwise trade legibility for
-   depth. Raise the surface opacity and drop the blur. */
-@media (prefers-reduced-transparency: reduce) {
-  .glass {
-    background: #141414 !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-  }
-}
-
-/* High-contrast mode: give translucent surfaces a defined, contrasting
-   border so their edges are unambiguous. */
-@media (prefers-contrast: more) {
-  .glass {
-    background: #141414 !important;
-    border-color: rgba(255, 255, 255, 0.4) !important;
   }
 }
 

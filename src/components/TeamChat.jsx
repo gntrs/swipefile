@@ -6,6 +6,7 @@ import { useTeam } from '@/contexts/TeamContext';
 import { useMediaUrl } from '@/lib/media';
 import { isMissingColumn, isMissingTable } from '@/lib/db';
 import MigrationCard from '@/components/MigrationCard';
+import { RowsSkeleton } from '@/components/Skeleton';
 
 const MAX_MESSAGES = 80; // plenty for a quick team ping board
 const POLL_MS = 15000; // fallback when realtime is off
@@ -35,7 +36,7 @@ function renderBody(body, bySlug, myEmail) {
       <span
         key={m.index}
         className={`font-semibold rounded px-1 py-0.5 ${
-          person.email === myEmail ? 'bg-coral text-black' : 'bg-coral-soft text-coral-dark'
+          person.email === myEmail ? 'bg-accent text-black' : 'bg-accent-wash text-accent-dim'
         }`}
       >
         @{person.label}
@@ -65,10 +66,10 @@ function Message({ msg, reactions, myEmail, mentionsMe, bySlug, pickerOpen, onTo
   }, [reactions, myEmail]);
 
   return (
-    <div className={`flex items-start gap-2.5 py-1.5 px-1.5 -mx-1.5 rounded-xl ${mentionsMe ? 'bg-coral-soft/50' : ''}`}>
+    <div className={`flex items-start gap-2.5 py-1.5 px-1.5 -mx-1.5 rounded-xl ${mentionsMe ? 'bg-accent-wash/50' : ''}`}>
       <span
         className={`w-7 h-7 rounded-full border flex items-center justify-center overflow-hidden flex-shrink-0 mt-0.5 ${
-          isClaude ? 'bg-coral border-coral text-black' : 'bg-cream border-line'
+          isClaude ? 'bg-accent border-accent text-black' : 'bg-canvas border-line'
         }`}
       >
         {isClaude ? (
@@ -98,7 +99,7 @@ function Message({ msg, reactions, myEmail, mentionsMe, bySlug, pickerOpen, onTo
                 onClick={() => onReact(msg, p.emoji)}
                 aria-label={`${p.emoji} ${p.count}, tap to toggle`}
                 className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[12px] border transition-colors ${
-                  p.mine ? 'bg-coral-soft border-coral text-coral-dark' : 'bg-cream border-line text-ink-soft'
+                  p.mine ? 'bg-accent-wash border-accent text-accent-dim' : 'bg-canvas border-line text-ink-soft'
                 }`}
               >
                 {p.emoji} <span className="tabular-nums font-semibold">{p.count}</span>
@@ -111,7 +112,7 @@ function Message({ msg, reactions, myEmail, mentionsMe, bySlug, pickerOpen, onTo
                   type="button"
                   onClick={() => onReact(msg, e)}
                   aria-label={`React ${e}`}
-                  className="px-1.5 py-0.5 rounded-full text-[15px] hover:bg-cream active:scale-110 transition-transform"
+                  className="px-1.5 py-0.5 rounded-full text-[15px] hover:bg-canvas active:scale-110 transition-transform"
                 >
                   {e}
                 </button>
@@ -123,8 +124,8 @@ function Message({ msg, reactions, myEmail, mentionsMe, bySlug, pickerOpen, onTo
         type="button"
         onClick={() => onTogglePicker(msg.id)}
         aria-label="React to message"
-        className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
-          pickerOpen ? 'bg-coral-soft text-coral-dark' : 'text-ink-soft/50 hover:bg-cream'
+        className={`w-11 h-11 -my-2.5 -mr-2.5 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+          pickerOpen ? 'bg-accent-wash text-accent-dim' : 'text-ink-soft/50 hover:bg-canvas'
         }`}
       >
         <Smiley size={15} weight="bold" />
@@ -414,13 +415,13 @@ export default function TeamChat() {
   if (missing) return <MigrationCard title="Team chat" />;
 
   return (
-    <div className="bg-card rounded-xl3 border border-line shadow-card p-5 flex flex-col">
+    <div className="bg-card rounded-xl3 shadow-card p-5 flex flex-col">
       <h2 className="font-semibold text-[15px] mb-2">Team chat</h2>
 
       <div className="relative flex-1">
         <div ref={listRef} onScroll={onScroll} className="h-[380px] overflow-y-auto -mx-1 px-1">
           {loading ? (
-            <p className="text-ink-soft text-[13px] py-2">Loading...</p>
+            <RowsSkeleton rows={3} className="py-1" />
           ) : messages.length === 0 ? (
             <p className="text-ink-soft text-[13px] py-2">
               Quiet in here. Say hi, drop a link, @mention the team.
@@ -446,7 +447,7 @@ export default function TeamChat() {
           <button
             type="button"
             onClick={jumpToLatest}
-            className="press absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 rounded-full bg-ink text-black text-[12px] font-semibold shadow-cta"
+            className="press absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 rounded-full bg-ink text-black text-[12px] font-semibold"
           >
             {newCount} new <ArrowDown size={13} weight="bold" />
           </button>
@@ -463,12 +464,12 @@ export default function TeamChat() {
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pickMention(person)}
                 className={`w-full flex items-center gap-2 px-3 py-2 text-[13px] text-left ${
-                  i === mentionIndex ? 'bg-coral-soft' : 'hover:bg-cream'
+                  i === mentionIndex ? 'bg-accent-wash' : 'hover:bg-canvas'
                 }`}
               >
                 <span
                   className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    person.email === 'claude@analysis' ? 'bg-coral text-black' : 'bg-cream border border-line'
+                    person.email === 'claude@analysis' ? 'bg-accent text-black' : 'bg-canvas border border-line'
                   }`}
                 >
                   {person.email === 'claude@analysis' ? <Sparkle size={11} weight="fill" /> : null}
@@ -486,13 +487,13 @@ export default function TeamChat() {
           onKeyDown={onInputKeyDown}
           placeholder="Message the team, @mention someone"
           maxLength={500}
-          className="flex-1 min-w-0 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[16px] sm:text-[14px]"
+          className="flex-1 min-w-0 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[16px] sm:text-[14px]"
         />
         <button
           type="submit"
           disabled={!text.trim()}
           aria-label="Send"
-          className="press w-10 h-10 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta disabled:opacity-40 disabled:shadow-none"
+          className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40 disabled:shadow-none"
         >
           <PaperPlaneRight size={17} weight="bold" />
         </button>

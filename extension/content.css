@@ -1,0 +1,27 @@
+/* The Save to swipefile button, and nothing else. `all: revert` first, so
+   the host page's styles cannot leak into it. */
+.swipefile-save {
+  all: revert;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  margin: 0 0 8px;
+  padding: 0 16px;
+  background: #0A0A0A;
+  color: #FFFFFF;
+  border: 1px solid #262626;
+  border-radius: 8px;
+  font: 600 14px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+.swipefile-save:hover {
+  background: #1C1C1C;
+}
+.swipefile-save:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
+}

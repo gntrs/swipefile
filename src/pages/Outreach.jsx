@@ -6,13 +6,14 @@ import { useTeam } from '@/contexts/TeamContext';
 import { isMissingTable } from '@/lib/db';
 import MigrationCard from '@/components/MigrationCard';
 import CreatorFinder from '@/components/CreatorFinder';
+import { RowsSkeleton } from '@/components/Skeleton';
 
 const PLATFORMS = ['email', 'instagram', 'tiktok', 'youtube', 'other'];
 const STATUSES = [
-  { key: 'sent', label: 'Sent', cls: 'bg-cream text-ink-soft' },
+  { key: 'sent', label: 'Sent', cls: 'bg-canvas text-ink-soft' },
   { key: 'followup', label: 'Follow up', cls: 'bg-amber-100 text-amber-700' },
-  { key: 'replied', label: 'Replied', cls: 'bg-coral-soft text-coral-dark' },
-  { key: 'deal', label: 'Deal', cls: 'bg-mint/30 text-emerald-700' },
+  { key: 'replied', label: 'Replied', cls: 'bg-accent-wash text-accent-dim' },
+  { key: 'deal', label: 'Deal', cls: 'bg-emerald-500/15 text-emerald-300' },
   { key: 'dead', label: 'Dead', cls: 'bg-red-100 text-red-600' },
 ];
 const FILTERS = ['all', ...STATUSES.map((s) => s.key)];
@@ -96,22 +97,22 @@ export default function Outreach() {
 
   if (missing) {
     return (
-      <div className="px-5 sm:px-8 py-6 max-w-[900px] mx-auto">
+      <div data-page="outreach" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[900px] mx-auto">
         <MigrationCard title="Creator outreach" migration="db-setup.sql" />
       </div>
     );
   }
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[900px] mx-auto">
+    <div data-page="outreach" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[900px] mx-auto">
       <div className="flex items-center justify-between gap-3 mb-1">
-        <h1 className="text-[22px] font-semibold tracking-tight">Creator outreach</h1>
+        <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Creator outreach</h1>
         {isAdmin && (
           <button
             onClick={() => setEditing((e) => !e)}
             aria-label="Toggle edit mode"
-            className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-colors ${
-              editing ? 'bg-coral text-black shadow-cta' : 'bg-card border border-line text-ink-soft'
+            className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors ${
+              editing ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
             }`}
           >
             <PencilSimple size={16} weight="bold" />
@@ -129,14 +130,14 @@ export default function Outreach() {
           onChange={(e) => setF((cur) => ({ ...cur, creator: e.target.value }))}
           placeholder="Creator name or @handle"
           maxLength={120}
-          className="flex-1 min-w-0 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-card text-[16px] sm:text-[14px]"
+          className="flex-1 min-w-0 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-card text-[16px] sm:text-[14px]"
         />
         <div className="flex gap-2">
           <select
             value={f.platform}
             onChange={(e) => setF((cur) => ({ ...cur, platform: e.target.value }))}
             aria-label="Platform"
-            className="flex-1 sm:flex-none py-2.5 px-3 rounded-2xl border border-line focus:outline-none focus:border-coral bg-card text-[16px] sm:text-[13px] text-ink-soft capitalize"
+            className="flex-1 sm:flex-none min-w-0 min-h-[44px] py-2.5 px-3 rounded-2xl border border-line focus:outline-none focus:border-accent bg-card text-[16px] sm:text-[13px] text-ink-soft capitalize"
           >
             {PLATFORMS.map((p) => (
               <option key={p} value={p} className="capitalize">{p}</option>
@@ -146,13 +147,13 @@ export default function Outreach() {
             value={f.link}
             onChange={(e) => setF((cur) => ({ ...cur, link: e.target.value }))}
             placeholder="Link (optional)"
-            className="w-32 sm:w-44 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-card text-[16px] sm:text-[14px]"
+            className="w-28 min-w-0 sm:w-44 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-card text-[16px] sm:text-[14px]"
           />
           <button
             type="submit"
             disabled={!f.creator.trim()}
             aria-label="Add outreach"
-            className="press w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center flex-shrink-0 shadow-cta disabled:opacity-40 disabled:shadow-none"
+            className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0 disabled:opacity-40 disabled:shadow-none"
           >
             <Plus size={18} weight="bold" />
           </button>
@@ -165,8 +166,8 @@ export default function Outreach() {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`flex-shrink-0 px-3 py-2 rounded-2xl text-[13px] font-semibold capitalize transition-colors ${
-              filter === s ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
+            className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold capitalize transition-colors ${
+              filter === s ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
             }`}
           >
             {s === 'followup' ? 'Follow up' : s}
@@ -175,21 +176,21 @@ export default function Outreach() {
       </div>
 
       {loading ? (
-        <p className="text-ink-soft">Loading...</p>
+        <RowsSkeleton rows={3} />
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-ink-soft">
           <PaperPlaneTilt size={32} className="mx-auto mb-2" />
           <p>{rows.length === 0 ? 'No outreach logged yet. Add the first creator above.' : 'Nothing with this status.'}</p>
         </div>
       ) : (
-        <div className="bg-card rounded-xl3 border border-line shadow-card divide-y divide-line">
+        <div className="bg-card rounded-xl3 shadow-card divide-y divide-line">
           {filtered.map((r) => (
             <div key={r.id} className="flex items-center gap-3 px-4 py-3">
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-semibold truncate flex items-center gap-1.5">
                   {r.creator}
                   {r.link && (
-                    <a href={r.link} target="_blank" rel="noreferrer" aria-label="Open link" className="text-coral-dark flex-shrink-0">
+                    <a href={r.link} target="_blank" rel="noreferrer" aria-label="Open link" className="text-accent-dim flex-shrink-0">
                       <LinkSimple size={14} weight="bold" />
                     </a>
                   )}
@@ -214,7 +215,7 @@ export default function Outreach() {
                 <button
                   onClick={() => remove(r)}
                   aria-label={`Delete ${r.creator}`}
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-red-500 hover:bg-red-50 flex-shrink-0"
+                  className="w-11 h-11 rounded-xl flex items-center justify-center text-red-500 hover:bg-red-50 flex-shrink-0"
                 >
                   <Trash size={15} weight="bold" />
                 </button>

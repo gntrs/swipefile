@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom';
 import { PlusCircle, MagnifyingGlass, Megaphone } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useTeam } from '@/contexts/TeamContext';
+import { RowsSkeleton } from '@/components/Skeleton';
 
 const PLATFORMS = ['all', 'Facebook', 'Instagram', 'TikTok', 'YouTube', 'Other'];
 
 const VERDICT = {
-  winner: 'bg-mint/30 text-emerald-700',
+  winner: 'bg-emerald-500/15 text-emerald-300',
   loser: 'bg-red-100 text-red-600',
   testing: 'bg-amber-100 text-amber-700',
   unsure: 'bg-line text-ink-soft',
@@ -52,28 +53,28 @@ export default function Posts() {
   const metric = (p, key) => p?.metrics?.[key] ?? null;
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
-      <div className="flex items-center justify-between gap-3 mb-5">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Organic posts</h1>
-          <p className="text-ink-soft text-[14px]">{posts.length} logged</p>
+    <div data-page="posts" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1100px] mx-auto">
+      <div className="flex items-start justify-between gap-3 mb-6">
+        <div className="min-w-0">
+          <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Organic posts</h1>
+          <p className="font-mono text-ink-soft text-[12px] mt-2">{posts.length} logged</p>
         </div>
         <Link
           to="/posts/add"
-          className="press flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta"
+          className="press flex-shrink-0 flex items-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl bg-accent text-black text-[14px] font-semibold whitespace-nowrap hover:bg-accent-dim transition-colors"
         >
           <PlusCircle size={20} weight="bold" /> Add post
         </Link>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+      <div className="flex flex-col lg:flex-row gap-3 mb-5">
         <div className="flex-1 flex items-center gap-2 bg-card border border-line rounded-2xl px-3">
           <MagnifyingGlass size={18} className="text-ink-soft" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search title, copy, tags..."
-            className="w-full py-2.5 bg-transparent focus:outline-none text-[14px]"
+            className="w-full min-h-[44px] py-2.5 bg-transparent focus:outline-none text-[14px]"
           />
         </div>
         <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 sm:flex-wrap">
@@ -81,8 +82,8 @@ export default function Posts() {
             <button
               key={p}
               onClick={() => setPlatform(p)}
-              className={`flex-shrink-0 px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
-                platform === p ? 'bg-coral text-black' : 'bg-card border border-line text-ink-soft'
+              className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
+                platform === p ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
               }`}
             >
               {p === 'all' ? 'All' : p}
@@ -92,12 +93,12 @@ export default function Posts() {
       </div>
 
       {loading ? (
-        <p className="text-ink-soft">Loading...</p>
+        <RowsSkeleton rows={3} />
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 text-ink-soft">
           <Megaphone size={32} className="mx-auto mb-2" />
           <p className="mb-2">No posts logged yet.</p>
-          <Link to="/posts/add" className="text-coral-dark font-semibold">Add your first post</Link>
+          <Link to="/posts/add" className="text-accent-dim font-semibold">Add your first post</Link>
         </div>
       ) : (
         <div className="flex flex-col gap-2.5">
@@ -105,12 +106,12 @@ export default function Posts() {
             <Link
               key={p.id}
               to={`/post/${p.id}`}
-              className="bg-card rounded-xl3 border border-line shadow-card hover:shadow-cardhover transition-all px-4 py-3 flex items-center gap-4"
+              className="bg-card rounded-xl3 shadow-card hover:shadow-cardhover transition-all px-4 py-3 flex items-center gap-4"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   {p.brand && (
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-coral-soft text-coral-dark flex-shrink-0">
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent-wash text-accent-dim flex-shrink-0">
                       {p.brand}
                     </span>
                   )}

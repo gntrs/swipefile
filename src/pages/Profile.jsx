@@ -4,15 +4,17 @@ import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { useMediaUrl } from '@/lib/media';
+import { MEDIA_BUCKET, avatarPathFor, validateFile, friendlyStorageError, removeMedia, uploadBody } from '@/lib/saveAd';
 import { triggerCelebration, celebrationEnabled, setCelebrationEnabled } from '@/lib/celebration';
+import { isOn } from '@/lib/modules';
 
 function TeamMember({ member, isMe }) {
   const avatar = useMediaUrl(member.avatar_path);
   return (
     <div className="flex items-center gap-3 py-2.5">
       <span
-        className={`w-10 h-10 rounded-full bg-cream border flex items-center justify-center overflow-hidden flex-shrink-0 ${
-          isMe ? 'border-coral ring-2 ring-coral/30' : 'border-line'
+        className={`w-10 h-10 rounded-full bg-canvas border flex items-center justify-center overflow-hidden flex-shrink-0 ${
+          isMe ? 'border-accent ring-2 ring-accent/30' : 'border-line'
         }`}
       >
         {avatar ? (
@@ -29,7 +31,7 @@ function TeamMember({ member, isMe }) {
         <p className="text-[12px] text-ink-soft truncate">{member.email}</p>
       </div>
       {member.role === 'admin' && (
-        <span className="text-[11px] font-semibold uppercase tracking-wide bg-mint/40 text-ink-soft px-2 py-0.5 rounded-full flex-shrink-0">
+        <span className="font-mono text-[11px] font-medium uppercase tracking-[0.08em] bg-white/[0.06] text-ink-soft px-2 py-0.5 rounded-full flex-shrink-0">
           admin
         </span>
       )}
@@ -50,17 +52,26 @@ export default function Profile() {
 
   const uploadAvatar = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+    const invalid = validateFile(file);
+    if (invalid) {
+      setMsg(invalid.message);
+      return;
+    }
     setBusy(true);
     setMsg('');
     try {
-      const ext = file.name.split('.').pop();
-      // Unique name each upload (no storage UPDATE policy needed).
-      const path = `avatars/${user.id}-${Date.now()}.${ext}`;
-      const { error: upErr } = await db.storage.from('ad-media').upload(path, file);
-      if (upErr) throw upErr;
+      // Unique name each upload (no storage UPDATE policy needed), in the one
+      // avatars/<user id>-... shape the storage policy allows.
+      const path = avatarPathFor(user.id, file);
+      const { error: upErr } = await db.storage.from(MEDIA_BUCKET).upload(path, uploadBody(file));
+      if (upErr) throw new Error(friendlyStorageError(upErr, { size: file.size }));
       const { error } = await db.from('team').update({ avatar_path: path }).eq('id', user.id);
-      if (error) throw error;
+      if (error) {
+        await removeMedia(path);
+        throw error;
+      }
       await refresh();
       setMsg('Photo updated.');
     } catch (err) {
@@ -90,17 +101,17 @@ export default function Profile() {
   };
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[480px] mx-auto">
-      <h1 className="text-[22px] font-semibold tracking-tight mb-5">Your profile</h1>
+    <div data-page="profile" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[480px] mx-auto">
+      <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mb-5">Your profile</h1>
 
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-6">
+      <div className="bg-card rounded-xl3 shadow-card p-6">
         {/* Avatar */}
         <div className="flex items-center gap-4 mb-6">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="relative w-20 h-20 rounded-full bg-cream border border-line flex items-center justify-center overflow-hidden group"
+            className="relative w-20 h-20 rounded-full bg-canvas border border-line flex items-center justify-center overflow-hidden group"
             title="Change photo"
           >
             {avatar ? (
@@ -116,7 +127,7 @@ export default function Profile() {
             <p className="font-semibold text-[15px] flex items-center gap-2">
               {me?.nickname || user?.email?.split('@')[0]}
               {me?.role && (
-                <span className="text-[11px] font-semibold uppercase tracking-wide bg-mint/40 text-ink-soft px-2 py-0.5 rounded-full">
+                <span className="font-mono text-[11px] font-medium uppercase tracking-[0.08em] bg-white/[0.06] text-ink-soft px-2 py-0.5 rounded-full">
                   {me.role}
                 </span>
               )}
@@ -125,7 +136,7 @@ export default function Profile() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="text-coral-dark text-[13px] font-medium mt-1"
+              className="inline-flex items-center min-h-[44px] text-accent-dim text-[13px] font-medium"
             >
               Change photo
             </button>
@@ -141,7 +152,7 @@ export default function Profile() {
             onChange={(e) => setNickname(e.target.value)}
             placeholder="How the team sees you"
             maxLength={30}
-            className="w-full py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
+            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]"
           />
           <p className="text-[12px] text-ink-soft mt-1.5">
             Shown on everything you add and every note you leave.
@@ -149,7 +160,7 @@ export default function Profile() {
           <button
             type="submit"
             disabled={busy}
-            className="press mt-4 px-6 py-2.5 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
+            className="press mt-4 px-6 py-2.5 rounded-2xl bg-accent text-black font-semibold disabled:opacity-60"
           >
             {busy ? 'Saving...' : 'Save'}
           </button>
@@ -159,8 +170,9 @@ export default function Profile() {
 
       {/* Party mode: fullscreen celebration clip when a sale lands. Shows on
           phones too - Test taps count as user gestures, so playback works.
-          Clips are user-supplied: see public/memes/README.md. */}
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-6 mt-4">
+          Clips are user-supplied: see public/memes/README.md. Ops module. */}
+      {isOn('ops') && (
+      <div className="bg-card rounded-xl3 shadow-card p-6 mt-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 className="font-semibold text-[15px] flex items-center gap-2">
@@ -181,28 +193,35 @@ export default function Profile() {
               setPartyOn(next);
               setCelebrationEnabled(next);
             }}
-            className={`relative w-12 h-7 rounded-full flex-shrink-0 transition-colors ${
-              partyOn ? 'bg-emerald-500' : 'bg-line'
-            }`}
+            aria-label="Party mode"
+            className="flex-shrink-0 min-h-[44px] min-w-[48px] flex items-center justify-center"
           >
             <span
-              className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${
-                partyOn ? 'translate-x-5' : ''
+              className={`relative block w-12 h-7 rounded-full transition-colors ${
+                partyOn ? 'bg-emerald-500' : 'bg-line'
               }`}
-            />
+            >
+              <span
+                className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${
+                  partyOn ? 'translate-x-5' : ''
+                }`}
+              />
+            </span>
           </button>
         </div>
         <button
           type="button"
           onClick={() => triggerCelebration({ force: true })}
-          className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl border border-line text-[13px] font-semibold text-ink hover:bg-white/[0.04] transition-colors"
+          className="mt-4 inline-flex items-center gap-1.5 min-h-[44px] px-4 py-2 rounded-2xl border border-line text-[13px] font-semibold text-ink hover:bg-white/[0.04] transition-colors"
         >
           <Confetti size={15} weight="bold" /> Test it
         </button>
       </div>
+      )}
 
-      {/* The whole team, everyone's face and name in one place. */}
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-6 mt-4">
+      {/* The whole team, everyone's face and name in one place. Team module. */}
+      {isOn('team') && (
+      <div className="bg-card rounded-xl3 shadow-card p-6 mt-4">
         <h2 className="font-semibold text-[15px] mb-1">Team</h2>
         <p className="text-[13px] text-ink-soft mb-2">
           {members.length} {members.length === 1 ? 'member' : 'members'}
@@ -217,6 +236,7 @@ export default function Profile() {
             ))}
         </div>
       </div>
+      )}
     </div>
   );
 }
