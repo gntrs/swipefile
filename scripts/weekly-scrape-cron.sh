@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Weekly scrape pass. Runs on the WSL crontab next to ads-cron.sh, Monday
+# Weekly scrape pass. Runs from cron on your cron machine next to ads-cron.sh, Monday
 # mornings:
 #
 #   0 7 * * 1 $HOME/swipefile/scripts/weekly-scrape-cron.sh
 #
-# 1. Creator finder over the builtin niche queries (same as the "Find
+# 1. Creator finder over your CREATOR_QUERIES (same as the "Find
 #    creators" button, no job row needed). Contact emails follow on their own:
 #    creators-cron.sh already chains scrape-emails.mjs every ~2 minutes.
 # 2. Competitor organic posts via Brave (competitors with an ig_handle).

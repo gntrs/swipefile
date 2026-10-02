@@ -1,5 +1,5 @@
 // Stripe -> dashboard revenue pipeline. No SDK needed (plain fetch, Stripe's
-// REST API), no server: this runs on the WSL cron and writes to the database.
+// REST API), no server: this runs from cron on your cron machine and writes to the database.
 //
 //   node scripts/stripe-pull.mjs [--dry-run]
 //
@@ -17,7 +17,7 @@
 // Setup (one time):
 //   - Stripe dashboard -> Developers -> API keys -> Create RESTRICTED key:
 //     Read on Charges + Subscriptions, nothing else. Starts rk_live_...
-//   - .env (here AND in the WSL clone): STRIPE_API_KEY=rk_live_...
+//   - .env: STRIPE_API_KEY=rk_live_...
 //   - Apply db-setup.sql, then crontab:
 //       */5 * * * * cd $HOME/swipefile && node scripts/stripe-pull.mjs >> .claude-data/stripe-cron.log 2>&1
 //

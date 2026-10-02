@@ -4,6 +4,8 @@ import { ArrowLeft, Star } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
 import { setStarred, isStarred } from '@/lib/ads';
+import { parseCompareIds, MAX_COMPARE } from '@/lib/compare';
+import { RowsSkeleton } from '@/components/Skeleton';
 
 const num = (a, k) => {
   const v = Number(a?.metrics?.[k]);
@@ -27,7 +29,7 @@ const ROWS = [
 function AdThumb({ ad }) {
   const src = useMediaUrl(ad.media_path);
   return (
-    <div className="aspect-[4/5] w-full bg-cream rounded-xl overflow-hidden flex items-center justify-center">
+    <div className="aspect-[4/5] w-full bg-canvas rounded-xl overflow-hidden flex items-center justify-center">
       {src ? (
         ad.format === 'video' ? (
           <video src={src} muted loop playsInline className="w-full h-full object-cover" />
@@ -43,39 +45,57 @@ function AdThumb({ ad }) {
 
 export default function Compare() {
   const [params] = useSearchParams();
-  const ids = (params.get('ids') || '').split(',').filter(Boolean);
+  const raw = params.get('ids') || '';
+  const { ids, invalid, dropped } = parseCompareIds(raw);
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [, force] = useState(0);
+  const [error, setError] = useState('');
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let mounted = true;
+    setError('');
     if (!ids.length) {
+      setAds([]);
       setLoading(false);
       return;
     }
-    db
-      .from('ads')
-      .select('*')
-      .in('id', ids)
-      .then(({ data }) => {
+    setLoading(true);
+    Promise.resolve(db.from('ads').select('*').in('id', ids))
+      .then(({ data, error: err }) => {
         if (!mounted) return;
-        // preserve the order the user picked
-        const byId = new Map((data || []).map((a) => [a.id, a]));
-        setAds(ids.map((id) => byId.get(id)).filter(Boolean));
+        if (err) {
+          setError(err.message || 'Could not load these ads.');
+          setAds([]);
+        } else {
+          // preserve the order the user picked
+          const byId = new Map((data || []).map((a) => [a.id, a]));
+          setAds(ids.map((id) => byId.get(id)).filter(Boolean));
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        setError(err?.message || 'Could not load these ads.');
         setLoading(false);
       });
     return () => {
       mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.get('ids')]);
+  }, [raw, reload]);
+
+  // Asked for, minus what came back: bad ids plus ids with no row.
+  const requested = ids.length + invalid.length;
+  const missing = requested - ads.length;
 
   const toggleStar = async (ad) => {
     const next = !isStarred(ad);
-    ad.metrics = { ...(ad.metrics || {}), starred: next };
-    force((n) => n + 1);
-    await setStarred(ad, next);
+    const swap = (starred) =>
+      setAds((cur) => cur.map((a) => (a.id === ad.id ? { ...a, metrics: { ...(a.metrics || {}), starred } } : a)));
+    swap(next);
+    const ok = await setStarred(ad, next);
+    if (!ok) swap(!next);
   };
 
   // Best cell index per row, for highlighting.
@@ -95,46 +115,69 @@ export default function Compare() {
   };
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[1200px] mx-auto">
+    <div data-page="compare" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1200px] mx-auto">
       <div className="flex items-center gap-3 mb-5">
-        <Link to="/ads" className="w-9 h-9 rounded-xl border border-line flex items-center justify-center text-ink-soft hover:bg-card">
+        <Link to="/ads" aria-label="Back to the library" className="press w-11 h-11 flex-shrink-0 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] flex items-center justify-center text-ink-soft">
           <ArrowLeft size={18} weight="bold" />
         </Link>
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Compare</h1>
+          <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Compare</h1>
           <p className="text-ink-soft text-[14px]">{ads.length} ads side by side · best in each row highlighted</p>
         </div>
       </div>
 
+      {!loading && !error && missing > 0 && (
+        <p className="text-[14px] text-amber-600 mb-4">
+          {missing} of {requested} ads were not found.
+        </p>
+      )}
+      {dropped > 0 && (
+        <p className="text-[14px] text-ink-soft mb-4">
+          Compare shows up to {MAX_COMPARE} ads. {dropped} more {dropped === 1 ? 'was' : 'were'} left out.
+        </p>
+      )}
+
       {loading ? (
-        <p className="text-ink-soft">Loading...</p>
+        <RowsSkeleton rows={3} />
+      ) : error ? (
+        <div role="alert" className="text-center py-16">
+          <p className="text-[15px] text-ink mb-1">Could not load these ads.</p>
+          <p className="text-[14px] text-ink-soft mb-4">{error}</p>
+          <button
+            type="button"
+            onClick={() => setReload((n) => n + 1)}
+            className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] font-semibold"
+          >
+            Retry
+          </button>
+        </div>
       ) : ads.length < 2 ? (
         <div className="text-center py-20 text-ink-soft">
           <p className="mb-3">Pick at least 2 ads to compare.</p>
-          <Link to="/ads" className="text-coral-dark font-semibold">Back to the library</Link>
+          <Link to="/ads" className="inline-flex items-center min-h-[44px] text-accent-dim font-semibold">Back to the library</Link>
         </div>
       ) : (
         <div className="overflow-x-auto -mx-5 px-5 sm:mx-0 sm:px-0">
           <table className="border-collapse min-w-full">
             <thead>
               <tr>
-                <th className="sticky left-0 bg-cream z-10 w-28" />
+                <th className="sticky left-0 bg-canvas z-10 w-28" />
                 {ads.map((a) => (
                   <th key={a.id} className="p-2 align-top min-w-[160px]">
-                    <div className="bg-card rounded-xl3 border border-line shadow-card p-2">
+                    <div className="bg-card rounded-xl3 shadow-card p-2">
                       <div className="relative">
                         <AdThumb ad={a} />
                         <button
                           onClick={() => toggleStar(a)}
                           aria-label="Star"
-                          className={`absolute top-1.5 right-1.5 w-7 h-7 rounded-full flex items-center justify-center backdrop-blur ${
-                            isStarred(a) ? 'bg-amber-400 text-white' : 'bg-card/85 text-ink-soft'
+                          className={`absolute top-1 right-1 w-11 h-11 rounded-full flex items-center justify-center ${
+                            isStarred(a) ? 'bg-amber-400 text-black' : 'bg-canvas/90 text-ink-soft hover:text-ink'
                           }`}
                         >
                           <Star size={14} weight={isStarred(a) ? 'fill' : 'bold'} />
                         </button>
                       </div>
-                      <Link to={`/ad/${a.id}`} className="block mt-2 font-semibold text-[13px] truncate hover:text-coral-dark">
+                      <Link to={`/ad/${a.id}`} className="block min-h-[44px] leading-[44px] font-semibold text-[13px] truncate hover:text-accent-dim">
                         {a.brand || 'Untitled'}
                       </Link>
                       <p className="text-[11px] text-ink-soft truncate">{a.platform}</p>
@@ -148,7 +191,7 @@ export default function Compare() {
                 const best = bestIndex(row);
                 return (
                   <tr key={row.key} className="border-t border-line">
-                    <td className="sticky left-0 bg-cream z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-middle">
+                    <td className="sticky left-0 bg-canvas z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-middle">
                       {row.label}
                     </td>
                     {ads.map((a, i) => (
@@ -156,7 +199,7 @@ export default function Compare() {
                         <span
                           className={`font-mono text-[14px] tabular-nums ${
                             i === best
-                              ? 'font-bold text-emerald-700 bg-mint/25 px-2 py-0.5 rounded-lg'
+                              ? 'font-bold text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded-lg'
                               : 'text-ink'
                           }`}
                         >
@@ -169,13 +212,13 @@ export default function Compare() {
               })}
               {/* Hook + copy rows, left-aligned text */}
               <tr className="border-t border-line">
-                <td className="sticky left-0 bg-cream z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-top">Hook</td>
+                <td className="sticky left-0 bg-canvas z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-top">Hook</td>
                 {ads.map((a) => (
                   <td key={a.id} className="px-2 py-2 text-[13px] align-top">{a.hook || '-'}</td>
                 ))}
               </tr>
               <tr className="border-t border-line">
-                <td className="sticky left-0 bg-cream z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-top">Copy</td>
+                <td className="sticky left-0 bg-canvas z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-top">Copy</td>
                 {ads.map((a) => (
                   <td key={a.id} className="px-2 py-2 text-[12px] text-ink-soft align-top whitespace-pre-wrap max-w-[240px]">
                     {a.ad_copy ? (a.ad_copy.length > 280 ? `${a.ad_copy.slice(0, 280)}...` : a.ad_copy) : '-'}

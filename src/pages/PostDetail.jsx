@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
+import { RowsSkeleton } from '@/components/Skeleton';
 
 const VERDICTS = ['unsure', 'winner', 'testing', 'loser'];
 const METRIC_KEYS = ['views', 'likes', 'comments', 'shares', 'saves', 'clicks', 'signups'];
@@ -64,28 +65,34 @@ export default function PostDetail() {
     setNewComment('');
   };
 
-  if (loading) return <div className="p-8 text-ink-soft">Loading...</div>;
-  if (!post) return <div className="p-8 text-ink-soft">Post not found.</div>;
+  if (loading) {
+    return (
+      <div className="px-5 sm:px-8 pt-6 sm:pt-8 max-w-[720px] mx-auto">
+        <RowsSkeleton rows={2} />
+      </div>
+    );
+  }
+  if (!post) return <div data-page="post-detail" className="p-8 text-ink-soft">Post not found.</div>;
 
   
   const metrics = post.metrics || {};
   const hasMetrics = METRIC_KEYS.some((k) => metrics[k] != null);
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[860px] mx-auto">
+    <div data-page="post-detail" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[860px] mx-auto">
       <div className="flex items-center justify-between mb-4">
-        <button onClick={() => navigate('/posts')} className="flex items-center gap-1 text-ink-soft text-[14px] font-medium">
+        <button onClick={() => navigate('/posts')} className="flex items-center gap-1 min-h-[44px] text-ink-soft text-[14px] font-medium">
           <CaretLeft size={16} weight="bold" /> Posts
         </button>
-        <button onClick={remove} className="flex items-center gap-1 text-red-500 text-[14px] font-medium">
+        <button onClick={remove} className="flex items-center gap-1 min-h-[44px] text-red-500 text-[14px] font-medium">
           <Trash size={16} weight="bold" /> Delete
         </button>
       </div>
 
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-5">
+      <div className="bg-card rounded-xl3 shadow-card p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-[22px] font-semibold tracking-tight">{post.title || 'Untitled post'}</h1>
+            <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">{post.title || 'Untitled post'}</h1>
             <p className="text-ink-soft text-[14px] mt-0.5">
               {[post.brand && `by ${post.brand} (competitor)`, post.platform, post.post_type, post.posted_at]
                 .filter(Boolean)
@@ -100,7 +107,7 @@ export default function PostDetail() {
               href={post.url}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1 text-coral-dark text-[14px] font-semibold flex-shrink-0"
+              className="flex items-center gap-1 min-h-[44px] text-accent-dim text-[14px] font-semibold flex-shrink-0"
             >
               Open <ArrowSquareOut size={16} weight="bold" />
             </a>
@@ -113,7 +120,7 @@ export default function PostDetail() {
             <select
               value={post.verdict}
               onChange={(e) => patch({ verdict: e.target.value })}
-              className="w-full py-2 px-3 rounded-2xl border border-line bg-card focus:outline-none focus:border-coral text-[14px] capitalize"
+              className="w-full min-h-[44px] py-2 px-3 rounded-2xl border border-line bg-card focus:outline-none focus:border-accent text-[14px] capitalize"
             >
               {VERDICTS.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
@@ -124,7 +131,7 @@ export default function PostDetail() {
           <div className="grid grid-cols-3 sm:grid-cols-7 gap-2 mt-5">
             {METRIC_KEYS.map((k) =>
               metrics[k] != null ? (
-                <div key={k} className="bg-cream rounded-2xl px-2 py-2.5 text-center">
+                <div key={k} className="bg-canvas rounded-2xl px-2 py-2.5 text-center">
                   <p className="text-[17px] font-semibold tabular-nums leading-none">{metrics[k]}</p>
                   <p className="text-[11px] text-ink-soft mt-1 capitalize">{k}</p>
                 </div>
@@ -150,7 +157,7 @@ export default function PostDetail() {
         {Array.isArray(post.tags) && post.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-4">
             {post.tags.map((t) => (
-              <span key={t} className="text-[12px] px-2.5 py-1 rounded-full bg-cream text-ink-soft">{t}</span>
+              <span key={t} className="text-[12px] px-2.5 py-1 rounded-full bg-canvas text-ink-soft">{t}</span>
             ))}
           </div>
         )}
@@ -161,12 +168,12 @@ export default function PostDetail() {
       </div>
 
       {/* Team notes */}
-      <div className="mt-4 bg-card rounded-xl3 border border-line shadow-card p-4">
+      <div className="mt-4 bg-card rounded-xl3 shadow-card p-4">
         <h3 className="font-semibold text-[15px] mb-3">Team notes</h3>
         <div className="flex flex-col gap-3 mb-3">
           {comments.length === 0 && <p className="text-ink-soft text-[13px]">No notes yet.</p>}
           {comments.map((c) => (
-            <div key={c.id} className="bg-cream rounded-2xl px-3.5 py-2.5">
+            <div key={c.id} className="bg-canvas rounded-2xl px-3.5 py-2.5">
               <p className="text-[14px]">{c.body}</p>
               <p className="text-[11px] text-ink-soft mt-1">{displayName(c.author_email)}</p>
             </div>
@@ -177,9 +184,9 @@ export default function PostDetail() {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Add a note for the team..."
-            className="flex-1 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]"
+            className="flex-1 min-w-0 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]"
           />
-          <button className="press w-11 h-11 rounded-2xl bg-coral text-black flex items-center justify-center shadow-cta">
+          <button aria-label="Add note" className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0">
             <PaperPlaneRight size={18} weight="fill" />
           </button>
         </form>

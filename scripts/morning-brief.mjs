@@ -84,9 +84,9 @@ async function sendTelegram(text) {
 
 if (TEST_PING) {
   await sendTelegram(
-    `☀️ morning brief — sample\n\n` +
+    `☀️ morning brief: sample\n\n` +
     `💰 €48 · 4 sales (↑ 12)\n👤 3 new signups (↑ 1)\n👀 210 visitors (↓ 40)\n📈 MRR €320\n\n` +
-    `${pick(MORNING)}\n\n(test ping — if you can read this, the brief reaches your phone)`
+    `${pick(MORNING)}\n\n(test ping: if you can read this, the brief reaches your phone)`
   );
   log('[brief] test ping done');
   process.exit(0);
@@ -134,7 +134,7 @@ async function main() {
   });
 
   const lines = [
-    `☀️ morning brief — ${nice}`,
+    `☀️ morning brief: ${nice}`,
     ``,
     `💰 ${money(yRev, ccy)} · ${ySales.length} sale${ySales.length === 1 ? '' : 's'}${delta(yRev, bRev)}`,
     `👤 ${ySignups} new signup${ySignups === 1 ? '' : 's'}${delta(ySignups, bSignups)}`,

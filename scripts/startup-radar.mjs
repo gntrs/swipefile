@@ -12,10 +12,10 @@
 //   node scripts/startup-radar.mjs --test-ping  # send a sample digest now
 //
 // SOURCES (all free, no key):
-//   - Hacker News (Algolia) — Show HN, Ask HN, front page.
-//   - Google News RSS — best for tracking named people and companies.
+//   - Hacker News (Algolia): Show HN, Ask HN, front page.
+//   - Google News RSS: best for tracking named people and companies.
 //   - Reddit (public .json, best-effort; often 403s, degrades quietly).
-//   - Brave News (free tier) — ONLY if BRAVE_API_KEY is in .env. Optional.
+//   - Brave News (free tier): ONLY if BRAVE_API_KEY is in .env. Optional.
 //
 // The Claude pass shells the same `claude` CLI health-monitor uses (no new deps)
 // and summarizes ONLY the items handed to it (no tools, so it can't stall).
@@ -50,7 +50,7 @@ const CLAUDE_BIN = process.env.RADAR_CLAUDE_BIN || "claude";
 const LOG_PATH = path.resolve('.claude-data/startup-radar.log');
 
 // ===========================================================================
-// WHAT TO WATCH — comes from env, comma-separated.
+// WHAT TO WATCH: comes from env, comma-separated.
 // ===========================================================================
 const splitList = (v) => (v || "").split(",").map((s) => s.trim()).filter(Boolean);
 // Topics you are tracking, e.g. RADAR_TOPICS="open source licensing,edge AI".
@@ -111,7 +111,7 @@ async function fetchHN(query) {
   }
 }
 
-// Google News RSS — no key, ideal for tracking named people/companies.
+// Google News RSS: no key, ideal for tracking named people/companies.
 async function fetchNews(query, tag) {
   try {
     const url =
@@ -327,7 +327,7 @@ ${feed}`;
     { timeout: Number(process.env.RADAR_TIMEOUT_MS || 180000), maxBuffer: 4 * 1024 * 1024 }
   );
   // Belt and suspenders: strip any dashes the model slips in anyway.
-  return (stdout || '').trim().replace(/\s[—–]\s/g, '. ').replace(/[—–]/g, ',');
+  return (stdout || '').trim().replace(/\s[\u2014\u2013]\s/g, '. ').replace(/[\u2014\u2013]/g, ',');
 }
 
 const escText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Images, Megaphone, Trophy, ChatCircleText } from '@phosphor-icons/react';
+import { Images, Megaphone, Trophy, ChatCircleText, Star, Broadcast } from '@phosphor-icons/react';
 import { db, fetchAll } from '@/lib/db';
+import PartialNotice from '@/components/PartialNotice';
 import StatCard from '@/components/StatCard';
 import { Skeleton, StatSkeleton } from '@/components/Skeleton';
 import TeamChat from '@/components/TeamChat';
@@ -14,6 +15,8 @@ import RevenueCard from '@/components/RevenueCard';
 import IntelCard from '@/components/IntelCard';
 import Fold from '@/components/Fold';
 import { useTeam } from '@/contexts/TeamContext';
+import { isOn, TEAM_MODE } from '@/lib/modules';
+import { isProven, isStarred } from '@/lib/ads';
 
 // Verdict = status colors, ALWAYS shown with a label (never color alone).
 const VERDICTS = [
@@ -59,29 +62,40 @@ export default function Dashboard() {
   const [posts, setPosts] = useState([]);
   const [notes, setNotes] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [partial, setPartial] = useState(null);
+  const [reload, setReload] = useState(0);
   const { displayName, me } = useTeam();
 
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [a, p, c] = await Promise.all([
+      // Posts and team notes belong to the team module: skip the fetches
+      // when it is off.
+      const team = isOn('team');
+      const none = Promise.resolve(null);
+      const [a, fetchedPosts, c] = await Promise.all([
         fetchAll((q) => q.order('created_at', { ascending: false }), 'ads'),
-        fetchAll((q) => q.order('created_at', { ascending: false }), 'posts'),
-        db.from('comments').select('id', { count: 'exact', head: true }),
+        team ? fetchAll((q) => q.order('created_at', { ascending: false }), 'posts') : none,
+        TEAM_MODE ? db.from('comments').select('id', { count: 'exact', head: true }) : none,
       ]);
+      const p = fetchedPosts || [];
       if (!mounted) return;
       setAds(a);
       setPosts(p);
-      setNotes(c.count || 0);
+      setPartial([a, p].find((rows) => rows.error) || null);
+      setNotes(c?.count || 0);
       setLoading(false);
     })();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [reload]);
 
   const winnerAds = ads.filter((a) => a.verdict === 'winner');
   const winners = winnerAds.length;
+  const provenAds = ads.filter(isProven);
+  const starredAds = ads.filter(isStarred);
+  const runningNow = ads.filter((a) => a.metrics?.live === true).length;
 
   // Verdict counts across ads for the labeled breakdown bar.
   const verdictCounts = useMemo(() => {
@@ -126,70 +140,94 @@ export default function Dashboard() {
     );
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
+    <div data-page="dashboard" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1100px] mx-auto">
       {/* Reference-style header: quiet dated eyebrow, then a big greeting. */}
-      <header className="mb-6 animate-rise">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">{dateLabel}</p>
-        <h1 className="text-[26px] sm:text-[30px] font-semibold tracking-tight mt-1">
+      <header className="mb-6">
+        <p className="kicker">{dateLabel}</p>
+        <h1 className="text-[28px] sm:text-[32px] font-semibold tracking-[-0.02em] leading-[1.1] mt-3">
           {greetingFor()}{myName ? `, ${myName}` : ''}
         </h1>
-        <p className="text-ink-soft text-[14px] mt-1">Ads, posts and what the team thinks of them.</p>
+        <p className="text-ink-soft text-[15px] leading-relaxed mt-2">
+          {TEAM_MODE ? 'Ads, posts and what the team thinks of them.' : 'Your swipe file at a glance.'}
+        </p>
       </header>
+      <PartialNotice rows={partial} onRetry={() => setReload((n) => n + 1)} className="mb-5" />
 
       {/* The money counter: lifetime revenue + MRR + live confetti per sale */}
-      <Fold id="revenue" title="Revenue">
-        <RevenueCard />
-      </Fold>
+      {isOn('ops') && (
+        <Fold id="revenue" title="Revenue">
+          <RevenueCard />
+        </Fold>
+      )}
 
       {/* KPI tiles */}
       <Fold id="kpis" title="Key numbers">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <StatCard icon={Images} label="Ads saved" value={ads.length} accent="coral" to="/ads"
-            trend={sparkOf(ads)} delta={newWithin(ads) ? `+${newWithin(ads)}` : null} />
-          <StatCard icon={Trophy} label="Winning ads" value={winners} accent="emerald" to="/ads?proven=1"
-            trend={sparkOf(winnerAds)} delta={newWithin(winnerAds) ? `+${newWithin(winnerAds)}` : null} />
-          <StatCard icon={Megaphone} label="Organic posts" value={posts.length} accent="violet" to="/posts"
-            trend={sparkOf(posts)} delta={newWithin(posts) ? `+${newWithin(posts)}` : null} />
-          <StatCard icon={ChatCircleText} label="Team notes" value={notes} accent="blue" />
-        </div>
+        {TEAM_MODE ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <StatCard icon={Images} label="Ads saved" value={ads.length} accent="base" to="/ads"
+              trend={sparkOf(ads)} delta={newWithin(ads) ? `+${newWithin(ads)}` : null} />
+            <StatCard icon={Trophy} label="Winning ads" value={winners} accent="emerald" to="/ads?proven=1"
+              trend={sparkOf(winnerAds)} delta={newWithin(winnerAds) ? `+${newWithin(winnerAds)}` : null} />
+            <StatCard icon={Megaphone} label="Organic posts" value={posts.length} accent="violet" to="/posts"
+              trend={sparkOf(posts)} delta={newWithin(posts) ? `+${newWithin(posts)}` : null} />
+            <StatCard icon={ChatCircleText} label="Team notes" value={notes} accent="blue" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <StatCard icon={Images} label="Ads saved" value={ads.length} accent="base" to="/ads"
+              trend={sparkOf(ads)} delta={newWithin(ads) ? `+${newWithin(ads)}` : null} />
+            <StatCard icon={Trophy} label="Proven" value={provenAds.length} accent="emerald" to="/ads?proven=1"
+              trend={sparkOf(provenAds)} delta={newWithin(provenAds) ? `+${newWithin(provenAds)}` : null} />
+            <StatCard icon={Star} label="Starred" value={starredAds.length} accent="amber" to="/ads?starred=1" />
+            <StatCard icon={Broadcast} label="Running now" value={runningNow} accent="blue" to="/competitors" />
+          </div>
+        )}
       </Fold>
 
       {/* Performance layer: our ad numbers + competitor pressure, the rivals'
           battle-tested plays to beat, then our own funnel */}
-      <Fold id="performance" title="Ad performance">
-        <AdAnalytics ads={ads} />
-      </Fold>
-      <Fold id="proven" title="Rivals' proven plays">
-        <ProvenPlays ads={ads} />
-      </Fold>
-      <Fold id="funnel" title="Site funnel">
-        <FunnelCard />
-      </Fold>
+      {isOn('ops') && (
+        <Fold id="performance" title="Ad performance">
+          <AdAnalytics ads={ads} />
+        </Fold>
+      )}
+      {isOn('competitors') && (
+        <Fold id="proven" title="Rivals' proven plays">
+          <ProvenPlays ads={ads} />
+        </Fold>
+      )}
+      {isOn('ops') && (
+        <Fold id="funnel" title="Site funnel">
+          <FunnelCard />
+        </Fold>
+      )}
 
       {/* SEO rank + EU ad geography headlines, links through to /intel */}
-      <IntelCard ads={ads} />
+      {isOn('intel') && <IntelCard ads={ads} />}
 
       {/* Newest analysis brief from Claude (renders only when one exists) */}
-      <LatestBrief />
+      {isOn('briefs') && <LatestBrief />}
 
       {/* Team board: quick chat + goals */}
-      <Fold id="team" title="Team board">
-        <div className="grid lg:grid-cols-2 gap-4 mb-4">
-          <TeamChat />
-          <Goals />
-        </div>
-      </Fold>
+      {isOn('team') && (
+        <Fold id="team" title="Team board">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <TeamChat />
+            <Goals />
+          </div>
+        </Fold>
+      )}
 
       <Fold id="breakdown" title="Verdicts and tags">
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Verdict breakdown - labeled segmented bar (status colors + labels) */}
-        <div className="bg-card rounded-xl3 border border-line shadow-card p-5">
+        <div className="bg-card rounded-xl3 shadow-card p-5">
           <h2 className="font-semibold text-[15px] mb-3">Ad verdicts</h2>
           {ads.length === 0 ? (
-            <p className="text-ink-soft text-[13px]">No ads yet. <Link to="/ads/add" className="text-coral-dark font-medium">Add the first one</Link>.</p>
+            <p className="text-ink-soft text-[13px]">No ads yet. <Link to="/ads/add" className="text-accent-dim font-medium">Add the first one</Link>.</p>
           ) : (
             <>
-              <div className="flex h-3 rounded-full overflow-hidden gap-[2px] bg-cream mb-3">
+              <div className="flex h-3 rounded-full overflow-hidden gap-[2px] bg-canvas mb-3">
                 {VERDICTS.filter((v) => verdictCounts[v.key] > 0).map((v) => (
                   <div
                     key={v.key}
@@ -211,14 +249,14 @@ export default function Dashboard() {
         </div>
 
         {/* Top tags */}
-        <div className="bg-card rounded-xl3 border border-line shadow-card p-5">
+        <div className="bg-card rounded-xl3 shadow-card p-5">
           <h2 className="font-semibold text-[15px] mb-3">Top tags</h2>
           {topTags.length === 0 ? (
             <p className="text-ink-soft text-[13px]">Tags will show up here as the library grows.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {topTags.map(([tag, n]) => (
-                <span key={tag} className="text-[13px] px-3 py-1.5 rounded-full bg-cream text-ink-soft">
+                <span key={tag} className="text-[13px] px-3 py-1.5 rounded-full bg-canvas text-ink-soft">
                   {tag} <span className="font-semibold text-ink tabular-nums">{n}</span>
                 </span>
               ))}
@@ -230,20 +268,20 @@ export default function Dashboard() {
 
       {/* Recent activity */}
       <Fold id="recent" title="Recent activity" defaultOpen={false}>
-      <div className="bg-card rounded-xl3 border border-line shadow-card p-5 mt-4">
+      <div className="bg-card rounded-xl3 shadow-card p-5 mt-4">
         <h2 className="font-semibold text-[15px] mb-3">Recent activity</h2>
         {recent.length === 0 ? (
-          <p className="text-ink-soft text-[13px]">Nothing yet. Add an ad or a post to get rolling.</p>
+          <p className="text-ink-soft text-[13px]">{TEAM_MODE ? 'Nothing yet. Add an ad or a post to get rolling.' : 'Nothing yet. Add an ad to get rolling.'}</p>
         ) : (
           <div className="divide-y divide-line">
             {recent.map((r) => (
-              <Link key={`${r.kind}-${r.id}`} to={r.to} className="flex items-center gap-3 py-2.5 group">
-                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${r.kind === 'ad' ? 'bg-coral-soft text-coral-dark' : 'bg-amber-100 text-amber-700'}`}>
+              <Link key={`${r.kind}-${r.id}`} to={r.to} className="flex items-center gap-3 min-h-[44px] py-2.5 group">
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${r.kind === 'ad' ? 'bg-accent-wash text-accent-dim' : 'bg-amber-100 text-amber-700'}`}>
                   {r.kind}
                 </span>
-                <span className="flex-1 min-w-0 truncate text-[14px] font-medium group-hover:text-coral-dark transition-colors">{r.label}</span>
+                <span className="flex-1 min-w-0 truncate text-[14px] font-medium group-hover:text-accent-dim transition-colors">{r.label}</span>
                 <span className="text-[12px] text-ink-soft flex-shrink-0">
-                  {r.by ? `by ${displayName(r.by)} · ` : ''}{new Date(r.at).toLocaleDateString()}
+                  {TEAM_MODE && r.by ? `by ${displayName(r.by)} · ` : ''}{new Date(r.at).toLocaleDateString()}
                 </span>
               </Link>
             ))}

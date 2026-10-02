@@ -1,0 +1,66 @@
+[
+  {
+    "libraryId": "999900001234567",
+    "brand": "Lumen Loop",
+    "pageId": "999900000000011",
+    "started": "2026-01-05",
+    "stopped": null,
+    "active": true,
+    "platforms": [
+      "facebook",
+      "instagram",
+      "messenger"
+    ],
+    "title": "Light that follows the sun",
+    "text": "Your desk lamp is lying to you about the time.\nLumen Loop shifts from cool morning light to a warm evening glow on its own.",
+    "cta": "Shop now",
+    "link": "https://lumenloop.example/lamp?ref=adlib",
+    "kind": "image",
+    "media": [
+      "https://scontent.example-cdn.test/v/t45/lumenloop_lamp_1080.jpg"
+    ],
+    "versions": false
+  },
+  {
+    "libraryId": "999900002345678",
+    "brand": "Copper Fern Tea",
+    "pageId": null,
+    "started": "2025-11-02",
+    "stopped": "2025-12-14",
+    "active": false,
+    "platforms": [
+      "facebook",
+      "audience_network"
+    ],
+    "title": "The slow morning starter kit",
+    "text": "Three minutes, one cup, zero jitters.",
+    "cta": "Learn more",
+    "link": "https://copperfern.example/ritual",
+    "kind": "video",
+    "media": [
+      "https://scontent.example-cdn.test/v/t42/copperfern_ritual.mp4"
+    ],
+    "versions": false
+  },
+  {
+    "libraryId": "999900003456789",
+    "brand": "Orchard Sleep Co",
+    "pageId": null,
+    "started": "2026-02-12",
+    "stopped": null,
+    "active": true,
+    "platforms": [
+      "instagram",
+      "threads"
+    ],
+    "title": "The pillow that passed the test",
+    "text": "We tested 40 pillow fillings so you do not have to.",
+    "cta": "Order now",
+    "link": "https://orchardsleep.example/pillow",
+    "kind": "image",
+    "media": [
+      "https://scontent.example-cdn.test/v/t45/orchard_pillow_a.jpg"
+    ],
+    "versions": true
+  }
+]

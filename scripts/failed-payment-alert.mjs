@@ -73,7 +73,7 @@ const money = (cents, c) => {
 
 // A recovery nudge, in your voice. Rotated so it never feels canned.
 const NUDGE = [
-  'worth a nudge — a friendly message wins most of these back',
+  'worth a nudge, a friendly message wins most of these back',
   'card probably just expired. one email and they’re back in',
   "don't let this one churn quietly. reach out today",
   'failed ≠ gone. most recover if u actually ask',
@@ -97,10 +97,10 @@ async function sendTelegram(text) {
 
 if (TEST_PING) {
   await sendTelegram(
-    `⚠️ payment failed — €12\n` +
+    `⚠️ payment failed: €12\n` +
     `someone@email.com\n` +
     `reason: Your card was declined.\n\n` +
-    `${pick(NUDGE)}\n\n(test ping — if you can read this, failed-payment alerts work)`
+    `${pick(NUDGE)}\n\n(test ping: if you can read this, failed-payment alerts work)`
   );
   log('[fp] test ping done');
   process.exit(0);
@@ -151,7 +151,7 @@ async function main() {
     const who = c.billing_details?.email || c.receipt_email || c.customer || 'unknown customer';
     const reason = c.failure_message || c.outcome?.seller_message || 'declined (no reason given)';
     const msg =
-      `⚠️ payment failed — ${money(c.amount, c.currency)}\n` +
+      `⚠️ payment failed: ${money(c.amount, c.currency)}\n` +
       `${who}\n` +
       `reason: ${reason}\n\n` +
       `${pick(NUDGE)}`;

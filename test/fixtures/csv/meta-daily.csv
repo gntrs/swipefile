@@ -1,0 +1,9 @@
+Reporting starts,Reporting ends,Ad name,Ad delivery,Amount spent (EUR),Impressions,Reach,Link clicks,Results,Purchase ROAS (return on ad spend),Currency,Frequency,Landing page views,3-second video plays
+2026-09-01,2026-09-01,Sample_breakfast_static_v1,active,12.40,1510,1320,31,2,1.80,EUR,1.14,22,
+2026-09-02,2026-09-02,Sample_breakfast_static_v1,active,14.10,1702,1490,40,3,2.10,EUR,1.14,29,
+2026-09-03,2026-09-03,Sample_breakfast_static_v1,inactive,9.95,1203,1100,18,1,,EUR,1.09,12,
+2026-09-01,2026-09-01,"Sample_reviews_ugc_v2, cut B",inactive,30.00,4100,3500,120,6,2.40,EUR,1.17,90,2100
+2026-09-02,2026-09-02,"Sample_reviews_ugc_v2, cut B",archived,28.50,3900,3300,101,5,2.20,EUR,1.18,77,1900
+2026-09-01,2026-09-01,Sample_founder_video_v3,not delivering,5.00,800,760,4,0,0.40,EUR,1.05,3,450
+2026-09-02,2026-09-02,Sample_founder_video_v3,,6.25,950,900,6,0,0.55,EUR,1.06,5,520
+2026-09-03,2026-09-03,,active,1.00,10,10,0,0,,EUR,1.00,0,

@@ -6,9 +6,9 @@ import { triggerCelebration } from '@/lib/celebration';
 import Pill from '@/components/Pill';
 
 // The money counter. YT-subscriber-counter energy: lifetime revenue GENERATED
-// (not what was paid out), MRR, sales today - and confetti the moment a new
+// (not what was paid out), MRR, sales today, and confetti the moment a new
 // sale row lands via realtime (scripts/stripe-pull.mjs feeds the sales table
-// from the WSL cron every ~5 min). Numbers animate up; green is reserved for
+// from your cron machine every ~5 min). Numbers animate up; green is reserved for
 // the good-news accents per the color law.
 
 const CUR = { eur: '€', usd: '$', gbp: '£' };
@@ -128,7 +128,7 @@ export default function RevenueCard() {
 
   return (
     <div
-      className={`relative overflow-hidden bg-card rounded-xl3 border shadow-card p-5 mb-4 animate-rise transition-colors duration-700 ${
+      className={`relative overflow-hidden bg-card rounded-xl3 border shadow-card p-5 mb-4 transition-colors duration-700 ${
         flash ? 'border-emerald-400 ring-2 ring-emerald-300/40' : 'border-line'
       }`}
     >
@@ -153,11 +153,11 @@ export default function RevenueCard() {
       </div>
 
       {empty ? (
-        <div className="text-[13px] text-ink-soft bg-cream/60 rounded-2xl px-4 py-3">
-          Waiting for Stripe. Add <span className="font-mono text-[12px]">STRIPE_API_KEY</span> to
-          the WSL <span className="font-mono text-[12px]">.env</span>, apply{' '}
-          <span className="font-mono text-[12px]">db-setup.sql</span>, then{' '}
-          <span className="font-mono text-[12px]">node scripts/stripe-pull.mjs</span> backfills
+        <div className="text-[13px] text-ink-soft bg-canvas/60 rounded-2xl px-4 py-3">
+          Waiting for Stripe. Add <span className="font-mono text-[12px]">STRIPE_API_KEY</span> to{' '}
+          <span className="font-mono text-[12px]">.env</span> on your cron machine, apply{' '}
+          <span className="font-mono text-[12px]">db-setup.sql</span>, then run{' '}
+          <span className="font-mono text-[12px]">node scripts/stripe-pull.mjs</span> to backfill
           every sale.
         </div>
       ) : (
@@ -165,9 +165,9 @@ export default function RevenueCard() {
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="col-span-2 text-left bg-card rounded-2xl border border-line px-4 py-3.5 hover:border-emerald-300 hover:shadow-cardhover transition-all active:scale-[0.99]"
+            className="col-span-2 text-left bg-card rounded-xl px-4 py-3.5 hover:border-emerald-300 hover:shadow-cardhover transition-all active:scale-[0.99]"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft mb-1.5">Total generated</p>
+            <p className="kicker mb-1.5">Total generated</p>
             <p className="font-mono text-[38px] sm:text-[42px] font-bold tabular-nums tracking-tight leading-none">
               {sym(stats.currency)}
               {shownTotal.toFixed(2)}
@@ -176,7 +176,7 @@ export default function RevenueCard() {
               {stats.count} sale{stats.count === 1 ? '' : 's'} all time · tap to expand
             </p>
           </button>
-          <div className="bg-card rounded-2xl border border-line px-3.5 py-3">
+          <div className="bg-card rounded-xl px-3.5 py-3">
             <div className="flex items-center gap-1.5 mb-1">
               <TrendUp size={14} weight="bold" className="text-emerald-600" />
               <p className="text-[12px] font-medium text-ink-soft">MRR</p>
@@ -185,9 +185,9 @@ export default function RevenueCard() {
               {stats.mrr == null ? '-' : `${sym(stats.currency)}${shownMrr.toFixed(2)}`}
             </p>
           </div>
-          <div className="bg-card rounded-2xl border border-line px-3.5 py-3">
+          <div className="bg-card rounded-xl px-3.5 py-3">
             <div className="flex items-center gap-1.5 mb-1">
-              <Sparkle size={14} weight="bold" className="text-coral-dark" />
+              <Sparkle size={14} weight="bold" className="text-accent-dim" />
               <p className="text-[12px] font-medium text-ink-soft">Today</p>
             </div>
             <p className="font-mono text-[19px] font-semibold tabular-nums tracking-tight leading-none">
@@ -213,7 +213,7 @@ export default function RevenueCard() {
             type="button"
             onClick={() => setExpanded(false)}
             aria-label="Close"
-            className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 w-10 h-10 rounded-full border border-line flex items-center justify-center text-ink-soft hover:bg-cream"
+            className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 w-10 h-10 rounded-full border border-line flex items-center justify-center text-ink-soft hover:bg-canvas"
           >
             <X size={18} weight="bold" />
           </button>

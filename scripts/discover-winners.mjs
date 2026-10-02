@@ -1,6 +1,6 @@
 // Keyword discovery for the Meta Ad Library (ads_archive, Graph v23.0): find
-// NEW competitor ads in the kids-speech-development niche that are pulling
-// crazy EU reach in a short time, rank them by reach per day, insert them into
+// NEW competitor ads for your search terms that are pulling big EU reach in
+// a short time, rank them by reach per day, insert them into
 // the `ads` table and star them.
 //
 // This is the keyword sibling of scripts/import-ad-library.mjs. That script
@@ -23,13 +23,19 @@
 // Usage:
 //   node scripts/discover-winners.mjs --dry-run            # print, write nothing
 //   node scripts/discover-winners.mjs                      # import and star
-//   node scripts/discover-winners.mjs --terms="late talker,speech delay"
+//   node scripts/discover-winners.mjs --terms="overnight oats,protein breakfast"
 //   node scripts/discover-winners.mjs --min-reach 25000 --max-age-days 30
 //   node scripts/discover-winners.mjs --min-days 5 --limit 20 --star-top=10
 //   node scripts/discover-winners.mjs --fixture path.json  # offline, no API
 //   node scripts/discover-winners.mjs --help
 // Needs in .env:  VITE_DB_URL, DB_SERVICE_KEY, META_ADLIB_TOKEN
-// (or META_ACCESS_TOKEN). Local only, gitignored - same rules as export.mjs.
+// (or META_ACCESS_TOKEN). Local only, gitignored, same rules as export.mjs.
+// Optional in .env:
+//   DISCOVER_TERMS   comma list of search terms, used when --terms is not given
+//   DISCOVER_ANGLES  angle tags as tag=regex pairs separated by semicolons, e.g.
+//                    angle-ugc=ugc|creator;angle-offer=% off|discount
+//                    Each regex is case and unicode insensitive. Unset: no
+//                    angle tags.
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -65,10 +71,10 @@ const argNum = (name, fallback) => {
   return n;
 };
 
-const HELP = `discover-winners.mjs - keyword discovery for the Meta Ad Library
+const HELP = `discover-winners.mjs: keyword discovery for the Meta Ad Library
 
   --dry-run            do everything including the live API calls, write nothing
-  --terms="a,b,c"      override the default kids-speech search terms
+  --terms="a,b,c"      search terms (default: DISCOVER_TERMS from .env)
   --min-reach N        minimum eu_total_reach (default 10000)
   --max-age-days N     only ads started within this window (default 45)
   --min-days N         skip ads younger than this, reach/day is noise (default 3)
@@ -79,7 +85,8 @@ const HELP = `discover-winners.mjs - keyword discovery for the Meta Ad Library
   --help               this text
 
 Env (.env): VITE_DB_URL, DB_SERVICE_KEY, META_ADLIB_TOKEN
-(or META_ACCESS_TOKEN).`;
+(or META_ACCESS_TOKEN). Optional: DISCOVER_TERMS (comma list),
+DISCOVER_ANGLES (tag=regex;tag=regex, adds angle tags to imported ads).`;
 
 if (argv.includes('--help') || argv.includes('-h')) {
   console.log(HELP);
@@ -95,21 +102,17 @@ const KEEP_LIMIT = argNum('--limit', 40);
 const STAR_TOP = argNum('--star-top', null); // null = star everything kept
 const pageSize = Math.min(Math.max(argNum('--page-size', 100), 1), 250);
 
-const DEFAULT_TERMS = [
-  'speech delay',
-  'speech therapy for kids',
-  'toddler not talking',
-  'late talker',
-  'kids speech app',
-  'speech development toddler',
-  'AAC for kids',
-  'help my child talk',
-];
-const TERMS = String(argVal('--terms', ''))
-  .split(',')
-  .map((t) => t.trim())
-  .filter(Boolean);
-const SEARCH_TERMS = TERMS.length ? TERMS : DEFAULT_TERMS;
+const splitTerms = (raw) =>
+  String(raw || '')
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+const TERMS = splitTerms(argVal('--terms', ''));
+const SEARCH_TERMS = TERMS.length ? TERMS : splitTerms(process.env.DISCOVER_TERMS);
+if (!SEARCH_TERMS.length) {
+  console.error('No search terms. Pass --terms="a,b" or set DISCOVER_TERMS in .env.');
+  process.exit(1);
+}
 
 // ------------------------------ env ----------------------------------
 const url = (process.env.VITE_DB_URL || process.env.VITE_SUPABASE_URL);
@@ -293,12 +296,30 @@ const isLive = (ad) =>
 const firstLine = (s) => (s || '').split('\n').map((l) => l.trim()).find(Boolean) || null;
 const truncate = (s, n) => (s && s.length > n ? `${s.slice(0, n - 1).trimEnd()}...` : s);
 
-// Creative angle tagging. These two angles are the ones the team is testing, so
-// the tag is what makes the import searchable on /ads later.
-const SPEECH_BUBBLE_RE = /speech bubble|kalbos burbul|thought bubble|word bubble|bubble|\u{1F4AC}|\u{1F5E8}|\u{1F5EF}/iu;
-const KIDS_RE = /kid|child|toddler|baby|preschool|vaik|son|daughter|little one|my boy|my girl/i;
-const ANGLE_SPEECH_BUBBLE = 'angle-speech-bubble';
-const ANGLE_KIDS = 'angle-kids';
+// Creative angle tagging from DISCOVER_ANGLES ("tag=regex;tag=regex"). The tag
+// is what makes the import searchable on /ads later. A bad entry is skipped
+// with a warning instead of stopping the run.
+function parseAngles(raw) {
+  const out = [];
+  for (const entry of String(raw || '').split(';')) {
+    const trimmed = entry.trim();
+    if (!trimmed) continue;
+    const eq = trimmed.indexOf('=');
+    const tag = eq > 0 ? trimmed.slice(0, eq).trim() : '';
+    const source = eq > 0 ? trimmed.slice(eq + 1).trim() : '';
+    if (!tag || !source) {
+      console.warn(`DISCOVER_ANGLES: skipping "${trimmed}", expected tag=regex`);
+      continue;
+    }
+    try {
+      out.push({ tag, re: new RegExp(source, 'iu') });
+    } catch (e) {
+      console.warn(`DISCOVER_ANGLES: skipping "${tag}", bad regex: ${e.message}`);
+    }
+  }
+  return out;
+}
+const ANGLES = parseAngles(process.env.DISCOVER_ANGLES);
 
 function creativeText(ad) {
   return [
@@ -312,11 +333,9 @@ function creativeText(ad) {
 }
 
 function angleTags(ad) {
+  if (!ANGLES.length) return [];
   const text = creativeText(ad);
-  const tags = [];
-  if (SPEECH_BUBBLE_RE.test(text)) tags.push(ANGLE_SPEECH_BUBBLE);
-  if (KIDS_RE.test(text)) tags.push(ANGLE_KIDS);
-  return tags;
+  return ANGLES.filter((a) => a.re.test(text)).map((a) => a.tag);
 }
 
 // The public Ad Library permalink. Never store ad_snapshot_url verbatim: it

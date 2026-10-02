@@ -6,9 +6,10 @@
 -- create or replace function, drop-then-create policies and triggers, guarded
 -- publication adds), so running it twice on the same database succeeds.
 --
--- After running it, create a storage bucket named `ad-media` in your database
--- dashboard (set it to Private; the app reads media through short-lived signed
--- URLs, never public URLs).
+-- It also creates the private `ad-media` storage bucket and its access rules
+-- (the app reads media through short lived signed URLs, never public URLs).
+-- Re-running this file is how you upgrade: it adds whatever a newer version
+-- needs and leaves your data alone.
 --
 -- Access model: internal team tool. Any signed-in team member can read/write
 -- everything, with two exceptions enforced below: goals (admin-only
@@ -60,6 +61,12 @@ create policy team_update_own on public.team
 -- their own row), but not their role.
 revoke update on public.team from authenticated;
 grant update (id, email, nickname, avatar_path) on public.team to authenticated;
+
+-- Same for INSERT: a member creating their own row may not pick a role.
+-- Without this, anyone signed in could insert themselves as admin before
+-- their first profile row existed.
+revoke insert on public.team from authenticated;
+grant insert (id, email, nickname, avatar_path) on public.team to authenticated;
 
 -- Who is the admin? Checked against the team table (role is set only via the
 -- dashboard / service role, never from the app). Used by the goals policies
@@ -121,6 +128,9 @@ create index if not exists ads_countries_gin on public.ads using gin (countries)
 create index if not exists ads_geo_status_idx on public.ads (geo_status);
 -- Staleness sweep: sync-geo.mjs --since Nd orders by this.
 create index if not exists ads_geo_synced_at_idx on public.ads (geo_synced_at);
+-- Angle tags (metrics.angle, 0.3.0): the hook bank's angle filter, its
+-- untagged count and the ai function's next batch to tag.
+create index if not exists ads_angle_idx on public.ads ((metrics->>'angle'));
 
 alter table public.ads enable row level security;
 
@@ -133,6 +143,192 @@ comment on column public.ads.geo_status is 'eu | none | unknown - see the ads se
 comment on column public.ads.countries is 'ISO-3166-1 alpha-2 codes the ad is known to have run in (EU/UK only - Meta exposes no others)';
 comment on column public.ads.eu_reach is 'eu_total_reach from the Ad Library, null unless geo_status = eu';
 comment on column public.ads.geo_synced_at is 'last successful Ad Library geo lookup, null = never resolved';
+
+
+-- ============================ storage ===============================
+-- Creative files (ad images and videos) and profile photos live in one
+-- PRIVATE bucket, `ad-media`. Nothing in it is public: the app shows files
+-- through signed URLs that expire.
+--   * 50 MB per file (52428800 bytes), the same limit the app checks before
+--     uploading, and only images and video.
+--   * Every signed in member can read everything in the bucket (it is a
+--     shared swipe file).
+--   * A member may upload only into their own folder `<user id>/...` or their
+--     own avatar `avatars/<user id>-...`, and delete only their own files.
+--   * There is no update policy: every upload gets a unique name, so a file
+--     is never overwritten.
+--   * Re-running this file forces the bucket back to private.
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('ad-media', 'ad-media', false, 52428800, array['image/*', 'video/*'])
+on conflict (id) do update set public = false;
+
+drop policy if exists ad_media_read on storage.objects;
+create policy ad_media_read on storage.objects
+  for select to authenticated
+  using (bucket_id = 'ad-media');
+
+drop policy if exists ad_media_insert_own on storage.objects;
+create policy ad_media_insert_own on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'ad-media'
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or (
+        (storage.foldername(name))[1] = 'avatars'
+        and array_length(storage.foldername(name), 1) = 1
+        and starts_with(split_part(name, '/', 2), auth.uid()::text || '-')
+      )
+    )
+  );
+
+drop policy if exists ad_media_delete_own on storage.objects;
+create policy ad_media_delete_own on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'ad-media'
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or (
+        (storage.foldername(name))[1] = 'avatars'
+        and array_length(storage.foldername(name), 1) = 1
+        and starts_with(split_part(name, '/', 2), auth.uid()::text || '-')
+      )
+    )
+  );
+
+
+-- ======================== library search ============================
+-- Server side search for /ads: filters, sorts and pages in the database
+-- instead of the browser. The app falls back to its own copy of these rules
+-- (src/lib/library/query.js) when these functions are missing, so both must
+-- change together. Safe to re-run.
+
+create or replace function public.sf_num(t text) returns numeric
+language sql immutable parallel safe set search_path = public as $$
+  select case when t ~ '^\s*-?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?\s*$' then trim(t)::numeric end
+$$;
+
+create or replace function public.sf_pos(t text) returns numeric
+language sql immutable parallel safe set search_path = public as $$
+  select case when public.sf_num(t) > 0 then public.sf_num(t) end
+$$;
+
+create or replace function public.search_ads(p jsonb default '{}'::jsonb)
+returns setof public.ads
+language sql stable security invoker set search_path = public as $$
+  select a.* from public.ads a
+  where (coalesce(p->>'verdict', 'all') = 'all' or a.verdict = p->>'verdict')
+    and (coalesce(p->>'who', 'all') = 'all'
+      or (p->>'who' = 'ours' and coalesce(p->>'own_brand', '') <> ''
+          and lower(trim(coalesce(a.brand, ''))) = lower(trim(p->>'own_brand')))
+      or (p->>'who' = 'rivals' and not (coalesce(p->>'own_brand', '') <> ''
+          and lower(trim(coalesce(a.brand, ''))) = lower(trim(p->>'own_brand')))))
+    and (p->'proven' is distinct from 'true'::jsonb
+      or a.verdict = 'winner' or coalesce(public.sf_num(a.metrics->>'days_running'), 0) >= 30)
+    and (p->'starred' is distinct from 'true'::jsonb or a.metrics->'starred' = 'true'::jsonb)
+    and (p->'recent' is distinct from 'true'::jsonb or coalesce(a.tags @> array['recently-added'], false))
+    and (coalesce(p->>'geo', 'all') = 'all'
+      or coalesce(a.geo_status, a.metrics->>'geo_status', 'unknown') = p->>'geo')
+    and (coalesce(p->>'country', 'all') = 'all'
+      or exists (select 1 from unnest(a.countries) c where upper(trim(c)) = upper(p->>'country')))
+    and (coalesce(p->>'angle', 'all') = 'all'
+      or (p->>'angle' = 'none' and a.metrics->>'angle' is null)
+      or a.metrics->>'angle' = p->>'angle')
+    and (coalesce(p->>'tag', '') = '' or coalesce(a.tags @> array[p->>'tag'], false))
+    and (coalesce(p->>'q', '') = ''
+      or strpos(lower(concat_ws(' ', nullif(a.brand, ''), nullif(a.hook, ''), nullif(a.ad_copy, ''),
+           nullif(a.platform, ''), nullif(array_to_string(a.tags, ' '), ''))), lower(p->>'q')) > 0)
+  order by
+    coalesce(a.tags @> array['recently-added'], false) desc,
+    case when p->>'sort' = 'longest' and jsonb_typeof(a.metrics->'days_running') = 'number'
+      then (a.metrics->>'days_running')::numeric end desc nulls last,
+    case when p->>'sort' = 'impressions'
+      then coalesce(public.sf_pos(a.metrics->>'impressions'), public.sf_pos(a.metrics->>'reach')) end desc nulls last,
+    case when p->>'sort' = 'roas' then public.sf_pos(a.metrics->>'roas') end desc nulls last,
+    case when p->>'sort' = 'ctr' then public.sf_pos(a.metrics->>'ctr') end desc nulls last,
+    case when p->>'sort' = 'spend' then public.sf_pos(a.metrics->>'spend') end desc nulls last,
+    case when p->>'sort' = 'cpc' then public.sf_pos(a.metrics->>'cpc') end asc nulls last,
+    a.created_at desc nulls last,
+    a.id desc
+$$;
+
+create or replace function public.library_facets()
+returns jsonb
+language sql stable security invoker set search_path = public as $$
+  select jsonb_build_object(
+    'total', (select count(*) from public.ads),
+    'proven', (select count(*) from public.ads a
+               where a.verdict = 'winner' or coalesce(public.sf_num(a.metrics->>'days_running'), 0) >= 30),
+    'starred', (select count(*) from public.ads a where a.metrics->'starred' = 'true'::jsonb),
+    'recent', (select count(*) from public.ads a where coalesce(a.tags @> array['recently-added'], false)),
+    'geo_checked', (select count(*) from public.ads a
+                    where coalesce(a.geo_status, a.metrics->>'geo_status', 'unknown') <> 'unknown'),
+    'countries', coalesce((select jsonb_agg(jsonb_build_object('code', code, 'count', n) order by n desc, code collate "C")
+                           from (select upper(trim(c)) as code, count(distinct a.id) as n
+                                 from public.ads a, unnest(a.countries) c
+                                 where trim(c) <> '' group by 1) x), '[]'::jsonb),
+    'tags', coalesce((select jsonb_agg(jsonb_build_object('tag', t, 'count', n) order by n desc, t collate "C")
+                      from (select t, count(*) as n from public.ads a, unnest(a.tags) t
+                            where t <> 'recently-added' and t <> ''
+                            group by t order by n desc, t collate "C" limit 50) y), '[]'::jsonb),
+    'angles', coalesce((select jsonb_agg(jsonb_build_object('angle', g, 'count', n) order by n desc, g collate "C")
+                        from (select a.metrics->>'angle' as g, count(*) as n from public.ads a
+                              where a.metrics->>'angle' is not null group by 1) z), '[]'::jsonb)
+  )
+$$;
+
+-- One call changes many ads. verdict writes the same marks as the app's
+-- humanVerdictPatch (verdict_by human, verdict_at), so importers leave it alone.
+create or replace function public.bulk_update_ads(p_ids uuid[], p_patch jsonb)
+returns integer
+language plpgsql security invoker set search_path = public as $$
+declare
+  v_verdict text := p_patch->>'verdict';
+  v_starred jsonb := p_patch->'starred';
+  v_add text[] := array(select jsonb_array_elements_text(coalesce(p_patch->'add_tags', '[]'::jsonb)));
+  v_remove text[] := array(select jsonb_array_elements_text(coalesce(p_patch->'remove_tags', '[]'::jsonb)));
+  v_count integer;
+begin
+  if p_ids is null or cardinality(p_ids) = 0 then return 0; end if;
+  if cardinality(p_ids) > 500 then
+    raise exception 'bulk_update_ads: at most 500 ads at a time' using errcode = '22023';
+  end if;
+  if v_verdict is not null and v_verdict not in ('unsure', 'winner', 'testing', 'loser') then
+    raise exception 'bulk_update_ads: unknown verdict %', v_verdict using errcode = '22023';
+  end if;
+  if v_starred is not null and jsonb_typeof(v_starred) <> 'boolean' then
+    raise exception 'bulk_update_ads: starred must be true or false' using errcode = '22023';
+  end if;
+  update public.ads a set
+    verdict = coalesce(v_verdict, a.verdict),
+    tags = case when cardinality(v_add) = 0 and cardinality(v_remove) = 0 then a.tags else array(
+      select s.t from (
+        select u.t, min(u.n) as n
+        from unnest(coalesce(a.tags, '{}') || v_add) with ordinality as u(t, n)
+        where u.t <> '' and not (u.t = any(v_remove))
+        group by u.t
+      ) s order by s.n) end,
+    metrics = coalesce(a.metrics, '{}'::jsonb)
+      || case when v_verdict is null then '{}'::jsonb else jsonb_build_object('verdict_by', 'human',
+           'verdict_at', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')) end
+      || case when v_starred is null then '{}'::jsonb else jsonb_build_object('starred', v_starred) end
+  where a.id = any(p_ids);
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+revoke all on function public.search_ads(jsonb) from public, anon;
+grant execute on function public.search_ads(jsonb) to authenticated;
+revoke all on function public.library_facets() from public, anon;
+grant execute on function public.library_facets() to authenticated;
+revoke all on function public.bulk_update_ads(uuid[], jsonb) from public, anon;
+grant execute on function public.bulk_update_ads(uuid[], jsonb) to authenticated;
+
+-- Dedupe lookups by Ad Library id (link paste, CSV import, capture).
+create index if not exists ads_library_id_idx on public.ads ((metrics->>'ad_library_id'));
 
 
 -- ============================ posts =================================
@@ -251,6 +447,15 @@ alter table public.briefs enable row level security;
 drop policy if exists briefs_team_all on public.briefs;
 create policy briefs_team_all on public.briefs
   for all to authenticated using (true) with check (true);
+
+-- Provenance and edits (0.3.0): which ads and hooks a brief came from, who
+-- asked for it, who changed it last. Safe to re-run.
+alter table public.briefs add column if not exists source_ad_ids uuid[] not null default '{}';
+alter table public.briefs add column if not exists source_hooks text[] not null default '{}';
+alter table public.briefs add column if not exists requested_by_email text;
+alter table public.briefs add column if not exists updated_at timestamptz;
+alter table public.briefs add column if not exists updated_by_email text;
+create index if not exists briefs_source_ads_gin on public.briefs using gin (source_ad_ids);
 
 
 -- ============================ goals =================================
@@ -624,6 +829,30 @@ comment on column public.trends_interest.value is '0-100, RELATIVE to the peak o
 comment on column public.trends_interest.has_data is 'false = Google reported no data for the bucket (it renders as 0 but is not a measured 0)';
 comment on column public.trends_interest.is_partial is 'true = Google marked the point incomplete; it will change on the next pull';
 comment on column public.trends_interest.scale_group is 'terms fetched in one comparison request share a normalisation basis; cross-group value comparison is meaningless';
+
+
+-- =========================== health ================================
+-- Read by the app's setup check (/setup): which version of this file ran, and
+-- whether the storage bucket exists and is private. Returns no user data, so
+-- it is callable before sign in. Bump schema_version together with
+-- EXPECTED_SCHEMA_VERSION in src/lib/setup/checks.js.
+--
+-- Versions: 1 = before 0.2, 2 = storage bucket and this health check,
+-- 3 = library search, brief sources, angle index (0.3.0).
+
+create or replace function public.swipefile_health()
+returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select jsonb_build_object(
+    'schema_version', 3,
+    'bucket_exists', exists (select 1 from storage.buckets where id = 'ad-media'),
+    'bucket_public', coalesce((select b.public from storage.buckets b where b.id = 'ad-media'), false)
+  );
+$$;
+revoke all on function public.swipefile_health() from public;
+grant execute on function public.swipefile_health() to anon, authenticated;
+comment on function public.swipefile_health() is 'Read by the app setup check. Returns no user data.';
 
 
 -- =========================== realtime ===============================

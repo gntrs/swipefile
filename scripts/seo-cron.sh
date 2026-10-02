@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Daily SEO rank + Google Trends pull. Same shape as ads-cron.sh.
 #
-# Enable with (WSL crontab, 07:20 daily - after ads-cron so the two do not
+# Enable with (crontab on your cron machine, 07:20 daily - after ads-cron so the two do not
 # fight over the Brave rate limit):
 #   (crontab -l 2>/dev/null; echo "20 7 * * * $HOME/swipefile/scripts/seo-cron.sh >> /tmp/seo-cron.log 2>&1") | crontab -
 #

@@ -1,4 +1,4 @@
-// Regenerate the PWA icons in public/ from the Tracker. mark.
+// Regenerate the PWA icons in public/ from the app mark (public/favicon.svg).
 // The PNGs are committed, so this only needs to run when the mark changes:
 //   npm i -D sharp --no-save && node scripts/make-icons.mjs
 // (sharp is deliberately not a dependency; it is only needed here.)
@@ -6,22 +6,25 @@ import sharp from 'sharp';
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Same glyph as public/favicon.svg: cream T + dot on coral, shapes only.
+// Same glyph as public/favicon.svg: three saved ads fanned out, the front one
+// with two lines of copy, on a 64 unit grid. Shapes only, no font.
 const GLYPH = `
-  <rect x="134" y="152" width="196" height="60" rx="30" fill="#FBF7F0"/>
-  <rect x="202" y="152" width="60" height="210" rx="30" fill="#FBF7F0"/>
-  <circle cx="346" cy="330" r="32" fill="#FBF7F0"/>`;
+  <rect x="13" y="15" width="28" height="36" rx="4" fill="#3A3A3A" transform="rotate(-8 27 51)"/>
+  <rect x="17" y="14" width="28" height="36" rx="4" fill="#8B8B8B" transform="rotate(-3 31 50)"/>
+  <rect x="22" y="14" width="28" height="36" rx="4" fill="#F4F4F5"/>
+  <rect x="27" y="22" width="14" height="3" rx="1.5" fill="#0A0A0A"/>
+  <rect x="27" y="28" width="9" height="3" rx="1.5" fill="#0A0A0A"/>`;
 
 // Full-bleed square: iOS rounds apple-touch-icon corners itself.
-const full = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#FF8C5A"/>${GLYPH}
+const full = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#0A0A0A"/>${GLYPH}
 </svg>`;
 
-// Maskable: shrink the glyph into the ~80% safe zone so round masks
+// Maskable: the mark scaled to 80% around the centre, so round masks
 // (Android launchers) never clip it.
-const maskable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#FF8C5A"/>
-  <g transform="translate(71.68 71.68) scale(0.72)">${GLYPH}</g>
+const maskable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#0A0A0A"/>
+  <g transform="translate(6.4 6.4) scale(0.8)">${GLYPH}</g>
 </svg>`;
 
 const out = (p) => path.resolve('public', p);

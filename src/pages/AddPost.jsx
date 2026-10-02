@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CaretLeft, UploadSimple } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
+import { MEDIA_BUCKET, mediaPathFor, validateFile, friendlyStorageError, removeMedia, uploadBody } from '@/lib/saveAd';
 
 const PLATFORMS = ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'Other'];
 const TYPES = ['post', 'story', 'reel', 'video', 'other'];
 const VERDICTS = ['unsure', 'winner', 'testing', 'loser'];
 const METRIC_KEYS = ['views', 'likes', 'comments', 'shares', 'saves', 'clicks', 'signups'];
 
-const field = 'w-full py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-coral bg-cream text-[14px]';
+const field = 'w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]';
 const label = 'text-[13px] font-semibold text-ink-soft mb-1 block';
 
 export default function AddPost() {
@@ -40,11 +41,20 @@ export default function AddPost() {
   const setMetric = (k) => (e) =>
     setMetrics((prev) => ({ ...prev, [k]: e.target.value === '' ? undefined : Number(e.target.value) }));
 
+  useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview]);
+
   const onFile = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setFile(file);
-    setPreview(URL.createObjectURL(file));
+    const picked = e.target.files?.[0];
+    e.target.value = '';
+    if (!picked) return;
+    const invalid = validateFile(picked);
+    if (invalid) {
+      setError(invalid.message);
+      return;
+    }
+    setError('');
+    setFile(picked);
+    setPreview(URL.createObjectURL(picked));
   };
 
   const submit = async (e) => {
@@ -54,10 +64,9 @@ export default function AddPost() {
     try {
       let media_path = null;
       if (file) {
-        const ext = file.name.split('.').pop();
-        const path = `${user.id}/post-${Date.now()}.${ext}`;
-        const { error: upErr } = await db.storage.from('ad-media').upload(path, file);
-        if (upErr) throw upErr;
+        const path = mediaPathFor(user.id, file);
+        const { error: upErr } = await db.storage.from(MEDIA_BUCKET).upload(path, uploadBody(file));
+        if (upErr) throw new Error(friendlyStorageError(upErr, { size: file.size }));
         media_path = path;
       }
       const cleanMetrics = Object.fromEntries(
@@ -84,7 +93,11 @@ export default function AddPost() {
         })
         .select()
         .single();
-      if (insErr) throw insErr;
+      if (insErr) {
+        // Do not leave the uploaded file behind when the row failed.
+        if (media_path) await removeMedia(media_path);
+        throw insErr;
+      }
       navigate(`/post/${data.id}`);
     } catch (err) {
       setError(err.message || 'Could not save.');
@@ -94,11 +107,11 @@ export default function AddPost() {
   };
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-[720px] mx-auto">
-      <button onClick={() => navigate('/posts')} className="flex items-center gap-1 text-ink-soft text-[14px] font-medium mb-4">
+    <div data-page="add-post" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[720px] mx-auto">
+      <button onClick={() => navigate('/posts')} className="flex items-center gap-1 min-h-[44px] text-ink-soft text-[14px] font-medium mb-4">
         <CaretLeft size={16} weight="bold" /> Posts
       </button>
-      <h1 className="text-[22px] font-semibold tracking-tight mb-5">
+      <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mb-5">
         {fromCompetitors ? 'Log a competitor post' : 'Log an organic post'}
       </h1>
 
@@ -187,7 +200,7 @@ export default function AddPost() {
         </div>
 
         {/* Optional screenshot */}
-        <label className="block bg-card border-2 border-dashed border-line rounded-xl3 p-4 text-center cursor-pointer hover:border-coral transition-colors">
+        <label className="block bg-card border-2 border-dashed border-line rounded-xl3 p-4 text-center cursor-pointer hover:border-accent transition-colors">
           {preview ? (
             <img src={preview} className="max-h-48 mx-auto rounded-2xl" alt="preview" />
           ) : (
@@ -204,7 +217,7 @@ export default function AddPost() {
         <button
           type="submit"
           disabled={busy}
-          className="press justify-self-start px-6 py-3 rounded-2xl bg-coral text-black font-semibold shadow-cta disabled:opacity-60"
+          className="press justify-self-start px-6 py-3 rounded-2xl bg-accent text-black font-semibold disabled:opacity-60"
         >
           {busy ? 'Saving...' : 'Save post'}
         </button>

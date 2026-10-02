@@ -1,4 +1,4 @@
-// Revenue -> Telegram hype alerts. Runs on the WSL cron right after
+// Revenue -> Telegram hype alerts. Runs from cron on your cron machine right after
 // stripe-pull.mjs lands fresh data, reads the `sales` table it fills, and buzzes
 // the phone on every NEW sale with a little summary + a motivating line. No email
 // - phone only. Edge-triggered on sale id, so no double-buzz, no spam.
@@ -165,12 +165,12 @@ async function sendTelegram(text) {
 if (TEST_PING) {
   const state = loadState();
   const msg =
-    `💰 new sale — €12\n` +
+    `💰 new sale: €12\n` +
     `Premium plan (monthly)\n\n` +
     `today: €48 · 4 sales\n` +
     `MRR: €320\n\n` +
     `${pickHype(HYPE, state)}\n\n` +
-    `(this is a test ping — if you can read it, revenue alerts reach your phone)`;
+    `(this is a test ping: if you can read it, revenue alerts reach your phone)`;
   await sendTelegram(msg);
   log('[revenue] test ping done');
   process.exit(0);
@@ -232,10 +232,10 @@ async function main() {
   let head;
   if (fresh.length === 1) {
     const s = fresh[0];
-    head = `💰 new sale — ${money(s.amount, s.currency)}` + (s.product ? `\n${s.product}` : '');
+    head = `💰 new sale: ${money(s.amount, s.currency)}` + (s.product ? `\n${s.product}` : '');
   } else {
     head =
-      `💰 ${fresh.length} new sales — ${money(freshTotal, primaryCcy)}\n` +
+      `💰 ${fresh.length} new sales: ${money(freshTotal, primaryCcy)}\n` +
       fresh.map((s) => `· ${money(s.amount, s.currency)}${s.product ? ` ${s.product}` : ''}`).join('\n');
   }
 

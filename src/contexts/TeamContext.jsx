@@ -1,6 +1,13 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { db } from '@/lib/db';
+import { db, isMissingTable } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
+
+let warned = false;
+function warnOnce(message) {
+  if (warned) return;
+  warned = true;
+  console.warn(message);
+}
 
 // Team profiles (nickname + avatar). Loaded once for everyone so any component
 // can resolve an email to a friendly display name and a profile picture.
@@ -27,7 +34,13 @@ export function TeamProvider({ children }) {
   const [members, setMembers] = useState([]);
 
   const refresh = useCallback(async () => {
-    const { data } = await db.from('team').select('*');
+    const { data, error } = await db.from('team').select('*');
+    if (error) {
+      // No team table yet (db-setup.sql not run): stay empty and quiet.
+      if (!isMissingTable(error)) warnOnce(`[team] load failed: ${error.message}`);
+      setMembers([]);
+      return;
+    }
     setMembers(data || []);
   }, []);
 
@@ -39,9 +52,10 @@ export function TeamProvider({ children }) {
     // Ensure my own row exists (first login), then load everyone.
     (async () => {
       try {
-        await db.from('team').upsert({ id: user.id, email: user.email }, { onConflict: 'id' });
-      } catch {
-        /* table may not exist yet (migration 3 not run) - app still works */
+        const { error } = await db.from('team').upsert({ id: user.id, email: user.email }, { onConflict: 'id' });
+        if (error && !isMissingTable(error)) warnOnce(`[team] profile row failed: ${error.message}`);
+      } catch (err) {
+        warnOnce(`[team] profile row failed: ${err?.message || err}`);
       }
       refresh();
     })();
@@ -49,8 +63,8 @@ export function TeamProvider({ children }) {
 
   const byEmail = new Map(members.map((m) => [m.email, m]));
   const me = user ? members.find((m) => m.id === user.id) || null : null;
-  // Role only unlocks extra UI (the pen). It is set via dashboard/service
-  // role, never from the app, and RLS does not gate on it.
+  // Role only unlocks extra UI (the pen). It is set with the service key
+  // (scripts/create-users.mjs), never from the app.
   const isAdmin = me?.role === 'admin';
 
   const displayName = (email) => {

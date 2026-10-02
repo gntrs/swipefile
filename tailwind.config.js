@@ -1,30 +1,32 @@
 /** @type {import('tailwindcss').Config} */
-// Black-and-white dark skin: a monochrome, high-contrast surface inspired by
-// the Superpower reference (big display numerals, near-black canvas, dark
-// rounded cards, hairline borders, a single white accent). The whole app is
-// driven by a handful of tokens, so remapping them here flips every screen.
+// Black and white, dark only. A near black canvas, slightly lighter cards that
+// need no border to stand apart, light ink, one white accent, and small radii.
+// Mono carries labels and numbers. Colour only ever means something: green is
+// good, red is bad, amber is a star or a warning. The whole app is driven by
+// these tokens, so changing them here changes every screen.
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
       colors: {
-        // The single accent is white (winners, CTAs, active states). On white
-        // surfaces the foreground goes black (see text-black swaps). `soft` is
-        // a near-black tint used behind the accent on dark cards.
-        coral: { DEFAULT: '#FFFFFF', dark: '#D4D4D4', soft: '#1C1C1C' },
-        cream: '#0A0A0A', // page canvas + in-card track fills (near-black)
+        // The single accent is white: primary buttons, active states, focus
+        // rings, progress fills. On a white surface the foreground goes black
+        // (see the text-black swaps). `dim` is the softer accent for links and
+        // secondary emphasis; `wash` is a near black tint behind the accent on
+        // dark cards (active nav rows, selected chips).
+        accent: { DEFAULT: '#FFFFFF', dim: '#D4D4D4', wash: '#1C1C1C' },
+        canvas: '#0A0A0A', // page background and in-card track fills (near black)
         ink: { DEFAULT: '#F4F4F5', soft: '#8B8B8B' }, // light body / muted secondary
         mint: { DEFAULT: '#22C978', dark: '#63EFA6' }, // good/proven: vivid green
-        line: '#262626', // dark hairline borders
-        card: '#161616', // elevated card surface (replaces bg-white)
+        line: '#262626', // hairlines: inputs, dividers, never around every card
+        // Cards sit on the canvas without a border. `hi` is the same card under
+        // the pointer or holding a pressed control.
+        card: { DEFAULT: '#161616', hi: '#1C1C1C' },
 
-        // Semantic ramps for a dark canvas. Only three meanings carry colour,
-        // and they are VIBRANT so they pop against the black - but still just
-        // three coordinated hues, not a rainbow: green = good/winner, red =
-        // bad/loser, gold = star/warn. Low shades (50/100) are dark tinted
-        // chip fills; high shades (600-900) are the bright text tones on them.
-        // Deep-merges over Tailwind defaults, so every existing utility
-        // repaints without touching files.
+        // Semantic ramps for a dark canvas. Only three meanings carry colour:
+        // green is good or winner, red is bad or loser, amber is a star or a
+        // warning. Low shades (50/100) are dark tinted fills; high shades are
+        // the bright text tones on them. They merge over Tailwind's defaults.
         emerald: {
           50: '#0E2419', 100: '#123024', 300: '#5FF0A6', 400: '#3FE48D',
           500: '#22C978', 600: '#4DEB97', 700: '#63EFA6', 900: '#9CF7C6',
@@ -38,62 +40,54 @@ export default {
           50: '#2A2109', 100: '#342A0C', 300: '#FFD866', 400: '#FFC53D',
           500: '#F5B420', 600: '#FFCF54', 700: '#FFD877',
         },
-        // Decorative hues stay cool grayscale so only the three meaningful
-        // accents pop; the rest of the UI reads black and white.
+        // There is no blue and no violet: both ramps are grays, so an old
+        // utility that asks for them still reads black and white.
         blue: { 50: '#191A1B', 500: '#3C3F42', 600: '#AFB4B9' },
         violet: { 50: '#1A191B', 600: '#B2AEB8' },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        // Numbers wear Geist Mono: tabular, technical, the digits line up and
-        // pop out of the surrounding text.
+        // Geist Mono for labels, meta, numbers and code. Numbers also take
+        // tabular-nums so columns line up.
         mono: ['Geist Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       boxShadow: {
-        // Dark-surface shadows: a 1px top highlight (the "lit edge" that makes
-        // a dark card look crafted rather than flat) plus deeper drops so cards
-        // separate from the canvas.
-        card: 'inset 0 1px 0 rgba(255,255,255,0.05), 0 1px 2px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.6)',
-        cardhover: 'inset 0 1px 0 rgba(255,255,255,0.07), 0 2px 4px rgba(0,0,0,0.5), 0 12px 30px rgba(0,0,0,0.7)',
-        cta: '0 2px 12px rgba(255,255,255,0.14)',
+        // Barely there. A card is lit on its top edge and nothing else; the
+        // hover state adds one soft drop. Buttons carry no glow.
+        card: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+        cardhover: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.45)',
+        cta: 'none',
       },
-      // Tighter than before (was 18/24): rounded, but not bubbly. Overrides
-      // Tailwind's 2xl/3xl too so every card/button de-puffs at once.
+      // Small radii: 8px on controls and chips, 10px on cards and sheets.
+      // Nothing is rounder except rounded-full on avatars, dots and status
+      // pills.
       borderRadius: {
-        xl2: '12px',
-        xl3: '16px',
-        '2xl': '12px',
-        '3xl': '16px',
+        xl: '8px',
+        xl2: '8px',
+        xl3: '10px',
+        '2xl': '8px',
+        '3xl': '10px',
       },
-      // Apple-style motion curves. `swift` is iOS's critically-damped ease
-      // (no overshoot) for taps and reveals; `spring` carries a little
-      // momentum overshoot, reserved for gestures that threw something.
+      // One easing for everything: fast out, no overshoot.
       transitionTimingFunction: {
         swift: 'cubic-bezier(0.32, 0.72, 0, 1)',
-        spring: 'cubic-bezier(0.34, 1.4, 0.5, 1)',
       },
       keyframes: {
-        // A plain opacity fade - for dimming scrims behind a modal, so the
-        // background pushes back while the surface itself materializes.
+        // A plain opacity fade, for the scrim behind a sheet or a modal.
         fade: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
-        // Cards ease up + fade in on mount - the "polished app" feel.
-        rise: {
-          '0%': { opacity: '0', transform: 'translateY(10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        // Glass/elevated surfaces don't just fade - they materialize: scale
-        // and blur resolve together so the surface reads as arriving.
+        // A surface that appears on its own (a modal, the login card): opacity
+        // and a small scale, nothing else.
         materialize: {
-          '0%': { opacity: '0', transform: 'scale(0.96)', filter: 'blur(6px)' },
-          '100%': { opacity: '1', transform: 'scale(1)', filter: 'blur(0)' },
+          '0%': { opacity: '0', transform: 'scale(0.98)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
         },
-        // Bottom sheet springs up from the edge it lives on (spatial origin).
+        // A bottom sheet comes in from the edge it lives on.
         sheetUp: {
-          '0%': { opacity: '0', transform: 'translateY(16px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+          '0%': { transform: 'translateY(100%)' },
+          '100%': { transform: 'translateY(0)' },
         },
         // Loading skeletons: a soft light sweep across the placeholder.
         shimmer: {
@@ -102,10 +96,9 @@ export default {
         },
       },
       animation: {
-        fade: 'fade 0.25s ease-out both',
-        rise: 'rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
+        fade: 'fade 0.18s cubic-bezier(0.32, 0.72, 0, 1) both',
         materialize: 'materialize 0.32s cubic-bezier(0.32, 0.72, 0, 1) both',
-        'sheet-up': 'sheetUp 0.4s cubic-bezier(0.34, 1.4, 0.5, 1) both',
+        'sheet-up': 'sheetUp 0.32s cubic-bezier(0.32, 0.72, 0, 1) both',
         shimmer: 'shimmer 1.4s ease-in-out infinite',
       },
     },
