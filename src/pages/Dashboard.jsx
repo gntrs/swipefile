@@ -3,121 +3,32 @@ import { Link } from 'react-router-dom';
 import { Plus } from '@phosphor-icons/react';
 import { db, fetchAll } from '@/lib/db';
 import PartialNotice from '@/components/PartialNotice';
-import { Skeleton, StatSkeleton } from '@/components/Skeleton';
-import { Page, PageHeader, Button, Panel, PanelLink, Section, Stat, Meta, EmptyState, GRID_STATS } from '@/components/ui';
+import { Skeleton } from '@/components/Skeleton';
+import { Page, PageHeader, Button, Section, GRID_HALVES } from '@/components/ui';
 import TeamChat from '@/components/TeamChat';
 import Goals from '@/components/Goals';
 import RevenueCard from '@/components/RevenueCard';
-import AdAnalytics from '@/components/AdAnalytics';
-import FunnelCard from '@/components/FunnelCard';
-import BarList from '@/components/charts/BarList';
+import KeyNumbers from '@/components/dashboard/KeyNumbers';
+import InsightsBlock from '@/components/dashboard/InsightsBlock';
+import CompetitorsBlock from '@/components/dashboard/CompetitorsBlock';
+import DeepLinks from '@/components/dashboard/DeepLinks';
 import { useTeam } from '@/contexts/TeamContext';
-import { isOn } from '@/lib/modules';
-import { isOwnBrand } from '@/lib/brand';
-import { hasPerformance } from '@/lib/ads';
-import { angleLabel, angleOf } from '@/lib/angles';
-import { dashboardSummary, winnerProof } from '@/lib/dashboard';
+import { isOn, MODULES } from '@/lib/modules';
+import { isOwnBrand, OWN_BRAND } from '@/lib/brand';
+import { dashboardSummary, topMetrics, nextActions, deepLinks } from '@/lib/dashboard';
+import { ownAdsSummary } from '@/lib/insights';
+import { rivalAds, rivalBoard, newPlays, provenPlays, angleMix } from '@/lib/rivals';
 import { shortDate } from '@/features/ai/dates';
 
-// The home screen: the four numbers that say how the swipe file is doing, what
-// is working right now, which angles the winners use, and which rivals are
-// busy. Ops and team cards follow only when those modules are on.
+// The home screen as an info panel: the key numbers on top, then your
+// insights and the competitors as the two main areas, then links one tap
+// deeper. Revenue and team follow only when those modules are on.
 
 function greetingFor() {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
   if (h < 18) return 'Good afternoon';
   return 'Good evening';
-}
-
-// The calm line a block shows when it has nothing to say, plus the one thing
-// to do about it.
-function Empty({ text, to, action }) {
-  return <EmptyState text={text} action={to && <Button to={to}>{action}</Button>} />;
-}
-
-function Working({ summary }) {
-  if (!summary.total)
-    return <Empty text="Save your first ad, then mark the ones that work as winners." to="/ads/add" action="Add an ad" />;
-  if (!summary.working.length)
-    return <Empty text="No winners yet. Open an ad you trust and call it a winner." to="/ads" action="Open the library" />;
-  return (
-    <ol className="divide-y divide-line -mt-2">
-      {summary.working.map((ad) => {
-        const angle = angleOf(ad);
-        const meta = [ad.brand, winnerProof(ad), angle ? angleLabel(angle) : null];
-        return (
-          <li key={ad.id}>
-            <Link to={`/ad/${ad.id}`} className="group block py-3 min-h-[44px]">
-              <p className="text-body font-medium text-ink line-clamp-2 text-pretty group-hover:text-accent-dim transition-colors">
-                {ad.hook || 'Untitled ad'}
-              </p>
-              <Meta as="p" items={meta} className="text-small text-ink-soft mt-0.5 truncate" />
-            </Link>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-function Angles({ summary }) {
-  if (!summary.winners)
-    return <Empty text="Angles show up here once you have winners." to="/ads" action="Open the library" />;
-  if (!summary.angles.length)
-    return <Empty text="Your winners have no angle yet. Tag one from its ad page." to="/ads?verdict=winner" action="See the winners" />;
-  const rows = summary.angles.slice(0, 6);
-  const rest = summary.angles.slice(6).reduce((n, r) => n + r.count, 0);
-  return (
-    <>
-      <BarList
-        caption="Winning ads per angle, all time"
-        className="-mt-1"
-        rows={rows.map((r) => ({
-          key: r.id,
-          label: r.label,
-          value: r.count,
-          to: `/ads?verdict=winner&angle=${encodeURIComponent(r.id)}`,
-          tip: `of ${summary.winners} ${summary.winners === 1 ? 'winner' : 'winners'} (${Math.round((r.count / summary.winners) * 100)}%)`,
-        }))}
-      />
-      {rest > 0 && (
-        <p className="text-small text-ink-soft mt-2">
-          {rest} more {rest === 1 ? 'winner' : 'winners'} in {summary.angles.length - 6} other{' '}
-          {summary.angles.length - 6 === 1 ? 'angle' : 'angles'}
-        </p>
-      )}
-      {summary.noAngle > 0 && (
-        <p className="text-small text-ink-soft mt-3">
-          {summary.noAngle} {summary.noAngle === 1 ? 'winner has' : 'winners have'} no angle yet
-        </p>
-      )}
-    </>
-  );
-}
-
-function Rivals({ summary }) {
-  const track = isOn('competitors') ? '/competitors' : '/ads/add';
-  if (!summary.rivals.length)
-    return <Empty text="No rival is running ads you saved. Track a brand to see who is busy." to={track} action="Track a rival" />;
-  return (
-    <ul className="divide-y divide-line -mt-2">
-      {summary.rivals.slice(0, 5).map((r) => (
-        <li key={r.brand}>
-          <Link
-            to={`/ads?who=rivals&q=${encodeURIComponent(r.brand)}`}
-            className="group flex items-center justify-between gap-4 min-h-[48px] py-1.5"
-          >
-            <span className="text-body text-ink truncate group-hover:text-accent-dim transition-colors">{r.brand}</span>
-            <Meta
-              items={[`${r.running} running`, r.fresh ? `${r.fresh} saved in 30d` : null]}
-              className="text-small text-ink-soft flex-shrink-0 whitespace-nowrap"
-            />
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
 }
 
 // Newest brief as one line under the greeting. Nothing when there is none or
@@ -168,24 +79,16 @@ function LoadingGrid() {
   return (
     <div aria-busy="true">
       <span className="sr-only">Loading...</span>
-      <div className={GRID_STATS}>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <StatSkeleton key={i} />
+      <KeyNumbers loading />
+      <div className={`${GRID_HALVES} mt-4 lg:mt-6`}>
+        {[0, 1].map((k) => (
+          <div key={k} className="bg-card rounded-xl3 p-5 lg:p-6 space-y-4">
+            <Skeleton className="w-32 h-4" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="w-full h-10" />
+            ))}
+          </div>
         ))}
-      </div>
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-6 mt-4 lg:mt-6">
-        <div className="xl:col-span-7 bg-card rounded-xl3 p-5 lg:p-6 space-y-4">
-          <Skeleton className="w-32 h-4" />
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="w-full h-10" />
-          ))}
-        </div>
-        <div className="xl:col-span-5 bg-card rounded-xl3 p-5 lg:p-6 space-y-4">
-          <Skeleton className="w-28 h-4" />
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="w-full h-6" />
-          ))}
-        </div>
       </div>
     </div>
   );
@@ -212,14 +115,33 @@ export default function Dashboard() {
     };
   }, [reload]);
 
-  const summary = useMemo(() => dashboardSummary(ads, { isOwn: isOwnBrand, top: 7 }), [ads]);
+  const competitors = isOn('competitors');
+  const ownBrandSet = Boolean(OWN_BRAND);
+  const panel = useMemo(() => {
+    const now = Date.now();
+    const isOwn = isOwnBrand;
+    return {
+      summary: dashboardSummary(ads, { isOwn, now, top: 3 }),
+      metrics: topMetrics({ ads, isOwn, ownBrandSet, now, competitorsOn: competitors }),
+      actions: nextActions({ ads, isOwn, now, limit: 2 }),
+      own: ownBrandSet ? ownAdsSummary(ads, { isOwn }) : null,
+      rivalCount: competitors ? rivalAds(ads, isOwn).length : 0,
+      board: competitors ? rivalBoard(ads, { isOwn, now }) : null,
+      fresh: competitors ? newPlays(ads, { isOwn, now, liveOnly: true, limit: 3 }) : [],
+      proven: competitors ? provenPlays(ads, { isOwn, now, limit: 3 }) : [],
+      mix: competitors ? angleMix(ads, { isOwn, now, set: 'running' }) : null,
+    };
+  }, [ads, competitors, ownBrandSet]);
+  const links = useMemo(
+    () => deepLinks({ ads, isOwn: isOwnBrand, modules: MODULES, latestBrief: brief, now: Date.now() }),
+    [ads, brief],
+  );
   const dateLabel = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
   const myName = me?.nickname || '';
   const team = isOn('team');
   const ops = isOn('ops');
   const opsData = useOpsData(ops);
-  const ownPerf = useMemo(() => ads.some((a) => isOwnBrand(a.brand) && hasPerformance(a)), [ads]);
-  const showOps = ops && (opsData.sales > 0 || opsData.snapshots > 0 || ownPerf);
+  const showRevenue = ops && (opsData.sales > 0 || opsData.snapshots > 0);
 
   const briefDate = brief ? shortDate(brief.created_at) : '';
 
@@ -260,53 +182,38 @@ export default function Dashboard() {
         <LoadingGrid />
       ) : (
         <>
-          <div className={GRID_STATS}>
-            <Stat label="Ads saved" value={summary.total} to="/ads" />
-            <Stat label="Winners" value={summary.winners} to="/ads?verdict=winner" />
-            <Stat label="Running now" value={summary.running} to="/ads?sort=longest" />
-            <Stat label="New this week" value={summary.newThisWeek} to="/ads" />
+          {panel.summary.total > 0 && <KeyNumbers metrics={panel.metrics} />}
+
+          <div className={`${GRID_HALVES} ${panel.summary.total > 0 ? 'mt-4 lg:mt-6' : ''}`}>
+            <InsightsBlock
+              actions={panel.actions}
+              own={panel.own}
+              ownBrandSet={ownBrandSet}
+              summary={panel.summary}
+              wide={!competitors}
+            />
+            {competitors && (
+              <CompetitorsBlock
+                rivalCount={panel.rivalCount}
+                board={panel.board}
+                fresh={panel.fresh}
+                proven={panel.proven}
+                mix={panel.mix}
+              />
+            )}
           </div>
 
-          <div className={`grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-6 mt-4 lg:mt-6 ${summary.working.length ? '' : 'items-start'}`}>
-            <Panel
-              title="What is working"
-              className="xl:col-span-7"
-              action={summary.working.length > 0 && <PanelLink to="/ads?verdict=winner">All winners</PanelLink>}
-            >
-              <Working summary={summary} />
-            </Panel>
-
-            <div className="xl:col-span-5 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-4 lg:gap-6 items-start min-w-0">
-              <Panel
-                title="Winners by angle"
-                action={isOn('hooks') && summary.angles.length > 0 && <PanelLink to="/hooks">Hook bank</PanelLink>}
-              >
-                <Angles summary={summary} />
-              </Panel>
-              {isOn('competitors') && (
-                <Panel
-                  title="Busy rivals"
-                  action={summary.rivals.length > 0 && <PanelLink to="/competitors">All rivals</PanelLink>}
-                >
-                  <Rivals summary={summary} />
-                </Panel>
-              )}
+          {showRevenue && (
+            <div className="mt-4 lg:mt-6 min-w-0">
+              <RevenueCard />
             </div>
-          </div>
-
-          {showOps && (
-            <Section title="Performance">
-              <div className="grid grid-cols-1 gap-4 lg:gap-6 min-w-0">
-                {(opsData.sales > 0 || opsData.snapshots > 0) && <RevenueCard />}
-                {ownPerf && <AdAnalytics ads={ads} />}
-                {opsData.snapshots > 0 && <FunnelCard />}
-              </div>
-            </Section>
           )}
+
+          <DeepLinks links={links} />
 
           {team && (
             <Section title="Team">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-start min-w-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 items-start min-w-0">
                 <TeamChat />
                 <Goals />
               </div>

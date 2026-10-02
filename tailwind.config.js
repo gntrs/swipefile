@@ -25,9 +25,20 @@ const STATUS = {
   live: '#F4F4F5',
 };
 const STATUS_TEXT = { good: '#80E2B9', warn: '#F9BE79', bad: '#FFADAC' };
+// A change between two periods. good and bad are the status text tints under a
+// name that says what they are for; flat is the neutral grey, for no change and
+// for a change that has no better direction (a rival running more ads).
+const DELTA = { good: STATUS_TEXT.good, bad: STATUS_TEXT.bad, flat: STATUS.neutral };
+// Heat cells: five steps of the neutral bar grey, ordinal only. 0 is the bare
+// track (no mark), 5 is the same grey as viz.bar. Checked with the dataviz
+// validator on the card and the canvas: the ramp passes the ordinal checks.
+const HEAT = { 0: '#262626', 1: '#4A4A4A', 2: '#6A6A6A', 3: '#8C8C8C', 4: '#AFAFAF', 5: '#D4D4D4' };
 
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  // A hover style applies only on a device that can hover, so a tap never
+  // leaves one stuck on a phone.
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     extend: {
       colors: {
@@ -48,6 +59,10 @@ export default {
         status: { ...STATUS, 'good-text': STATUS_TEXT.good, 'warn-text': STATUS_TEXT.warn, 'bad-text': STATUS_TEXT.bad },
         // Magnitude: a bar, its track, and the hairline grid of a plot.
         viz: { bar: '#D4D4D4', 'bar-hi': '#FFFFFF', track: '#262626', grid: '#262626' },
+        // Arrow and number of a change (see Delta.jsx), and the heat ramp
+        // (see HeatStrip.jsx). Both mirrored as css vars in index.css.
+        delta: DELTA,
+        heat: HEAT,
 
         // The older ramp names now point at the same status tokens, so a
         // utility that still asks for emerald, red or amber gets the checked
@@ -78,6 +93,8 @@ export default {
         h2: ['1.375rem', { lineHeight: '1.25', letterSpacing: '-0.02em', fontWeight: '700' }],
         h1: ['clamp(1.75rem, 1.4rem + 0.8vw, 2rem)', { lineHeight: '1.1', letterSpacing: '-0.025em', fontWeight: '700' }],
         num: ['1rem', { lineHeight: '1.25' }],
+        // The value in a key number cell (KpiGroup).
+        'num-md': ['1.375rem', { lineHeight: '1.15', letterSpacing: '-0.02em' }],
         'num-lg': ['clamp(1.75rem, 1.4rem + 0.9vw, 2.25rem)', { lineHeight: '1', letterSpacing: '-0.02em' }],
       },
       boxShadow: {

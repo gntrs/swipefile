@@ -9,10 +9,11 @@ import AvailabilityEditor from '@/components/AvailabilityEditor';
 import { Page, PageHeader, Button, IconButton, Chip } from '@/components/ui';
 
 // The three things a teammate can say about a slot. Always shown WITH a label,
-// never colour alone. `solid` = filled (selected button), `block` = soft fill
+// never colour alone. None of them is good or bad, so none is green: in office
+// is the neutral grey, home the white accent, out the dim track. `solid` = filled (selected button), `block` = soft fill
 // for the block on the grid, `dot` = legend dot.
 const STATUSES = [
-  { key: 'in_office', label: 'In office', solid: 'bg-mint text-black', block: 'bg-mint/50 border-mint text-ink', dot: 'bg-mint' },
+  { key: 'in_office', label: 'In office', solid: 'bg-status-neutral text-black', block: 'bg-status-neutral/35 border-status-neutral text-ink', dot: 'bg-status-neutral' },
   { key: 'wfh', label: 'Home', full: 'Work from home', solid: 'bg-accent text-black', block: 'bg-accent-wash border-accent text-accent-dim', dot: 'bg-accent' },
   { key: 'out', label: 'Out', solid: 'bg-ink text-black', block: 'bg-canvas border-line text-ink-soft', dot: 'bg-ink-soft/60' },
 ];

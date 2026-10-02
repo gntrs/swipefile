@@ -134,7 +134,7 @@ export default function AdCard({ ad, selectable = false, selected = false, onTog
   );
 
   const content = (
-    <div className={`flex-1 flex flex-col px-5 pt-4 pb-5 ${selectable ? 'pl-12' : ''}`}>
+    <div className={`flex-1 flex flex-col ${selectable ? 'pl-12 pr-5 lg:pr-6' : 'px-5 lg:px-6'} pt-4 pb-5 lg:pb-6`}>
       {/* who it is, and the one control that matters */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 min-h-[24px]">

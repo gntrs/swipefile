@@ -92,3 +92,42 @@ export function nearestIndex(series, fraction) {
   const f = Math.min(1, Math.max(0, Number(fraction) || 0));
   return Math.round(f * (n - 1));
 }
+
+// Which of the five heat steps a value takes on a shared scale. 0 is the bare
+// track and only ever means zero (or nothing known). From 1 the steps spread
+// evenly up to the scale maximum, so 1 is the lowest real count and max is 5.
+export function heatStep(value, max) {
+  const v = Number(value);
+  if (value === null || value === undefined || !Number.isFinite(v) || v <= 0) return 0;
+  const m = Number(max);
+  if (!Number.isFinite(m) || m <= 1) return 5;
+  return Math.min(5, Math.max(1, 1 + Math.round(((v - 1) / (m - 1)) * 4)));
+}
+
+// Whole percents for the parts of a total that add up to exactly 100, by the
+// largest remainder: every part is floored, then the points left over go to
+// the largest remainders (the earlier part wins a tie). A zero, negative or
+// missing part stays 0. All zero gives all 0.
+export function splitShares(values) {
+  const list = Array.isArray(values) ? values : [];
+  if (!list.length) return [];
+  const clean = list.map((v) => {
+    const n = Number(v);
+    return v !== null && Number.isFinite(n) && n > 0 ? n : 0;
+  });
+  const total = clean.reduce((a, b) => a + b, 0);
+  if (!(total > 0)) return clean.map(() => 0);
+  const raw = clean.map((v) => (v / total) * 100);
+  const out = raw.map(Math.floor);
+  let left = 100 - out.reduce((a, b) => a + b, 0);
+  const order = raw
+    .map((r, i) => ({ i, rem: r - Math.floor(r) }))
+    .filter((x) => clean[x.i] > 0)
+    .sort((a, b) => b.rem - a.rem || a.i - b.i);
+  for (const { i } of order) {
+    if (left <= 0) break;
+    out[i] += 1;
+    left -= 1;
+  }
+  return out;
+}

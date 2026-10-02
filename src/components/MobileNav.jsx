@@ -4,8 +4,10 @@ import { DotsThreeOutline } from '@phosphor-icons/react';
 import { mobileTabs, moreItems } from '@/lib/nav';
 import Sheet from '@/components/ui/Sheet';
 
-// The tab bar under lg: four primary tabs spread evenly across the bar, plus
-// More for the rest. A plain, tappable bottom nav, everything is one tap.
+// The tab bar under lg: Home, Ads, Insights and Rivals spread evenly across
+// the bar, plus More for the rest (Hooks and Posts live there). A plain,
+// tappable bottom nav, everything is one tap. On a phone held sideways the
+// bar keeps clear of the notch on either side.
 // Both lists come from src/lib/nav.js, filtered by the modules that are on.
 const TABS = mobileTabs();
 
@@ -54,7 +56,7 @@ export default function MobileNav() {
 
       <nav
         aria-label="Main"
-        className="lg:hidden fixed bottom-0 inset-x-0 z-50 h-[var(--tabbar-h)] bg-canvas/95 border-t border-line flex items-stretch px-1 pb-[env(safe-area-inset-bottom)]"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-50 h-[var(--tabbar-h)] bg-canvas/95 border-t border-line flex items-stretch pl-[max(0.25rem,env(safe-area-inset-left))] pr-[max(0.25rem,env(safe-area-inset-right))] pb-[env(safe-area-inset-bottom)]"
       >
         {TABS.map(({ to, short, icon: Icon, end }) => (
           <NavLink key={to} to={to} end={end} className={({ isActive }) => tabCls(isActive)}>

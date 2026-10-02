@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchAll, isMissingTable } from '@/lib/db';
 import PartialNotice from '@/components/PartialNotice';
-import { parseFunnelStages, DEFAULT_FUNNEL_STAGES, funnelSummary, windowStart } from '@/lib/funnel';
+import { parseFunnelStages, DEFAULT_FUNNEL_STAGES, funnelSummary, windowStart, visitsWindow } from '@/lib/funnel';
 import { dailySeries } from '@/lib/charts';
 import { RowsSkeleton } from '@/components/Skeleton';
-import { Panel, Notice } from '@/components/ui';
+import { Panel, Notice, Delta } from '@/components/ui';
 import BarList from '@/components/charts/BarList';
 import LineChart from '@/components/charts/LineChart';
 
@@ -33,25 +33,30 @@ export default function FunnelCard() {
   const [rows, setRows] = useState(null); // null = loading, [] = empty/no table
   const [reload, setReload] = useState(0);
   const from = windowStart(WINDOW);
+  // Two windows are read, so the visits line can compare this one with the
+  // one before. The funnel and the line use the current window only.
+  const fetchFrom = windowStart(2 * WINDOW);
 
   useEffect(() => {
     let mounted = true;
-    fetchAll((q) => q.gte('day', from).order('day', { ascending: true }), 'kpi_snapshots')
+    fetchAll((q) => q.gte('day', fetchFrom).order('day', { ascending: true }), 'kpi_snapshots')
       .then((data) => mounted && setRows(data))
       .catch(() => mounted && setRows([]));
     return () => {
       mounted = false;
     };
-  }, [reload, from]);
+  }, [reload, fetchFrom]);
 
   // A missing table is the setup note below, not a load failure.
   const partial = rows?.error && !isMissingTable(rows.error) ? rows : null;
 
-  const funnel = useMemo(() => funnelSummary(rows || [], STAGES), [rows]);
+  const current = useMemo(() => (Array.isArray(rows) ? rows.filter((r) => String(r?.day || '') >= from) : []), [rows, from]);
+  const funnel = useMemo(() => funnelSummary(current, STAGES), [current]);
   const visitors = useMemo(
-    () => dailySeries(rows || [], { from, to: new Date(), value: (r) => r.metrics?.traffic?.visitors }),
-    [rows, from],
+    () => dailySeries(current, { from, to: new Date(), value: (r) => r.metrics?.traffic?.visitors }),
+    [current, from],
   );
+  const visits = useMemo(() => visitsWindow(rows || [], { days: WINDOW }), [rows]);
   const visitorDays = visitors.reduce((s, p) => s + (p.value || 0), 0);
 
   return (
@@ -63,42 +68,54 @@ export default function FunnelCard() {
       <PartialNotice rows={partial} noun="days" onRetry={() => setReload((n) => n + 1)} className="mb-4" />
       {rows === null ? (
         <RowsSkeleton rows={2} className="!bg-transparent" />
-      ) : rows.length === 0 ? (
+      ) : current.length === 0 ? (
         <Notice tone="info">
-          No snapshots yet. Apply <code className="font-mono text-small">db-setup.sql</code>, then the daily cron (or{' '}
+          {rows.length > 0 ? `No snapshot in the last ${WINDOW} days. ` : 'No snapshots yet. '}Apply <code className="font-mono text-small">db-setup.sql</code>, then the daily cron (or{' '}
           <code className="font-mono text-small">node scripts/snapshot-kpis.mjs</code>) fills this in.
         </Notice>
       ) : (
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div className="min-w-0">
-            <BarList
-              caption={`Events per step, summed over the last ${WINDOW} days`}
-              rows={funnel.stages.map((s) => ({
-                key: s.key,
-                label: s.label,
-                value: s.value,
-                display: s.value.toLocaleString(),
-                aside: s.ofPrev == null ? null : `${pct(s.ofPrev)}% of above`,
-                tip: s.ofPrev == null ? 'events, the first step' : `events, ${pct(s.ofPrev)}% of the step above`,
-              }))}
-            />
-            <p className="text-small text-ink-soft mt-3">
-              Counts events, not people, so a step can pass 100% of the one above.
-            </p>
-          </div>
-          <div className="min-w-0">
-            <LineChart
-              series={visitors}
-              unit="visitors"
-              label={`Visitors per day, last ${WINDOW} days`}
-            />
-            {visitorDays > 0 && (
-              <p className="text-small text-ink-soft mt-3">
-                {visitorDays.toLocaleString()} visits in total, a returning visitor counted once per day.
-              </p>
+        <>
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-6 text-body text-ink">
+            <span>
+              <span className="num">{visits.cur.toLocaleString()}</span> visits in the last {WINDOW} days
+            </span>
+            {visits.delta ? (
+              <Delta delta={visits.delta} format={(n) => n.toLocaleString()} period={`vs the ${WINDOW} days before`} showPeriod />
+            ) : (
+              <span className="text-small text-ink-soft">not enough days before to compare</span>
             )}
+          </p>
+          <div className="grid gap-8 lg:grid-cols-2">
+            <div className="min-w-0">
+              <BarList
+                caption={`Events per step, summed over the last ${WINDOW} days`}
+                rows={funnel.stages.map((s) => ({
+                  key: s.key,
+                  label: s.label,
+                  value: s.value,
+                  display: s.value.toLocaleString(),
+                  aside: s.ofPrev == null ? null : `${pct(s.ofPrev)}% of above`,
+                  tip: s.ofPrev == null ? 'events, the first step' : `events, ${pct(s.ofPrev)}% of the step above`,
+                }))}
+              />
+              <p className="text-small text-ink-soft mt-3">
+                Counts events, not people, so a step can pass 100% of the one above.
+              </p>
+            </div>
+            <div className="min-w-0">
+              <LineChart
+                series={visitors}
+                unit="visitors"
+                label={`Visitors per day, last ${WINDOW} days`}
+              />
+              {visitorDays > 0 && (
+                <p className="text-small text-ink-soft mt-3">
+                  {visitorDays.toLocaleString()} visits in total, a returning visitor counted once per day.
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </Panel>
   );

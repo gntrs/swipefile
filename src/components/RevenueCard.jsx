@@ -3,8 +3,8 @@ import { Sparkle, X } from '@phosphor-icons/react';
 import { db, fetchAll } from '@/lib/db';
 import { confettiBurst } from '@/lib/confetti';
 import { triggerCelebration } from '@/lib/celebration';
-import { Panel, Badge, Meta, Notice, IconButton } from '@/components/ui';
-import { revenueStats } from '@/lib/revenue';
+import { Panel, Badge, Meta, Notice, IconButton, Delta } from '@/components/ui';
+import { revenueStats, revenueWindow } from '@/lib/revenue';
 
 // The money counter. YT-subscriber-counter energy: lifetime revenue GENERATED
 // (not what was paid out), MRR, sales today, and confetti the moment a new
@@ -106,6 +106,9 @@ export default function RevenueCard() {
   }, []);
 
   const stats = useMemo(() => revenueStats(sales, summary), [sales, summary]);
+  // The last 30 days against the 30 before, in the card's currency. Up is
+  // good: the change is green going up and red going down.
+  const recent = useMemo(() => revenueWindow(sales, { days: 30, currency: stats.currency }), [sales, stats.currency]);
 
   // Ready once the first load has rendered; from then on a change is live.
   const ready = useRef(false);
@@ -185,6 +188,25 @@ export default function RevenueCard() {
               </p>
             )}
           </div>
+          <p className="col-span-2 sm:col-span-4 flex flex-wrap items-center gap-x-3 gap-y-1 pt-4 border-t border-line text-body text-ink">
+            <span>
+              Last 30 days{' '}
+              <span className="num">
+                {sym(stats.currency)}
+                {(recent.cur ?? 0).toFixed(2)}
+              </span>
+            </span>
+            {recent.delta ? (
+              <Delta
+                delta={recent.delta}
+                format={(n) => `${sym(stats.currency)}${n.toFixed(2)}`}
+                period="vs the 30 days before"
+                showPeriod
+              />
+            ) : (
+              <span className="text-small text-ink-soft">no sales before this window to compare</span>
+            )}
+          </p>
         </div>
       )}
 

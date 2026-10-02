@@ -115,17 +115,20 @@ export default function LineChart({ series, unit, format = (v) => v.toLocaleStri
           <span>{fmtDay(series[series.length - 1].day)}</span>
         </div>
       </div>
-      <table className="sr-only">
-        <caption>{label}</caption>
-        <tbody>
-          {series.map((p) => (
-            <tr key={p.day}>
-              <th scope="row">{p.day}</th>
-              <td>{p.value == null ? 'no data' : format(p.value)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* The wrapper carries sr-only: a table ignores a 1px width and would push the page sideways. */}
+      <div className="sr-only">
+        <table>
+          <caption>{label}</caption>
+          <tbody>
+            {series.map((p) => (
+              <tr key={p.day}>
+                <th scope="row">{p.day}</th>
+                <td>{p.value == null ? 'no data' : format(p.value)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }

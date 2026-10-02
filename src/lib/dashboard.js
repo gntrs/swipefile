@@ -115,3 +115,333 @@ export function dashboardSummary(input, { now = Date.now(), isOwn = () => false,
     rivals,
   };
 }
+
+// ---------------------------------------------------------------------------
+// The info panel: key numbers, the things to act on, and the links one tap
+// deeper. Pure, `now` passed in, built on the rival and insight rules so the
+// dashboard and the deep pages always print the same numbers.
+import { VERDICT_RULES, geoStatus } from './ads.js';
+import { ownAdsSummary, libraryCounts } from './insights.js';
+import { rivalAds, rivalKpis, provenPlays, brandSlug } from './rivals.js';
+import { formatMoneyShort, formatPct, currencySymbol } from './format.js';
+
+const PERIOD_POINT = 'now against 30 days ago';
+const PERIOD_WINDOW = 'the last 30 days against the 30 before';
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// A number from a number or numeric string; null, blanks and booleans are
+// unknown, not zero.
+const val = (v) => (v === null || v === undefined || v === '' || typeof v === 'boolean' ? null : num(v));
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const ownFn = (isOwn) => (typeof isOwn === 'function' ? isOwn : () => false);
+const nowMs = (now) => {
+  const t = typeof now === 'number' ? now : Date.parse(now ?? '');
+  return Number.isFinite(t) ? t : Date.now();
+};
+
+// Money in a sentence: whole amounts without cents (€95, €240), anything else
+// the key number rule (€18.50, €12.4k).
+export function moneyText(n, currency = 'eur') {
+  const v = val(n);
+  if (v === null) return '-';
+  const r = Math.round(v * 100) / 100;
+  if (Number.isInteger(r) && Math.abs(r) < 10000) {
+    return `${r < 0 ? '-' : ''}${currencySymbol(currency)}${Math.abs(r).toLocaleString('en-US')}`;
+  }
+  return formatMoneyShort(v, currency);
+}
+
+const statusFoot = (band) => band && { kind: 'status', tone: band.tone, word: band.label };
+const textFoot = (text) => ({ kind: 'text', text });
+
+function ownCells(own) {
+  const cur = own.currency;
+  const cells = [
+    {
+      id: 'spend',
+      label: 'Spend',
+      value: own.totalSpend,
+      display: formatMoneyShort(own.totalSpend, cur),
+      to: '/insights#money',
+      foot: textFoot(plural(own.rows.length, 'ad')),
+      srText: null,
+    },
+    own.roas.value != null && {
+      id: 'roas',
+      label: 'ROAS',
+      value: own.roas.value,
+      display: own.roas.value.toFixed(2),
+      to: '/insights#money',
+      foot: statusFoot(own.roasBand),
+      srText: own.roasBand ? `${own.roasBand.basis}, on ${plural(own.roas.ads, 'ad')}` : null,
+    },
+    own.blendedCtr != null && {
+      id: 'ctr',
+      label: 'CTR',
+      value: own.blendedCtr,
+      display: formatPct(own.blendedCtr),
+      to: '/insights#ads',
+      foot: statusFoot(own.ctrBand),
+      srText: own.ctrBand ? own.ctrBand.basis : null,
+    },
+    own.blendedCpc != null && {
+      id: 'cpc',
+      label: 'CPC',
+      value: own.blendedCpc,
+      display: formatMoneyShort(own.blendedCpc, cur),
+      to: '/insights#ads',
+      foot: textFoot(plural(own.cpcAds, 'ad')),
+      srText: null,
+    },
+  ];
+  return cells.filter(Boolean).slice(0, 3);
+}
+
+function libraryCells(ads, now) {
+  const lib = libraryCounts(ads, { now });
+  return [
+    {
+      id: 'saved',
+      label: 'Saved, 30d',
+      value: lib.saved.value,
+      display: String(lib.saved.value ?? '-'),
+      to: '/ads',
+      foot: lib.saved.delta ? { kind: 'delta', delta: lib.saved.delta, period: PERIOD_WINDOW } : null,
+      srText: null,
+    },
+    {
+      id: 'winners',
+      label: 'Winners',
+      value: lib.winners,
+      display: String(lib.winners),
+      to: '/ads?verdict=winner',
+      foot: textFoot(`${lib.winnersLive} still live`),
+      srText: null,
+    },
+    {
+      id: 'starred',
+      label: 'Starred',
+      value: lib.starred,
+      display: String(lib.starred),
+      to: '/ads?starred=1',
+      foot: textFoot('shortlist'),
+      srText: null,
+    },
+  ];
+}
+
+function rivalCells(ads, isOwn, now) {
+  const k = rivalKpis(ads, { isOwn, now, days: 30 });
+  const anyDated = k.running.dated > 0;
+  const deltaFoot = (delta, period) => (delta ? { kind: 'delta', delta, period } : null);
+  let runningFoot;
+  if (!anyDated) runningFoot = textFoot('no start dates yet');
+  else if (!k.running.comparable) runningFoot = textFoot(`no start dates on ${plural(k.running.undatedRunning, 'ad')}`);
+  else runningFoot = deltaFoot(k.running.delta, PERIOD_POINT);
+  const cell = (id, label, value, to, foot) => ({ id, label, value, display: String(value), to, foot, srText: null });
+  return [
+    cell('running', 'Running now', k.running.value, '/competitors#activity', runningFoot),
+    cell('launched', 'New, 30d', k.launched.value, '/competitors#plays',
+      anyDated ? deltaFoot(k.launched.delta, PERIOD_WINDOW) : textFoot('no start dates yet')),
+    cell('proven', 'Live 60d+', k.provenLive.value, '/competitors#plays',
+      anyDated ? deltaFoot(k.provenLive.delta, PERIOD_POINT) : textFoot('no start dates yet')),
+  ];
+}
+
+// The two key number groups. "Your ads" when your brand is set and your ads
+// carry spend (totals as imported, so a band or a count, never a change),
+// else "Your library". "Rivals" only with the competitors module on and at
+// least one rival ad.
+export function topMetrics({ ads, isOwn, ownBrandSet = true, now = Date.now(), competitorsOn = true } = {}) {
+  const t = nowMs(now);
+  const own = ownFn(isOwn);
+  const list = clean(ads);
+  const summary = ownBrandSet ? ownAdsSummary(list, { isOwn: own }) : null;
+  const you = summary?.hasNumbers
+    ? { id: 'ads', title: 'Your ads', meta: 'as imported, no history', cells: ownCells(summary) }
+    : { id: 'library', title: 'Your library', meta: 'vs 30 days ago', cells: libraryCells(list, t) };
+  const rivals =
+    competitorsOn && rivalAds(list, own).length
+      ? { title: 'Rivals', meta: 'vs 30 days ago', cells: rivalCells(list, own, t) }
+      : null;
+  return { you, rivals };
+}
+
+const adName = (ad) => ad?.metrics?.ad_name || ad?.hook || 'Untitled ad';
+const isOwnWithSpend = (own) => (ad) => own(ad?.brand) && val(ad?.metrics?.spend) !== null;
+const currencyOf = (ad) => (typeof ad?.metrics?.currency === 'string' && ad.metrics.currency.trim() ? ad.metrics.currency.trim().toLowerCase() : 'eur');
+
+// What to do next, most urgent first: a loser still spending, the best own
+// winner to build on, a test with too little spend to read, a rival ad that
+// just passed 60 days live, winners with no angle. Each kind once at most.
+export function nextActions({ ads, isOwn, now = Date.now(), limit = 2 } = {}) {
+  const t = nowMs(now);
+  const own = ownFn(isOwn);
+  const list = clean(ads);
+  const mine = list.filter(isOwnWithSpend(own));
+  const out = [];
+  const spendOf = (ad) => val(ad.metrics.spend) ?? 0;
+
+  const losing = mine
+    .filter((a) => a.verdict === 'loser' && isRunning(a) && spendOf(a) >= VERDICT_RULES.OWN_KILL_SPEND)
+    .sort((a, b) => spendOf(b) - spendOf(a))[0];
+  if (losing) {
+    const m = losing.metrics;
+    const roas = val(m.roas);
+    const ctr = val(m.ctr);
+    const read = roas !== null ? `ROAS ${roas.toFixed(1)}` : ctr !== null ? `CTR ${ctr.toFixed(1)}%` : null;
+    const spent = `${moneyText(spendOf(losing), currencyOf(losing))} spent`;
+    out.push({
+      id: 'losing-running',
+      tone: 'bad',
+      word: 'Losing',
+      title: `${adName(losing)} is losing and still running`,
+      detail: read ? `${read} on ${spent}` : spent,
+      to: `/ad/${losing.id}`,
+    });
+  }
+
+  const best = mine
+    .filter((a) => a.verdict === 'winner')
+    .sort(
+      (a, b) =>
+        (val(b.metrics.roas) ?? -1) - (val(a.metrics.roas) ?? -1) || (val(b.metrics.ctr) ?? -1) - (val(a.metrics.ctr) ?? -1),
+    )[0];
+  if (best) {
+    const m = best.metrics;
+    const roas = val(m.roas);
+    const ctr = val(m.ctr);
+    const money = moneyText(spendOf(best), currencyOf(best));
+    const read = roas !== null ? `ROAS ${roas.toFixed(1)} on ${money}` : ctr !== null ? `CTR ${ctr.toFixed(1)}% on ${money}` : `${money} spent`;
+    const angle = angleOf(best);
+    out.push({
+      id: 'winner-build',
+      tone: 'good',
+      word: 'Winning',
+      title: `${adName(best)} is your best ad`,
+      detail: `${read}${angle ? `, ${angleLabel(angle)}` : ''}. Brief a variation.`,
+      to: `/ad/${best.id}`,
+    });
+  }
+
+  const noRead = mine
+    .filter((a) => a.verdict === 'testing' && isRunning(a) && spendOf(a) < VERDICT_RULES.OWN_MIN_SPEND)
+    .sort((a, b) => spendOf(b) - spendOf(a))[0];
+  if (noRead) {
+    const cur = currencyOf(noRead);
+    out.push({
+      id: 'no-read',
+      tone: 'warn',
+      word: 'No read yet',
+      title: `${adName(noRead)} has too little spend to read`,
+      detail: `${moneyText(spendOf(noRead), cur)} spent, a read needs ${moneyText(VERDICT_RULES.OWN_MIN_SPEND, cur)}`,
+      to: `/ad/${noRead.id}`,
+    });
+  }
+
+  const fresh = provenPlays(list, { isOwn: own, now: t })
+    .filter((p) => p.newlyProven)
+    .sort((a, b) => a.days - b.days)[0];
+  if (fresh) {
+    const brand = String(fresh.ad.brand).trim();
+    out.push({
+      id: 'rival-proven',
+      tone: 'good',
+      word: 'Newly proven',
+      title: `${brand} has kept one ad live for ${fresh.days} days`,
+      detail: fresh.ad.hook ? `"${fresh.ad.hook}"` : 'Past 60 days live, worth a look',
+      to: `/ad/${fresh.ad.id}`,
+      slug: brandSlug(brand),
+    });
+  }
+
+  const untagged = list.filter((a) => isWinner(a) && !angleOf(a)).length;
+  if (untagged) {
+    out.push({
+      id: 'untagged-winners',
+      tone: 'neutral',
+      word: 'Untagged',
+      title: `${untagged === 1 ? '1 winner has' : `${untagged} winners have`} no angle yet`,
+      detail: 'Tag the angle so it counts in the angle split',
+      to: '/ads?verdict=winner',
+    });
+  }
+
+  const n = Number.isInteger(limit) && limit >= 0 ? limit : 2;
+  return out.slice(0, n);
+}
+
+const moduleOn = (modules) => {
+  if (typeof modules === 'function') return modules;
+  if (modules instanceof Set) return (id) => modules.has(id);
+  if (Array.isArray(modules)) return (id) => modules.includes(id);
+  return () => false;
+};
+
+const dayMonth = (value) => {
+  const t = Date.parse(value ?? '');
+  if (!Number.isFinite(t)) return null;
+  const d = new Date(t);
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+};
+
+// The tiles one tap deeper, each with one fact. Insights always, the rest per
+// module.
+export function deepLinks({ ads, isOwn, modules, latestBrief = null, now = Date.now() } = {}) {
+  const t = nowMs(now);
+  const own = ownFn(isOwn);
+  const on = moduleOn(modules);
+  const list = clean(ads);
+  const out = [];
+
+  const summary = ownAdsSummary(list, { isOwn: own });
+  const winners = list.filter(isWinner).length;
+  out.push({
+    id: 'insights',
+    to: '/insights',
+    label: 'Insights',
+    fact: summary.hasNumbers
+      ? `${plural(summary.rows.length, 'ad')}, ${summary.rows.filter((r) => r.verdict === 'winner').length} winning`
+      : plural(winners, 'winner'),
+  });
+
+  if (on('competitors')) {
+    const rivals = rivalAds(list, own);
+    const running = rivals.length ? rivalKpis(list, { isOwn: own, now: t }).brandsRunning : 0;
+    out.push({
+      id: 'competitors',
+      to: '/competitors',
+      label: 'Competitors',
+      fact: !rivals.length ? 'No rival tracked yet' : running ? `${plural(running, 'rival')} running ads` : 'No rival running ads',
+    });
+  }
+
+  if (on('intel')) {
+    const eu = list.filter((a) => geoStatus(a) === 'eu').length;
+    out.push({
+      id: 'intel',
+      to: '/intel',
+      label: 'Market intel',
+      fact: eu ? `${plural(eu, 'ad')} ran in the EU` : 'Search ranks and demand',
+    });
+  }
+
+  if (on('hooks')) {
+    const hooks = list.filter((a) => typeof a.hook === 'string' && a.hook.trim());
+    const tagged = hooks.filter((a) => angleOf(a)).length;
+    out.push({
+      id: 'hooks',
+      to: '/hooks',
+      label: 'Hook bank',
+      fact: hooks.length ? `${plural(hooks.length, 'hook')}, ${tagged} with an angle` : 'No hooks yet',
+    });
+  }
+
+  if (on('briefs')) {
+    const date = dayMonth(latestBrief?.created_at);
+    out.push({ id: 'briefs', to: '/briefs', label: 'Briefs', fact: date ? `Latest ${date}` : 'No brief yet' });
+  }
+
+  return out;
+}
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { barPct } from '@/lib/charts';
 
@@ -11,8 +11,16 @@ import { barPct } from '@/lib/charts';
 // rows: [{ key, label, value, display?, muted?, tip?, to?, aside? }]
 // max:  the scale maximum; defaults to the largest value, so the longest bar
 //       is the largest row and every other bar is its true fraction of it.
+//
+// The tip opens on a mouse hover, on keyboard focus, and on a tap: a row
+// without a link toggles its tip when tapped, so nothing lives only in a
+// hover. A row with a link opens its page instead, which prints the detail.
 export default function BarList({ rows, max, caption, className = '' }) {
   const [hover, setHover] = useState(null);
+  // Whether the tapped row's tip was already open when the finger went down.
+  // Focus lands between pointer down and click and opens it, so the click
+  // must know what it was before to toggle it the right way.
+  const wasOpen = useRef(false);
   const top = max ?? Math.max(0, ...rows.map((r) => Number(r.value) || 0));
   return (
     <figure className={`min-w-0 ${className}`}>
@@ -51,12 +59,38 @@ export default function BarList({ rows, max, caption, className = '' }) {
             </>
           );
           const cls = 'relative block py-2 min-h-[44px] -mx-2 px-2 rounded-xl';
+          // Enter and leave only for a mouse: on touch a leave fires right
+          // after the tap and would close the tip it just opened.
           const on = {
-            onPointerEnter: () => setHover(r.key),
-            onPointerLeave: () => setHover((k) => (k === r.key ? null : k)),
+            onPointerEnter: (e) => {
+              if (e.pointerType === 'mouse') setHover(r.key);
+            },
+            onPointerLeave: (e) => {
+              if (e.pointerType === 'mouse') setHover((k) => (k === r.key ? null : k));
+            },
             onFocus: () => setHover(r.key),
             onBlur: () => setHover((k) => (k === r.key ? null : k)),
           };
+          const tap = r.tip
+            ? {
+                // A mouse already opened the tip on hover, so its click
+                // leaves it alone; a finger toggles it.
+                onPointerDown: (e) => {
+                  wasOpen.current = e.pointerType === 'mouse' ? 'mouse' : hover === r.key;
+                },
+                onClick: () => {
+                  if (wasOpen.current === 'mouse') return;
+                  setHover(wasOpen.current ? null : r.key);
+                },
+                onKeyDown: (e) => {
+                  if (e.key !== 'Enter' && e.key !== ' ') return;
+                  e.preventDefault();
+                  setHover((k) => (k === r.key ? null : r.key));
+                },
+                role: 'button',
+                'aria-expanded': hover === r.key,
+              }
+            : {};
           return (
             <li key={r.key}>
               {r.to ? (
@@ -64,7 +98,7 @@ export default function BarList({ rows, max, caption, className = '' }) {
                   {body}
                 </Link>
               ) : (
-                <span className={cls} {...on} tabIndex={r.tip ? 0 : undefined}>
+                <span className={`${cls} ${r.tip ? 'cursor-pointer' : ''}`} {...on} {...tap} tabIndex={r.tip ? 0 : undefined}>
                   {body}
                 </span>
               )}

@@ -80,10 +80,10 @@ export default function TrackCompetitors() {
         type="button"
         aria-expanded={openForm}
         onClick={() => setOpenForm(!openForm)}
-        className="w-full min-h-[44px] flex items-center gap-4 px-5 lg:px-6 py-4 text-left rounded-xl3 hover:bg-white/[0.02] transition-colors focus-visible:!outline-offset-[-2px]"
+        className="w-full min-h-[44px] flex items-start gap-4 px-5 lg:px-6 py-5 lg:py-6 text-left rounded-xl3 hover:bg-white/[0.02] transition-colors focus-visible:!outline-offset-[-2px]"
       >
         <span className="flex-1 min-w-0">
-          <span className="block text-title text-ink">Auto tracked</span>
+          <span className="flex items-center min-h-[28px] text-title text-ink">Auto tracked</span>
           <span className="block text-small text-ink-soft mt-0.5">
             {rows.length
               ? `${rows.filter((r) => r.active).length} of ${rows.length} scraped daily from the Meta Ad Library`
@@ -94,7 +94,7 @@ export default function TrackCompetitors() {
           size={16}
           weight="bold"
           aria-hidden="true"
-          className={`text-ink-soft flex-shrink-0 transition-transform ${openForm ? 'rotate-180' : ''}`}
+          className={`text-ink-soft flex-shrink-0 mt-1.5 transition-transform ${openForm ? 'rotate-180' : ''}`}
         />
       </button>
 

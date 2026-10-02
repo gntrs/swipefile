@@ -169,3 +169,25 @@ describe('dashboardSummary on the demo seed', () => {
     expect(s.rivals.map((r) => r.brand)).not.toContain('Driftwood Oats');
   });
 });
+
+describe('dashboard.js alongside the panel additions', () => {
+  it('keeps the existing exports when rivals.js and insights.js load first', async () => {
+    await import('../src/lib/rivals.js');
+    await import('../src/lib/insights.js');
+    const mod = await import('../src/lib/dashboard.js');
+    for (const name of ['dashboardSummary', 'isRunning', 'isWinner', 'winnerProof', 'topMetrics', 'nextActions', 'deepLinks']) {
+      expect(typeof mod[name]).toBe('function');
+    }
+  });
+  it('still gives the seed summary the panel builds on', () => {
+    const s = dashboardSummary(buildSeed(NOW).tables.ads, { now: NOW, isOwn: (b) => b === 'Driftwood Oats', top: 3 });
+    expect(s.working.map((a) => a.brand)).toEqual(['Quillfox', 'Lumen Loop', 'Northpaw']);
+    expect(s.angles.slice(0, 4).map((r) => [r.label, r.count])).toEqual([
+      ['Social proof', 2],
+      ['Authority', 1],
+      ['Curiosity', 1],
+      ['Identity', 1],
+    ]);
+    expect(s.noAngle).toBe(1);
+  });
+});

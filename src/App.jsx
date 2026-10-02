@@ -21,6 +21,8 @@ const AddPost = lazy(() => import('@/pages/AddPost'));
 const PostDetail = lazy(() => import('@/pages/PostDetail'));
 const Outreach = lazy(() => import('@/pages/Outreach'));
 const Competitors = lazy(() => import('@/pages/Competitors'));
+const CompetitorDetail = lazy(() => import('@/pages/CompetitorDetail'));
+const Insights = lazy(() => import('@/pages/Insights'));
 const HookBank = lazy(() => import('@/pages/HookBank'));
 const Briefs = lazy(() => import('@/pages/Briefs'));
 const Intel = lazy(() => import('@/pages/Intel'));
@@ -99,7 +101,9 @@ export default function App() {
         <Route path="posts/add" element={gated('team', <AddPost />)} />
         <Route path="post/:id" element={gated('team', <PostDetail />)} />
         <Route path="outreach" element={gated('team', <Outreach />)} />
+        <Route path="insights" element={page(<Insights />)} />
         <Route path="competitors" element={gated('competitors', <Competitors />)} />
+        <Route path="competitors/:slug" element={gated('competitors', <CompetitorDetail />)} />
         <Route path="hooks" element={gated('hooks', <HookBank />)} />
         <Route path="briefs" element={gated('briefs', <Briefs />)} />
         <Route path="intel" element={gated('intel', <Intel />)} />

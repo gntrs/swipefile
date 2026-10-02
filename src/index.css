@@ -6,7 +6,9 @@
   color-scheme: dark;
   /* One container for every page, gutters included. */
   --maxw: 1220px;
-  --gutter: clamp(20px, 4vw, 48px);
+  /* A phone on its side puts the notch on the left or right: the gutter grows
+     to clear it. */
+  --gutter: max(clamp(20px, 4vw, 48px), env(safe-area-inset-left), env(safe-area-inset-right));
   /* The sidebar: 240px at a 16px root, 262.5 at 17.5. */
   --nav-w: 15rem;
   /* The phone tab bar. Fixed bottom bars sit on top of it. */
@@ -29,6 +31,16 @@
   --viz-grid: #262626;
   --viz-axis: #8b8b8b;
   --viz-surface: #161616;
+  /* A change between two periods, and the heat ramp (tailwind delta, heat). */
+  --delta-good: #80e2b9;
+  --delta-bad: #ffadac;
+  --delta-flat: #8b8b8b;
+  --heat-0: #262626;
+  --heat-1: #4a4a4a;
+  --heat-2: #6a6a6a;
+  --heat-3: #8c8c8c;
+  --heat-4: #afafaf;
+  --heat-5: #d4d4d4;
 }
 @media (min-width: 1024px) {
   :root {
@@ -47,6 +59,9 @@
    move, so touch targets never shrink. */
 html {
   font-size: 16px;
+  /* Turning a phone sideways must not blow the text up. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 @media (min-width: 1200px) {
   html {

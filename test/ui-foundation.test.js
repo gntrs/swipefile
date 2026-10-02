@@ -211,3 +211,27 @@ describe('ui primitives', () => {
     expect(ui.GRID_CARDS).toContain('min-[1800px]:grid-cols-4');
   });
 });
+
+describe('ui primitives for the info panel', () => {
+  it('exports the new parts from ui/index next to every old one', () => {
+    for (const name of ['KpiGroup', 'Delta', 'deltaSentence', 'StatusDot', 'ScrollRow', 'SectionNav', 'useHashScroll', 'GRID_HALVES', 'SECTION_ANCHOR']) {
+      expect(ui[name], name).toBeDefined();
+    }
+    for (const name of ['Page', 'PageHeader', 'Panel', 'PanelLink', 'Section', 'Stat', 'Metrics', 'Badge', 'Segmented', 'GRID_CARDS', 'GRID_STATS', 'GRID_SPLIT', 'useMedia', 'useIsDesktop', 'LG_QUERY']) {
+      expect(ui[name], name).toBeDefined();
+    }
+  });
+
+  it('adds num-md to the type scale for key numbers', () => {
+    expect(config.theme.extend.fontSize['num-md'][0]).toBe('1.375rem');
+  });
+
+  it('no primitive animates in: none uses an animation utility', () => {
+    for (const file of ['Kpi.jsx', 'Delta.jsx', 'StatusDot.jsx', 'ScrollRow.jsx', 'SectionNav.jsx']) {
+      expect(read(`src/components/ui/${file}`), file).not.toMatch(/animate-|@keyframes/);
+    }
+    for (const file of ['SplitBar.jsx', 'HeatStrip.jsx']) {
+      expect(read(`src/components/charts/${file}`), file).not.toMatch(/animate-|transition/);
+    }
+  });
+});

@@ -112,6 +112,11 @@ export default function Layout() {
         </div>
       </aside>
 
+      {/* Under lg a solid canvas strip covers the status bar and the notch,
+          so content scrolling up under it never shows through. Its height is
+          the safe area, 0 where there is none. */}
+      <div aria-hidden="true" className="lg:hidden fixed top-0 inset-x-0 z-40 h-[env(safe-area-inset-top)] bg-canvas pointer-events-none" />
+
       {/* Main is the one scroller (the library keys and scroll to top query
           it). Safe-area padding keeps content clear of the notch, and the
           bottom padding clears the tab bar on phones and tablets.
@@ -126,8 +131,8 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* The tab bar under lg: four primary tabs spread evenly, plus a More
-          sheet for the rest. One tap each. */}
+      {/* The tab bar under lg: Home, Ads, Insights, Rivals spread evenly,
+          plus a More sheet for the rest. One tap each. */}
       <MobileNav />
     </div>
   );
