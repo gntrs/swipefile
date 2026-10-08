@@ -6,6 +6,7 @@ node_modules
 
 .DS_Store
 .claude-data
+.claude/
 
 public/memes/*
 !public/memes/.gitkeep

@@ -262,9 +262,10 @@ describe('attachMedia', () => {
     const { client, calls } = stub({ uploadError });
     calls.update = [];
     client.from = (table) => ({
+      // select comes before the filter, see src/lib/byId.js.
       update: (values) => ({
-        eq: (col, val) => ({
-          select: async (cols) => {
+        select: (cols) => ({
+          eq: async (col, val) => {
             calls.update.push({ table, values, where: [col, val], cols });
             if (updateThrows) throw new Error('socket hang up');
             return update;

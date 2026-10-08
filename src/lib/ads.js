@@ -1,4 +1,5 @@
 import { db } from './db.js';
+import { byId } from './byId.js';
 
 // Star lives in the ads.metrics jsonb (metrics.starred) rather than its own
 // column, so it works with zero schema migration - and the daily importers
@@ -6,7 +7,7 @@ import { db } from './db.js';
 // re-import. Team-wide (this is a shared internal tool).
 export async function setStarred(ad, starred) {
   const metrics = { ...(ad.metrics || {}), starred };
-  const { error } = await db.from('ads').update({ metrics }).eq('id', ad.id);
+  const { error } = await byId(db.from('ads').update({ metrics }), ad.id);
   if (error) console.warn('[star] update failed:', error.message);
   return !error;
 }

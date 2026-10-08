@@ -1,13 +1,12 @@
-// Live product health monitor. Runs from cron on your cron machine every ~30 min,
-// 24/7, independent of any SSH/Claude session. Watches the REAL product's
-// PostHog stream for the failure classes that have actually bitten us, and on
-// a NEW break fires two ways: (1) an email via Mailjet, (2) one line into the
-// dashboard team chat so the whole team sees it. Edge-triggered - one alert on
-// break, one on recovery, no repeat spam while it stays down.
+// Live product health monitor. Runs from cron every ~30 min, 24/7,
+// independent of any SSH session. Watches your product's PostHog stream for
+// common silent failures, and on a NEW break fires two ways: (1) an email via
+// Mailjet, (2) one line into the dashboard team chat so the whole team sees it.
+// Edge-triggered: one alert on break, one on recovery, no repeat spam while it
+// stays down.
 //
-// WHY THIS EXISTS: on Jun 10-13 /api/chat died silently - pageviews + signups
-// kept coming but message_sent was 0 for THREE DAYS and nobody noticed until it
-// cost a whole FB-group wave. PostHog dashboards don't page you. This does.
+// WHY THIS EXISTS: a core feature can die silently while pageviews and signups
+// keep coming. PostHog dashboards don't page you. This does.
 //
 // WHAT IT WATCHES (all over a rolling window, default 3h):
 //   1. chat_dead      - 0 message_sent while real traffic is flowing (THE big one)
@@ -249,7 +248,7 @@ async function postChat(message) {
 
 // ---- safe auto-fixes + live prod probes ------------------------------------
 // Deliberately conservative. Everything here is safe to run unattended at 4am
-// with nobody watching: it reads, it probes, it wakes a sleeping dyno. It does
+// with nobody watching: it reads, it probes, it wakes a sleeping server. It does
 // NOT touch prod code, git, or deploys - a bad unattended "fix" turns a 20min
 // outage into a weekend. Same line ads-cron.sh already holds.
 const PROD_API = (process.env.HEALTH_PROD_API || "").replace(/\/$/, '');
@@ -270,11 +269,11 @@ async function probeUrl(url, timeoutMs = 60000) {
   }
 }
 
-// The Render backend is on the FREE plan, which sleeps after ~15min idle and
-// takes ~50s to cold start. That cold start looks exactly like an outage to a
-// user - and to us. Probing it IS the remediation: it wakes the dyno. So this
-// runs on every break and the result goes into the page, which means a "chat
-// dead" caused purely by a sleeping dyno self-heals and tells you it did.
+// Free tier backends often sleep when idle and take ~50s to cold start. That
+// cold start looks exactly like an outage to a user. Probing it IS the
+// remediation: it wakes the server. So this runs on every break and the result
+// goes into the alert, which means a "chat dead" caused purely by a sleeping
+// server self-heals and tells you it did.
 async function runSafeAutoFixes() {
   let [api, web] = await Promise.all([
     probeUrl(`${PROD_API}/health`, 60000),
@@ -440,7 +439,7 @@ async function main() {
   }
 
   // Probes run EVERY tick now: they're what decides site_down (2 cheap requests),
-  // and as a bonus they nudge the sleepy Render free dyno.
+  // and as a bonus they wake a sleeping free tier server.
   const probe = await runSafeAutoFixes();
 
   const results = evaluate(w, errBaseline, probe);

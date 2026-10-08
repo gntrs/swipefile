@@ -15,17 +15,22 @@ function stub({ rpcResult = { data: 1, error: null }, failFor = [], deleteError 
       return typeof rpcResult === 'function' ? rpcResult(args) : rpcResult;
     },
     from: () => ({
+      // select comes before the filter, see src/lib/byId.js.
       update: (patch) => ({
-        eq: async (col, id) => {
-          calls.update.push({ id, patch });
-          return failFor.includes(id) ? { error: { message: `nope ${id}` } } : { error: null };
-        },
+        select: () => ({
+          eq: async (col, id) => {
+            calls.update.push({ id, patch });
+            return failFor.includes(id) ? { error: { message: `nope ${id}` } } : { error: null };
+          },
+        }),
       }),
       delete: () => ({
-        in: async (col, ids) => {
-          calls.delete.push(ids);
-          return deleteError ? { error: deleteError } : { error: null };
-        },
+        select: () => ({
+          in: async (col, ids) => {
+            calls.delete.push(ids);
+            return deleteError ? { error: deleteError } : { error: null };
+          },
+        }),
       }),
     }),
     storage: { from: () => ({ remove: async (paths) => { calls.remove.push(...paths); return { error: null }; } }) },
@@ -102,13 +107,15 @@ describe('bulk actions on the older SQL (function missing)', () => {
       rpc: async () => MISSING,
       from: () => ({
         update: () => ({
-          eq: async () => {
-            active++;
-            peak = Math.max(peak, active);
-            await new Promise((r) => setTimeout(r, 2));
-            active--;
-            return { error: null };
-          },
+          select: () => ({
+            eq: async () => {
+              active++;
+              peak = Math.max(peak, active);
+              await new Promise((r) => setTimeout(r, 2));
+              active--;
+              return { error: null };
+            },
+          }),
         }),
       }),
     };
@@ -124,7 +131,7 @@ describe('bulk actions on the older SQL (function missing)', () => {
     expect(client.calls.update[1].patch).toEqual({ tags: ['b', 'c'] });
   });
   it('a throwing client is a failure, not a crash', async () => {
-    const client = { rpc: async () => MISSING, from: () => ({ update: () => ({ eq: async () => { throw new Error('offline'); } }) }) };
+    const client = { rpc: async () => MISSING, from: () => ({ update: () => ({ select: () => ({ eq: async () => { throw new Error('offline'); } }) }) }) };
     const r = await bulkStar([ad(1)], true, { client });
     expect(r.failed).toEqual([{ id: 'id-1', message: 'offline' }]);
   });

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowSquareOut, Check, Copy, X } from '@phosphor-icons/react';
 import { fetchAll } from '@/lib/db';
+import { copyText } from '@/lib/copyText';
 import PartialNotice from '@/components/PartialNotice';
 import { isOwnBrand } from '@/lib/brand';
 import { ANGLE_IDS, angleLabel } from '@/lib/angles';
@@ -48,17 +49,17 @@ const isOurs = (a) => isOwnBrand(a.brand);
 const isProven = (a) => a.verdict === 'winner' || (a.metrics?.days_running ?? 0) >= 30;
 
 function CopyButton({ text }) {
-  const [copied, setCopied] = useState(false);
+  const [state, setState] = useState('idle'); // idle | copied | failed
   return (
     <IconButton
-      label={copied ? 'Copied' : 'Copy hook'}
-      icon={copied ? Check : Copy}
-      onClick={() => {
-        navigator.clipboard?.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1200);
+      label={state === 'copied' ? 'Copied' : state === 'failed' ? 'Copy failed, select the text' : 'Copy hook'}
+      icon={state === 'copied' ? Check : Copy}
+      onClick={async () => {
+        const ok = await copyText(text);
+        setState(ok ? 'copied' : 'failed');
+        setTimeout(() => setState('idle'), ok ? 1200 : 2500);
       }}
-      className={copied ? '!text-emerald-300' : ''}
+      className={state === 'copied' ? '!text-emerald-300' : state === 'failed' ? '!text-red-300' : ''}
     />
   );
 }
