@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { DotsThreeOutline } from '@phosphor-icons/react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { DotsThreeOutline, SignOut } from '@phosphor-icons/react';
 import { mobileTabs, moreItems } from '@/lib/nav';
 import Sheet from '@/components/ui/Sheet';
+import { useAuth } from '@/contexts/AuthContext';
+import { IS_DEMO } from '@/lib/db';
 
 // The tab bar under lg: Home, Ads, Insights and Rivals spread evenly across
 // the bar, plus More for the rest (Hooks and Posts live there). A plain,
@@ -21,6 +23,8 @@ const tabCls = (on) =>
 
 export default function MobileNav() {
   const [moreOpen, setMoreOpen] = useState(false);
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const loc = useLocation();
   const { pathname } = loc;
   const isMoreItemActive = (m) =>
@@ -52,6 +56,24 @@ export default function MobileNav() {
             );
           })}
         </ul>
+        {/* Under lg the sidebar is hidden, so sign out sits at the foot of
+            More, after Profile. Demo mode has nothing to sign out of, and the
+            demo banner already says how to connect. */}
+        {!IS_DEMO && (
+          <div className="-mx-2 mt-4">
+            <button
+              type="button"
+              onClick={async () => {
+                setMoreOpen(false);
+                await signOut();
+                navigate('/login');
+              }}
+              className="press w-full flex items-center gap-3 min-h-[52px] px-3 rounded-xl text-body font-medium text-ink-soft hover:text-ink hover:bg-white/[0.04] transition-colors"
+            >
+              <SignOut size={20} aria-hidden="true" /> Sign out
+            </button>
+          </div>
+        )}
       </Sheet>
 
       <nav
