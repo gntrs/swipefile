@@ -29,6 +29,7 @@ import {
   inputCls,
   selectCls,
 } from '@/components/ui';
+import { byId } from '@/lib/byId';
 
 const VERDICT_TONE = { winner: 'good', loser: 'bad', testing: 'warn', unsure: 'neutral' };
 
@@ -126,7 +127,7 @@ export default function AdDetail() {
     const before = ad;
     setActionError('');
     setAd((a) => ({ ...a, ...fields }));
-    const { error } = await db.from('ads').update(fields).eq('id', id);
+    const { error } = await byId(db.from('ads').update(fields), id);
     if (error) {
       setAd(before);
       setActionError(`Could not save: ${error.message}`);
@@ -140,7 +141,7 @@ export default function AdDetail() {
     if (!confirm('Delete this ad?')) return;
     setActionError('');
     setDeleting(true);
-    const { error } = await db.from('ads').delete().eq('id', id);
+    const { error } = await byId(db.from('ads').delete(), id);
     if (error) {
       setDeleting(false);
       setActionError(`Could not delete: ${error.message}`);

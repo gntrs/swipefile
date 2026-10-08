@@ -8,6 +8,9 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },
   },
+  // Tests never read your .env: with one, src/lib/db.js would build a live
+  // client and the results would depend on whose machine runs them.
+  envDir: process.env.VITEST ? path.resolve(__dirname, 'test') : undefined,
   server: { port: 3100 },
   build: {
     rollupOptions: {

@@ -1,5 +1,6 @@
 import { db } from './db.js';
 import { VERDICTS, STATUSES } from './ads.js';
+import { byId } from './byId.js';
 
 // Saving an ad, in one place. Every way into the swipe file (the Add form, a
 // multi file drop, CSV import, capture) goes through saveAd so uploads are
@@ -152,7 +153,7 @@ export async function attachMedia(adId, file, { user, client = db } = {}) {
   const upload = await uploadMedia(file, { user, client });
   let result;
   try {
-    result = await client.from('ads').update({ media_path: upload.path, format: upload.format }).eq('id', adId).select('id');
+    result = await byId(client.from('ads').update({ media_path: upload.path, format: upload.format }), adId);
   } catch (err) {
     result = { data: null, error: err };
   }

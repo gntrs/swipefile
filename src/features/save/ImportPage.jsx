@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SAMPLE_CSV, FORMAT_LABELS, LIMITS, limitProblem } from '@/lib/csv/index';
 import { readCsv, planSwipe, planMeta, INSERT_BATCH } from '@/lib/csv/importPlan';
 import { invalidateLocalCache } from '@/lib/library/query';
+import { byId } from '@/lib/byId';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 const plural = (n, one, many) => `${fmt(n)} ${n === 1 ? one : many}`;
@@ -134,7 +135,7 @@ export default function ImportPage() {
       if (cancel.current) break;
       let r;
       try {
-        r = await db.from('ads').update(u.patch).eq('id', u.id);
+        r = await byId(db.from('ads').update(u.patch), u.id);
       } catch (err) {
         r = { error: { message: err?.message || String(err) } };
       }

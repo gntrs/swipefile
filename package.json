@@ -4,6 +4,9 @@
   "version": "0.3.0",
   "type": "module",
   "description": "Open-source ad swipe file: save ads, call winners and losers, mine hooks and write briefs. Runs on your own Supabase project.",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -32,6 +32,7 @@ import {
 import BulkBar from '@/features/save/BulkBar';
 import KeyHelp from '@/features/save/KeyHelp';
 import useLibraryKeys from '@/features/save/useLibraryKeys';
+import { byId } from '@/lib/byId';
 
 const WHO = [
   { id: 'all', label: 'All' },
@@ -228,7 +229,7 @@ export default function Library() {
 
   const patchAd = async (ad, patch, okText) => {
     applyRows([{ ...ad, ...patch }]);
-    const { error } = await db.from('ads').update(patch).eq('id', ad.id);
+    const { error } = await byId(db.from('ads').update(patch), ad.id);
     if (error) {
       applyRows([ad]);
       setAnnounce(`Could not save: ${error.message}`);

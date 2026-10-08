@@ -23,6 +23,9 @@ import { randomInt } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs, USAGE } from './create-users-args.mjs';
+import { requireNode } from './node-version.mjs';
+
+requireNode();
 
 const parsed = parseArgs(process.argv.slice(2));
 if (parsed.error) {

@@ -11,6 +11,7 @@ import { Badge, Button, Field, Meta, Notice, Panel, inputCls, selectCls, textare
 import {
   formFromCapture, adFromCapture, runningDatesPatch, readInvokeError, fetchMediaOutcome, daysRunning, MEDIA_TEXT,
 } from './capture';
+import { byId } from '@/lib/byId';
 
 const textarea = `${textareaCls} min-h-[140px]`;
 const statusTone = (st) => (st.busy ? 'text-ink-soft' : st.ok ? 'text-emerald-300' : 'text-amber-300');
@@ -241,7 +242,7 @@ export default function CapturePage() {
     setDates({ busy: true, message: 'Updating...' });
     const metrics = runningDatesPatch(existing.metrics, capture);
     try {
-      const { error: err } = await db.from('ads').update({ metrics }).eq('id', existing.id);
+      const { error: err } = await byId(db.from('ads').update({ metrics }), existing.id);
       if (err) throw err;
       setExisting((x) => ({ ...x, metrics }));
       setDates({ busy: false, ok: true, message: 'Running dates updated. The verdict is unchanged.' });

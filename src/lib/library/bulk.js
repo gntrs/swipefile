@@ -12,6 +12,7 @@ import { db } from '../db.js';
 import { humanVerdictPatch, VERDICTS } from '../ads.js';
 import { removeMedia } from '../saveAd.js';
 import { invalidateLocalCache, isMissingFunction } from './query.js';
+import { byId } from '../byId.js';
 
 export const MAX_SELECT = 500;
 const RPC_CHUNK = 500;
@@ -109,7 +110,7 @@ async function bulkUpdate(ads, rpcPatch, patchFor, applyLocal, { client = db, on
       const patch = patchFor(a);
       let result;
       try {
-        result = await client.from('ads').update(patch).eq('id', a.id);
+        result = await byId(client.from('ads').update(patch), a.id);
       } catch (err) {
         result = { error: { message: messageOf(err) } };
       }
@@ -161,7 +162,7 @@ export async function bulkDelete(ads, { client = db, onProgress } = {}) {
   for (const part of chunks(list, DELETE_CHUNK)) {
     let result;
     try {
-      result = await client.from('ads').delete().in('id', part.map((a) => a.id));
+      result = await byId(client.from('ads').delete(), part.map((a) => a.id));
     } catch (err) {
       result = { error: { message: messageOf(err) } };
     }

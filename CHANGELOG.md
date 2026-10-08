@@ -31,6 +31,11 @@
 - Starring an ad on a card changed the list's copy of the ad in place.
 - The ad page's Library button, and deleting an ad, went back to an unfiltered library. Both now return to the list you opened the ad from.
 - On the ad page, a key pressed right after `J` or `K` could act on the ad you just left: a verdict or star was saved to the next ad together with the previous ad's details. The page now clears the previous ad before it loads the next one.
+- With an ad blocker on, changing a verdict, starring, saving a creative to an ad, importing updates or deleting ads failed with "Failed to fetch": common blocker lists drop any address containing `/ads?id=`. Those requests now ask for `/ads?select=id&id=...`, which goes through.
+- The hook bank's copy button said "Copied" even when the browser refused. It now says "Copy failed, select the text".
+- `/setup` kept saying "Not signed in" after you signed in, until Run again. It now follows sign in and sign out.
+- On Node.js older than 22, `scripts/create-users.mjs` stopped with a stack trace. It now says which version it needs. `package.json` declares `engines` and `.nvmrc` names 22.
+- `npm test` read your `.env`, so its result depended on whose machine ran it. Tests now ignore it.
 
 ### Upgrading from 0.2
 

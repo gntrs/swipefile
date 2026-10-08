@@ -137,7 +137,20 @@ export function evaluate(inputs = {}) {
     }
   }
 
-  checks.push(check('session', 'info', session?.email ? `Signed in as ${session.email}` : 'Not signed in'));
+  checks.push(sessionCheck(session));
 
   return { status: statusOf(checks), checks };
+}
+
+const sessionCheck = (session) => check('session', 'info', session?.email ? `Signed in as ${session.email}` : 'Not signed in');
+
+// The check runs once at boot, often on the sign in page. When the user signs
+// in or out later, this swaps only the session row, so /setup tells the truth
+// without asking the project again. Results without a session row (demo,
+// misconfigured, or no result yet) come back unchanged.
+export function withSession(result, session) {
+  const checks = result?.checks;
+  if (!Array.isArray(checks) || !checks.some((c) => c?.id === 'session')) return result;
+  const next = checks.map((c) => (c?.id === 'session' ? sessionCheck(session) : c));
+  return { ...result, checks: next, status: statusOf(next) };
 }

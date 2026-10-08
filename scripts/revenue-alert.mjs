@@ -94,7 +94,7 @@ function money(amount, ccy) {
   return Number.isInteger(n) ? `${s}${n}` : `${s}${n.toFixed(2)}`;
 }
 
-// Local Y-M-D for a Date, in the founder's timezone - so "today" means his today,
+// Local Y-M-D for a Date, in your timezone (REVENUE_TZ), so "today" means your today,
 // not UTC's. en-CA gives ISO-ish YYYY-MM-DD out of toLocaleDateString.
 function localDay(d) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d);
@@ -215,7 +215,7 @@ async function main() {
     return;
   }
 
-  // Context for the summary line: today's tally in the founder's timezone.
+  // Context for the summary line: today's tally in your timezone (REVENUE_TZ).
   const today = localDay(new Date());
   const todays = recent.filter((r) => localDay(new Date(r.paid_at)) === today);
   const todayCount = todays.length;

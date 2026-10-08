@@ -13,10 +13,10 @@
 // @mentions: write @nickname in the message body (e.g. "@alex check
 // this") and it resolves against the team table the same way the dashboard's
 // compose box does, so that person's chat highlights the message for them.
-// There's no background process watching this table (by design - see
-// no-cron-ai-digests in memory), so tags aimed at Claude aren't pushed to a
-// running session automatically. Check --mentions at the start of a session,
-// or whenever the user says they tagged you, to see what's waiting.
+// There's no background process watching this table (by design), so tags
+// aimed at Claude aren't pushed to a running session automatically. Check
+// --mentions at the start of a session, or whenever the user says they tagged
+// you, to see what's waiting.
 //
 // Needs in .env: VITE_DB_URL, DB_SERVICE_KEY.
 import { createClient } from '@supabase/supabase-js';
