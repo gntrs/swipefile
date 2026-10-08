@@ -7,7 +7,7 @@ import Layout from '@/components/Layout';
 import PageFallback from '@/components/PageFallback';
 import Login from '@/pages/Login';
 import Setup from '@/pages/Setup';
-import { isOn, TEAM_MODE } from '@/lib/modules';
+import { isOn } from '@/lib/modules';
 
 // Every page except Login and Setup loads on demand, so the first paint only
 // ships what the first screen needs.
@@ -21,6 +21,8 @@ const AddPost = lazy(() => import('@/pages/AddPost'));
 const PostDetail = lazy(() => import('@/pages/PostDetail'));
 const Outreach = lazy(() => import('@/pages/Outreach'));
 const Competitors = lazy(() => import('@/pages/Competitors'));
+const CompetitorDetail = lazy(() => import('@/pages/CompetitorDetail'));
+const Insights = lazy(() => import('@/pages/Insights'));
 const HookBank = lazy(() => import('@/pages/HookBank'));
 const Briefs = lazy(() => import('@/pages/Briefs'));
 const Intel = lazy(() => import('@/pages/Intel'));
@@ -87,8 +89,8 @@ export default function App() {
           </SetupGate>
         }
       >
-        {/* Home: the dashboard for a team, the library for one person. */}
-        <Route index element={TEAM_MODE ? page(<Dashboard />) : <Navigate to="/ads" replace />} />
+        {/* Home is the dashboard in every mode. /overview is its old address. */}
+        <Route index element={page(<Dashboard />)} />
         <Route path="overview" element={page(<Dashboard />)} />
         <Route path="ads" element={page(<Library />)} />
         <Route path="ads/import" element={page(<ImportPage />)} />
@@ -99,7 +101,9 @@ export default function App() {
         <Route path="posts/add" element={gated('team', <AddPost />)} />
         <Route path="post/:id" element={gated('team', <PostDetail />)} />
         <Route path="outreach" element={gated('team', <Outreach />)} />
+        <Route path="insights" element={page(<Insights />)} />
         <Route path="competitors" element={gated('competitors', <Competitors />)} />
+        <Route path="competitors/:slug" element={gated('competitors', <CompetitorDetail />)} />
         <Route path="hooks" element={gated('hooks', <HookBank />)} />
         <Route path="briefs" element={gated('briefs', <Briefs />)} />
         <Route path="intel" element={gated('intel', <Intel />)} />

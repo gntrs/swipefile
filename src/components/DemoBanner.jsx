@@ -3,19 +3,20 @@ import { Link } from 'react-router-dom';
 import { IS_DEMO } from '@/lib/db';
 
 // One quiet line at the top of the content in demo mode, so nobody mistakes
-// the sample library for their own. Scrolls away with the page.
-export default function DemoBanner() {
+// the sample library for their own. It sits in the page container, on the same
+// left edge as the title under it, and scrolls away with the page. Layout
+// hides it from lg, where the sidebar already says demo mode; the capture page
+// shows it at every width and passes its own column as `className`.
+export default function DemoBanner({ className = 'mx-auto w-full max-w-[var(--maxw)] px-[var(--gutter)]' }) {
   if (!IS_DEMO) return null;
   return (
-    <div className="bg-card px-5 sm:px-8 py-1 flex items-center gap-3">
-      <p className="flex-1 min-w-0 text-[13px] text-ink-soft leading-snug py-2">
-        Demo: nothing you change is saved, it resets on reload. Connect Supabase to keep your swipe file.
-      </p>
+    <div className={`pt-4 flex flex-wrap items-center gap-x-3 ${className}`}>
+      <p className="min-w-0 text-small text-ink-soft py-2">Demo: nothing you change is saved.</p>
       <Link
         to="/setup"
-        className="press flex-shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] -mr-3 px-3 rounded-xl font-mono text-[12px] uppercase tracking-[0.12em] text-ink underline-offset-4 hover:underline"
+        className="press -ml-2 inline-flex items-center min-h-[44px] px-2 rounded-xl text-small font-medium text-ink underline underline-offset-4 decoration-ink-soft hover:decoration-ink"
       >
-        How
+        How to connect
       </Link>
     </div>
   );

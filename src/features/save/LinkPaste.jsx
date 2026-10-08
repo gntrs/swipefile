@@ -4,6 +4,7 @@ import { LinkSimple } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { parseAdLibraryInput, isAdLibraryUrl } from '@/lib/adlibrary';
 import { isOn, FEATURE_READY } from '@/lib/modules';
+import { Field, inputCls } from '@/components/ui';
 
 // What the link field holds, as the Add page needs it:
 //   { input, kind: 'empty' | 'ok' | 'search' | 'junk', parsed, duplicate, checking, error }
@@ -65,12 +66,9 @@ export default function LinkPaste({ value, onChange, client = db }) {
   };
 
   return (
-    <div>
-      <label htmlFor="ad-link" className="kicker mb-1.5 block">
-        Paste an Ad Library link or ad id
-      </label>
-      <div className="flex items-center gap-2 min-h-[44px] bg-card border border-line rounded-xl px-3 focus-within:border-accent transition-colors">
-        <LinkSimple size={18} weight="bold" className="text-ink-soft flex-shrink-0" />
+    <Field label="Paste an Ad Library link or ad id" htmlFor="ad-link">
+      <div className="relative flex items-center">
+        <LinkSimple size={18} weight="bold" aria-hidden="true" className="pointer-events-none absolute left-3.5 text-ink-soft" />
         <input
           id="ad-link"
           value={value.input}
@@ -86,35 +84,35 @@ export default function LinkPaste({ value, onChange, client = db }) {
           inputMode="url"
           autoComplete="off"
           placeholder="https://www.facebook.com/ads/library/?id=..."
-          className="w-full min-w-0 min-h-[44px] py-2.5 bg-transparent focus:outline-none focus-visible:shadow-none text-[16px] sm:text-[15px] placeholder:text-ink-soft/70"
+          className={`${inputCls} pl-10`}
         />
       </div>
       <LinkMessage link={value} />
-    </div>
+    </Field>
   );
 }
 
 function LinkMessage({ link }) {
   if (link.kind === 'search') {
     return (
-      <p role="status" className="mt-2 text-[15px] text-amber-600 leading-relaxed">
+      <p role="status" className="mt-2 text-small text-amber-300">
         That link is a search, not one ad. Open the ad (See ad details), then copy the link from the address bar.
       </p>
     );
   }
   if (link.kind === 'junk') {
     return (
-      <p role="status" className="mt-2 text-[15px] text-ink-soft leading-relaxed">
-        Not an Ad Library link. You can still paste it as the source link below.
+      <p role="status" className="mt-2 text-small text-ink-soft">
+        Not an Ad Library link. You can still paste it as the ad link below.
       </p>
     );
   }
   if (link.kind !== 'ok') return null;
   return (
-    <div role="status" className="mt-2 grid gap-2 text-[15px] leading-relaxed">
-      <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-ink-soft">
-        Ad id <span className="text-ink tabular-nums normal-case tracking-normal">{link.parsed.libraryId}</span>
-        {link.checking && <span className="ml-2 normal-case tracking-normal">Checking...</span>}
+    <div role="status" className="mt-2 grid gap-2 text-small">
+      <p className="text-ink-soft">
+        Ad id <span className="num text-small text-ink">{link.parsed.libraryId}</span>
+        {link.checking && <span className="ml-2">Checking...</span>}
       </p>
       {link.duplicate && (
         <p className="text-ink">
@@ -125,7 +123,7 @@ function LinkMessage({ link }) {
           </Link>
         </p>
       )}
-      {link.error && <p className="text-amber-600">{link.error}</p>}
+      {link.error && <p className="text-amber-300">{link.error}</p>}
       <p className="text-ink-soft">
         Saved with its link. Meta does not let apps download the ad itself, and its API only covers ads shown in the EU and
         UK. Add the image or video below.
@@ -133,7 +131,10 @@ function LinkMessage({ link }) {
       </p>
       {FEATURE_READY.capture && (
         <p>
-          <Link to="/capture/setup" className="underline underline-offset-4 decoration-ink-soft hover:decoration-ink text-ink">
+          <Link
+            to="/capture/setup"
+            className="inline-flex items-center min-h-[44px] underline underline-offset-4 decoration-ink-soft hover:decoration-ink text-ink"
+          >
             Or capture it straight from the Ad Library
           </Link>
         </p>

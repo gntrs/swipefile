@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Warning, X } from '@phosphor-icons/react';
+import { X } from '@phosphor-icons/react';
 import { useSetup } from '@/lib/setup/SetupContext';
+import { Button, IconButton, Notice } from '@/components/ui';
 
 const KEY = 'sf:setup-banner';
 
@@ -14,7 +14,8 @@ function readDismissed() {
 }
 
 // Shown in Layout when the setup check found something worth fixing but not
-// blocking (open sign ups, an old db-setup.sql, a public bucket).
+// blocking (open sign ups, an old db-setup.sql, a public bucket). It sits in
+// the page container so its left edge is the title's left edge.
 export default function SetupBanner() {
   const { status, checks } = useSetup();
   const [dismissed, setDismissed] = useState(readDismissed);
@@ -32,25 +33,18 @@ export default function SetupBanner() {
   };
 
   return (
-    <div className="bg-amber-50 px-5 sm:px-8 py-1 flex items-center gap-2">
-      <Warning size={18} weight="bold" className="text-amber-600 flex-shrink-0" />
-      <p className="flex-1 min-w-0 text-[14px] text-ink leading-snug py-2">
+    <div className="mx-auto w-full max-w-[var(--maxw)] px-[var(--gutter)] pt-4">
+      <Notice
+        tone="warn"
+        action={
+          <>
+            <Button to="/setup">Open setup check</Button>
+            <IconButton label="Dismiss" icon={X} onClick={dismiss} />
+          </>
+        }
+      >
         Setup needs attention: {first.title}.
-      </p>
-      <Link
-        to="/setup"
-        className="press flex-shrink-0 inline-flex items-center justify-center min-h-[44px] px-3 rounded-xl text-[14px] font-semibold text-amber-700 underline-offset-4 hover:underline"
-      >
-        Open setup check
-      </Link>
-      <button
-        type="button"
-        onClick={dismiss}
-        aria-label="Dismiss"
-        className="press flex-shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] -mr-3 rounded-xl text-ink-soft hover:text-ink"
-      >
-        <X size={18} weight="bold" />
-      </button>
+      </Notice>
     </div>
   );
 }

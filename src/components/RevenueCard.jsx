@@ -1,26 +1,35 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CurrencyEur, TrendUp, Sparkle, X } from '@phosphor-icons/react';
+import { Sparkle, X } from '@phosphor-icons/react';
 import { db, fetchAll } from '@/lib/db';
 import { confettiBurst } from '@/lib/confetti';
 import { triggerCelebration } from '@/lib/celebration';
-import Pill from '@/components/Pill';
+import { Panel, Badge, Meta, Notice, IconButton, Delta } from '@/components/ui';
+import { revenueStats, revenueWindow } from '@/lib/revenue';
 
 // The money counter. YT-subscriber-counter energy: lifetime revenue GENERATED
 // (not what was paid out), MRR, sales today, and confetti the moment a new
 // sale row lands via realtime (scripts/stripe-pull.mjs feeds the sales table
-// from your cron machine every ~5 min). Numbers animate up; green is reserved for
-// the good-news accents per the color law.
+// from your cron machine every ~5 min). The first numbers print as they are;
+// only a live change counts up, so the card never shows a total that was not
+// true. Amounts in other currencies are never added in (lib/revenue.js).
 
 const CUR = { eur: '€', usd: '$', gbp: '£' };
 const sym = (c) => CUR[(c || 'eur').toLowerCase()] || '';
 
-// Animate a number toward its target - the odometer feel.
-function useCountUp(target, ms = 900) {
+// Animate a number toward its target, the odometer feel, but only once the
+// real value has loaded: before that it jumps, so loading never plays a count
+// from zero.
+function useCountUp(target, ready, ms = 900) {
   const [shown, setShown] = useState(target);
   const fromRef = useRef(target);
   useEffect(() => {
     const from = fromRef.current;
     if (from === target) return undefined;
+    if (!ready.current) {
+      fromRef.current = target;
+      setShown(target);
+      return undefined;
+    }
     const started = performance.now();
     let raf;
     const tick = (now) => {
@@ -35,12 +44,6 @@ function useCountUp(target, ms = 900) {
   }, [target, ms]);
   return shown;
 }
-
-const isToday = (iso) => {
-  const d = new Date(iso);
-  const now = new Date();
-  return d.toDateString() === now.toDateString();
-};
 
 const ago = (iso) => {
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
@@ -102,135 +105,137 @@ export default function RevenueCard() {
     };
   }, []);
 
-  const stats = useMemo(() => {
-    const list = sales || [];
-    const currency = summary?.currency || list[0]?.currency || 'eur';
-    // Lifetime gross: Stripe-computed total when available (authoritative),
-    // else summed from sales rows.
-    const fromRows = list.reduce((s, r) => s + Number(r.amount || 0), 0);
-    const total = summary?.total_gross ?? Math.round(fromRows * 100) / 100;
-    const today = list.filter((r) => isToday(r.paid_at));
-    return {
-      currency,
-      total,
-      mrr: summary?.mrr ?? null,
-      todayCount: today.length,
-      todayAmount: Math.round(today.reduce((s, r) => s + Number(r.amount || 0), 0) * 100) / 100,
-      last: list[0] || null,
-      count: summary?.sales_count ?? list.length,
-    };
-  }, [sales, summary]);
+  const stats = useMemo(() => revenueStats(sales, summary), [sales, summary]);
+  // The last 30 days against the 30 before, in the card's currency. Up is
+  // good: the change is green going up and red going down.
+  const recent = useMemo(() => revenueWindow(sales, { days: 30, currency: stats.currency }), [sales, stats.currency]);
 
-  const shownTotal = useCountUp(stats.total);
-  const shownMrr = useCountUp(stats.mrr ?? 0);
+  // Ready once the first load has rendered; from then on a change is live.
+  const ready = useRef(false);
+  useEffect(() => {
+    if (sales !== null) {
+      const t = setTimeout(() => {
+        ready.current = true;
+      }, 0);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [sales]);
+
+  const shownTotal = useCountUp(stats.total, ready);
+  const shownMrr = useCountUp(stats.mrr ?? 0, ready);
 
   const empty = sales !== null && sales.length === 0 && !summary;
 
   return (
-    <div
-      className={`relative overflow-hidden bg-card rounded-xl3 border shadow-card p-5 mb-4 transition-colors duration-700 ${
-        flash ? 'border-emerald-400 ring-2 ring-emerald-300/40' : 'border-line'
-      }`}
+    <Panel
+      title="Revenue"
+      className={`transition-shadow duration-700 ${flash ? 'ring-2 ring-emerald-400/60' : ''}`}
+      action={
+        flash && (
+          <Badge tone="good">
+            <Sparkle size={12} weight="fill" aria-hidden="true" /> New sale
+          </Badge>
+        )
+      }
     >
-      <div className="relative flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="w-8 h-8 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
-            <CurrencyEur size={17} weight="bold" />
-          </span>
-          <div>
-            <h2 className="font-semibold text-[15px]">Revenue</h2>
-            <p className="text-ink-soft text-[12px]">
-              Generated, lifetime · updates every ~5 min
-              {stats.last ? ` · last sale ${ago(stats.last.paid_at)}` : ''}
-            </p>
-          </div>
-        </div>
-        {flash && (
-          <Pill tone="good">
-            <Sparkle size={12} weight="fill" /> New sale
-          </Pill>
-        )}
-      </div>
+      <p className="text-small text-ink-soft -mt-3 mb-5">
+        <Meta items={['Generated, lifetime', 'updates every ~5 min', stats.last && `last sale ${ago(stats.last.paid_at)}`]} />
+      </p>
 
       {empty ? (
-        <div className="text-[13px] text-ink-soft bg-canvas/60 rounded-2xl px-4 py-3">
-          Waiting for Stripe. Add <span className="font-mono text-[12px]">STRIPE_API_KEY</span> to{' '}
-          <span className="font-mono text-[12px]">.env</span> on your cron machine, apply{' '}
-          <span className="font-mono text-[12px]">db-setup.sql</span>, then run{' '}
-          <span className="font-mono text-[12px]">node scripts/stripe-pull.mjs</span> to backfill
-          every sale.
-        </div>
+        <Notice tone="info">
+          Waiting for Stripe. Add <code className="font-mono text-small">STRIPE_API_KEY</code> to{' '}
+          <code className="font-mono text-small">.env</code> on your cron machine, apply{' '}
+          <code className="font-mono text-small">db-setup.sql</code>, then run{' '}
+          <code className="font-mono text-small">node scripts/stripe-pull.mjs</code> to backfill every sale.
+        </Notice>
       ) : (
-        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-5">
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="col-span-2 text-left bg-card rounded-xl px-4 py-3.5 hover:border-emerald-300 hover:shadow-cardhover transition-all active:scale-[0.99]"
+            className="press col-span-2 -m-3 p-3 text-left rounded-xl hover:bg-white/[0.03] transition-colors"
           >
-            <p className="kicker mb-1.5">Total generated</p>
-            <p className="font-mono text-[38px] sm:text-[42px] font-bold tabular-nums tracking-tight leading-none">
+            <p className="text-small font-medium text-ink-soft">Total generated</p>
+            <p className="num text-num-lg text-ink mt-2">
               {sym(stats.currency)}
               {shownTotal.toFixed(2)}
             </p>
-            <p className="font-mono text-[11px] text-ink-soft tabular-nums mt-1.5">
+            <p className="text-small text-ink-soft mt-2">
               {stats.count} sale{stats.count === 1 ? '' : 's'} all time · tap to expand
             </p>
+            {stats.otherCurrencySales > 0 && (
+              <p className="text-small text-ink-soft mt-1">
+                {stats.otherCurrencySales} sale{stats.otherCurrencySales === 1 ? '' : 's'} in other currencies not added in
+              </p>
+            )}
           </button>
-          <div className="bg-card rounded-xl px-3.5 py-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <TrendUp size={14} weight="bold" className="text-emerald-600" />
-              <p className="text-[12px] font-medium text-ink-soft">MRR</p>
-            </div>
-            <p className="font-mono text-[19px] font-semibold tabular-nums tracking-tight leading-none">
+          <div>
+            <p className="text-small font-medium text-ink-soft">MRR</p>
+            <p className="num text-lead text-ink mt-2">
               {stats.mrr == null ? '-' : `${sym(stats.currency)}${shownMrr.toFixed(2)}`}
             </p>
           </div>
-          <div className="bg-card rounded-xl px-3.5 py-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Sparkle size={14} weight="bold" className="text-accent-dim" />
-              <p className="text-[12px] font-medium text-ink-soft">Today</p>
-            </div>
-            <p className="font-mono text-[19px] font-semibold tabular-nums tracking-tight leading-none">
+          <div>
+            <p className="text-small font-medium text-ink-soft">Today</p>
+            <p className={`num text-lead mt-2 ${stats.todayCount > 0 ? 'text-ink' : 'text-ink-soft'}`}>
               {stats.todayCount > 0 ? `${sym(stats.currency)}${stats.todayAmount.toFixed(2)}` : '-'}
             </p>
             {stats.todayCount > 0 && (
-              <p className="font-mono text-[11px] text-ink-soft tabular-nums mt-1">
+              <p className="text-small text-ink-soft mt-1">
                 {stats.todayCount} sale{stats.todayCount === 1 ? '' : 's'}
               </p>
             )}
           </div>
+          <p className="col-span-2 sm:col-span-4 flex flex-wrap items-center gap-x-3 gap-y-1 pt-4 border-t border-line text-body text-ink">
+            <span>
+              Last 30 days{' '}
+              <span className="num">
+                {sym(stats.currency)}
+                {(recent.cur ?? 0).toFixed(2)}
+              </span>
+            </span>
+            {recent.delta ? (
+              <Delta
+                delta={recent.delta}
+                format={(n) => `${sym(stats.currency)}${n.toFixed(2)}`}
+                period="vs the 30 days before"
+                showPeriod
+              />
+            ) : (
+              <span className="text-small text-ink-soft">no sales before this window to compare</span>
+            )}
+          </p>
         </div>
       )}
 
       {expanded && (
         <div
-          className="fixed inset-0 z-[100] bg-card flex flex-col items-center justify-center px-6"
+          className="fixed inset-0 z-[100] bg-canvas flex flex-col items-center justify-center px-[var(--gutter)]"
           role="dialog"
           aria-modal="true"
           aria-label="Total revenue, full screen"
         >
-          <button
-            type="button"
+          <IconButton
+            label="Close"
+            icon={X}
+            variant="secondary"
             onClick={() => setExpanded(false)}
-            aria-label="Close"
-            className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 w-10 h-10 rounded-full border border-line flex items-center justify-center text-ink-soft hover:bg-canvas"
-          >
-            <X size={18} weight="bold" />
-          </button>
-          <span className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-5">
-            <CurrencyEur size={24} weight="bold" />
-          </span>
-          <p className="text-[14px] font-medium text-ink-soft mb-2">Total revenue generated, lifetime</p>
-          <p className="font-mono font-bold tabular-nums tracking-tight leading-none text-center text-[15vw] sm:text-[96px]">
+            className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4"
+          />
+          <p className="text-body text-ink-soft mb-3">Total revenue generated, lifetime</p>
+          {/* The one screen sized number in the app: it scales with the window. */}
+          <p className="num text-ink leading-none text-center" style={{ fontSize: 'clamp(3rem, 14vw, 7rem)' }}>
             {sym(stats.currency)}
             {shownTotal.toFixed(2)}
           </p>
-          <p className="font-mono text-[13px] text-ink-soft tabular-nums mt-4">
+          <p className="text-body text-ink-soft mt-5">
             {stats.count} sale{stats.count === 1 ? '' : 's'} all time
             {stats.mrr != null ? ` · ${sym(stats.currency)}${stats.mrr.toFixed(2)} MRR` : ''}
           </p>
         </div>
       )}
-    </div>
+    </Panel>
   );
 }

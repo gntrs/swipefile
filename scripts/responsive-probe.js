@@ -36,14 +36,15 @@
 const SIZES = [
   [390, 844, 'iPhone 12 to 16'],
   [390, 664, 'the same iPhone with the browser bars showing'],
+  [430, 932, 'iPhone Pro Max and Plus'],
   [360, 800, 'Galaxy A series, the commonest Android viewport'],
   [360, 660, 'the same with the toolbar showing'],
-  [412, 915, 'Pixel and Galaxy S'],
   [320, 690, 'the smallest phone still in use'],
-  [768, 1024, 'iPad portrait'],
-  [1024, 768, 'iPad landscape'],
+  [820, 1180, 'iPad Air portrait'],
+  [1180, 820, 'iPad Air landscape'],
   [1280, 800, 'laptop'],
   [1440, 900, 'desktop'],
+  [1920, 1080, 'common desktop monitor'],
 ]
 
 /* The demo seed uses fixed ids, so these routes always exist in demo mode.
@@ -51,6 +52,7 @@ const SIZES = [
 const AD_1 = '00000000-0000-4000-8000-000000000001'
 const AD_2 = '00000000-0000-4000-8000-000000000002'
 const ROUTES = [
+  { label: 'home', path: '/', page: 'dashboard' },
   { label: 'library', path: '/ads', page: 'library' },
   { label: 'library-filtered', path: '/ads?verdict=winner', page: 'library' },
   { label: 'ad-detail', path: `/ad/${AD_1}`, page: 'ad-detail' },
@@ -58,9 +60,10 @@ const ROUTES = [
   { label: 'import', path: '/ads/import', page: 'import' },
   { label: 'hooks', path: '/hooks', page: 'hooks' },
   { label: 'briefs', path: '/briefs', page: 'briefs' },
+  { label: 'insights', path: '/insights', page: 'insights' },
   { label: 'competitors', path: '/competitors', page: 'competitors' },
+  { label: 'competitor-detail', path: '/competitors/lumen-loop', page: 'competitor-detail' },
   { label: 'intel', path: '/intel', page: 'intel' },
-  { label: 'overview', path: '/overview', page: 'dashboard' },
   { label: 'compare', path: `/compare?ids=${AD_1},${AD_2}`, page: 'compare' },
   { label: 'profile', path: '/profile', page: 'profile' },
   { label: 'setup', path: '/setup', page: 'setup' },
@@ -72,7 +75,6 @@ const ROUTES = [
 /* Screens that exist only with the team module on. */
 const POST_1 = '00000000-0000-4000-8000-000000000401'
 const TEAM_ROUTES = [
-  { label: 'home', path: '/', page: 'dashboard' },
   { label: 'posts', path: '/posts', page: 'posts' },
   { label: 'add-post', path: '/posts/add', page: 'add-post' },
   { label: 'post-detail', path: `/post/${POST_1}`, page: 'post-detail' },
@@ -83,7 +85,13 @@ const TEAM_ROUTES = [
 function yieldNow() {
   return new Promise((resolve) => {
     const channel = new MessageChannel()
-    channel.port1.onmessage = () => resolve()
+    // Close both ports: an open channel per yield piles up millions of live
+    // ports over a team sweep and crashes the tab.
+    channel.port1.onmessage = () => {
+      channel.port1.close()
+      channel.port2.close()
+      resolve()
+    }
     channel.port2.postMessage(0)
   })
 }
@@ -170,6 +178,15 @@ function inspect(doc, w, h, label, issues, counts) {
   }
 }
 
+/* A sheet slides up for about 0.3 s. Measured mid slide, its last row sits
+   below the frame and reads as unreachable, so wait for every animation that
+   ends (a looping skeleton shimmer never does) to finish first. */
+async function settled(doc, timeoutMs = 3000) {
+  const ending = doc.getAnimations().filter((a) => a.effect?.getTiming?.().iterations !== Infinity)
+  const timeout = new Promise((resolve) => setTimeout(resolve, timeoutMs))
+  await Promise.race([Promise.all(ending.map((a) => a.finished.catch(() => null))), timeout])
+}
+
 let running = false
 
 async function go(doc, win, route) {
@@ -184,6 +201,7 @@ async function go(doc, win, route) {
     if (more && more.getBoundingClientRect().width > 0) {
       more.click()
       await until(() => doc.querySelector('[data-sheet="more"]') !== null, 'the More sheet opened')
+      await settled(doc)
     }
   }
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Check, Copy, X } from '@phosphor-icons/react';
 import { aiStatus, AI_FIX_COMMAND } from '@/lib/ai';
+import { Button, IconButton } from '@/components/ui';
 
 // The AI status for a component: read once on mount (cached for five minutes
 // by the client), with `recheck` forcing a fresh read.
@@ -48,15 +49,14 @@ export function CopyCommand({ text }) {
     }
   };
   return (
-    <button
-      type="button"
+    <Button
       onClick={copy}
       aria-label={copied ? 'Copied' : 'Copy the command'}
-      className="press flex-shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-medium text-ink-soft hover:text-ink transition-colors"
+      icon={copied ? Check : Copy}
+      className="flex-shrink-0"
     >
-      {copied ? <Check size={16} weight="bold" /> : <Copy size={16} weight="bold" />}
-      <span>{failed ? 'Select it' : copied ? 'Copied' : 'Copy'}</span>
-    </button>
+      {failed ? 'Select it' : copied ? 'Copied' : 'Copy'}
+    </Button>
   );
 }
 
@@ -67,48 +67,26 @@ export default function AiNotice({ problem, onRecheck, checking = false, onDismi
   if (!problem) return null;
   const command = AI_FIX_COMMAND[problem.code];
   return (
-    <div role="alert" className="mt-3 bg-white/[0.05] rounded-xl p-3 pl-4">
+    <div role="alert" className="mt-4 rounded-xl bg-white/[0.04] py-2 pl-4 pr-2">
       <div className="flex items-start gap-2">
-        <p className="flex-1 min-w-0 text-[15px] leading-relaxed text-ink pt-2.5">{problem.message}</p>
-        {onDismiss && (
-          <button
-            type="button"
-            onClick={onDismiss}
-            aria-label="Dismiss"
-            className="press flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-ink-soft hover:text-ink"
-          >
-            <X size={16} weight="bold" />
-          </button>
-        )}
+        <p className="flex-1 min-w-0 text-ui text-ink py-2.5">{problem.message}</p>
+        {onDismiss && <IconButton label="Dismiss" icon={X} onClick={onDismiss} />}
       </div>
       {command && (
-        <div className="mt-2 flex items-start gap-2">
-          <code className="flex-1 min-w-0 block bg-canvas rounded-lg px-3 py-2.5 font-mono text-[13px] leading-relaxed text-ink whitespace-pre-wrap break-all">
+        <div className="mt-1 mb-2 mr-2 flex flex-col sm:flex-row sm:items-start gap-2">
+          <code className="flex-1 min-w-0 block bg-canvas rounded-xl p-3 font-mono text-small text-ink whitespace-pre-wrap break-words">
             {command}
           </code>
           <CopyCommand text={command} />
         </div>
       )}
       {(onRecheck || onRetry) && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {onRetry && (
-            <button
-              type="button"
-              onClick={onRetry}
-              className="press inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-white/[0.06] text-[14px] font-semibold text-ink hover:bg-white/[0.1] transition-colors"
-            >
-              {retryLabel}
-            </button>
-          )}
+        <div className="mt-1 mb-2 flex flex-wrap gap-2">
+          {onRetry && <Button onClick={onRetry}>{retryLabel}</Button>}
           {onRecheck && (
-            <button
-              type="button"
-              onClick={onRecheck}
-              disabled={checking}
-              className="press inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-white/[0.06] text-[14px] font-semibold text-ink-soft hover:text-ink transition-colors disabled:opacity-60"
-            >
+            <Button variant="ghost" onClick={onRecheck} disabled={checking} className="-ml-2">
               {checking ? 'Checking...' : 'Check again'}
-            </button>
+            </Button>
           )}
         </div>
       )}

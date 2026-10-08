@@ -7,18 +7,15 @@ import { saveAd } from '@/lib/saveAd';
 import { useAuth } from '@/contexts/AuthContext';
 import DemoBanner from '@/components/DemoBanner';
 import { parseCaptureParams } from './params';
+import { Badge, Button, Field, Meta, Notice, Panel, inputCls, selectCls, textareaCls } from '@/components/ui';
 import {
   formFromCapture, adFromCapture, runningDatesPatch, readInvokeError, fetchMediaOutcome, daysRunning, MEDIA_TEXT,
 } from './capture';
 
-const kicker = 'kicker';
-const field =
-  'w-full min-h-[44px] py-2.5 px-3.5 rounded-xl border border-line focus:outline-none focus:border-accent bg-card text-[16px] text-ink';
-const label = 'kicker mb-1.5 block';
-const primary =
-  'press inline-flex items-center justify-center min-h-[44px] px-6 rounded-xl bg-accent text-black text-[15px] font-semibold hover:bg-accent-dim transition-colors disabled:opacity-60';
-const secondary =
-  'press inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[15px] font-semibold text-ink transition-colors disabled:opacity-60';
+const textarea = `${textareaCls} min-h-[140px]`;
+const statusTone = (st) => (st.busy ? 'text-ink-soft' : st.ok ? 'text-emerald-300' : 'text-amber-300');
+const VERDICT_TONE = { winner: 'good', loser: 'bad', testing: 'warn' };
+const cap = (v) => (v ? v.charAt(0).toUpperCase() + v.slice(1) : '');
 
 const PLATFORM_NAMES = {
   facebook: 'Facebook',
@@ -35,11 +32,17 @@ function fmtDay(day) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
-// The facts the Ad Library showed, as one quiet line.
+// The facts the Ad Library showed, as one quiet line under the title. The
+// library id is the one standalone number, so it gets the mono.
 function Facts({ capture }) {
   const days = daysRunning(capture.started, capture.stopped);
   const parts = [];
-  if (capture.libraryId) parts.push(`Library ID ${capture.libraryId}`);
+  if (capture.libraryId)
+    parts.push(
+      <>
+        Library ID <span className="num">{capture.libraryId}</span>
+      </>
+    );
   if (capture.active === true) parts.push('Active');
   if (capture.active === false) parts.push('Inactive');
   if (capture.started && capture.stopped) parts.push(`${fmtDay(capture.started)} to ${fmtDay(capture.stopped)}`);
@@ -47,7 +50,7 @@ function Facts({ capture }) {
   if (days !== null) parts.push(`${days} ${days === 1 ? 'day' : 'days'}`);
   if (capture.platforms.length) parts.push(capture.platforms.map((p) => PLATFORM_NAMES[p] || p).join(', '));
   if (!parts.length) return null;
-  return <p className="font-mono text-[12px] leading-relaxed text-ink-soft tabular-nums mt-3">{parts.join(' / ')}</p>;
+  return <Meta items={parts} />;
 }
 
 // The first creative, hotlinked for the preview only. No referrer goes to
@@ -66,7 +69,7 @@ function MediaPreview({ capture }) {
   if (!src) return null;
   if (failed) {
     return (
-      <p className="bg-card rounded-xl3 px-4 py-5 text-[15px] leading-relaxed text-ink-soft">
+      <p className="bg-card rounded-xl3 px-5 py-5 text-body text-ink-soft">
         Preview not available. The file is copied when you save, if fetch-media is deployed.
       </p>
     );
@@ -93,11 +96,14 @@ function MediaPreview({ capture }) {
   );
 }
 
+// Its own tab, outside the app shell: the same 720 column as the setup check,
+// with the demo line on the column's left edge at every width.
 function Shell({ children }) {
+  const column = 'mx-auto w-full max-w-[720px] px-[var(--gutter)]';
   return (
     <div data-page="capture" className="h-full overflow-y-auto overscroll-contain bg-canvas text-ink">
-      <DemoBanner />
-      <div className="max-w-[720px] mx-auto px-5 sm:px-8 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
+      <DemoBanner className={column} />
+      <div className={`${column} pt-[calc(1.5rem+env(safe-area-inset-top))] lg:pt-10 pb-[calc(4rem+env(safe-area-inset-bottom))]`}>
         <Link to="/ads" className="press inline-flex items-center min-h-[44px] -ml-1 px-1 rounded-xl mb-8">
           <Wordmark />
         </Link>
@@ -107,13 +113,22 @@ function Shell({ children }) {
   );
 }
 
+// Title block of the standalone page: eyebrow, h1, one line of context.
+function Head({ eyebrow, title, context }) {
+  return (
+    <header className="mb-6 lg:mb-8">
+      <p className="label-mono mb-2">{eyebrow}</p>
+      <h1 className="text-h1 text-ink text-balance">{title}</h1>
+      {context && <div className="mt-2 text-body text-ink-soft max-w-[60ch]">{context}</div>}
+    </header>
+  );
+}
+
 function CloseTab() {
   const [stuck, setStuck] = useState(false);
   return (
     <>
-      <button
-        type="button"
-        className={secondary}
+      <Button
         onClick={() => {
           window.close();
           // Only tabs a script opened can close themselves.
@@ -121,8 +136,8 @@ function CloseTab() {
         }}
       >
         Close tab
-      </button>
-      {stuck && <p className="basis-full text-[14px] text-ink-soft">This tab did not open from capture, so close it yourself.</p>}
+      </Button>
+      {stuck && <p className="basis-full text-small text-ink-soft">This tab did not open from capture, so close it yourself.</p>}
     </>
   );
 }
@@ -238,138 +253,140 @@ export default function CapturePage() {
   if (empty) {
     return (
       <Shell>
-        <p className={kicker}>Capture</p>
-        <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mt-3">Nothing to capture</h1>
-        <p className="text-[16px] leading-relaxed text-ink-soft mt-3">
-          This page opens from the bookmarklet or the extension, with an ad from the Meta Ad Library filled in.
-        </p>
-        <Link to="/capture/setup" className={`${primary} mt-6`}>
+        <Head
+          eyebrow="Capture"
+          title="Nothing to capture"
+          context="This page opens from the bookmarklet or the extension, with an ad from the Meta Ad Library filled in."
+        />
+        <Button variant="primary" to="/capture/setup">
           Set up capture
-        </Link>
+        </Button>
       </Shell>
     );
   }
 
   return (
     <Shell>
-      <p className={kicker}>Capture{capture.src ? ` from the ${capture.src}` : ''}</p>
-      <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mt-3">
-        {saved ? 'Saved to your swipe file' : existing ? 'Already in your swipe file' : 'Save this ad'}
-      </h1>
-      <Facts capture={capture} />
-      {warnings.map((w) => (
-        <p key={w} role="status" className="mt-3 text-[15px] leading-relaxed text-amber-600">
-          {w}
-        </p>
-      ))}
-      {lookupError && (
-        <p role="alert" className="mt-3 text-[15px] leading-relaxed text-amber-600">
-          {lookupError}
-        </p>
+      <Head
+        eyebrow={`Capture${capture.src ? ` from the ${capture.src}` : ''}`}
+        title={saved ? 'Saved to your swipe file' : existing ? 'Already in your swipe file' : 'Save this ad'}
+        context={<Facts capture={capture} />}
+      />
+      {(warnings.length > 0 || lookupError) && (
+        <div className="-mt-2 mb-6 space-y-2">
+          {warnings.map((w) => (
+            <Notice key={w} tone="warn" role="status">
+              {w}
+            </Notice>
+          ))}
+          {lookupError && <Notice tone="warn">{lookupError}</Notice>}
+        </div>
       )}
 
       {saved ? (
-        <div className="mt-6">
-          <p className="text-[16px] leading-relaxed text-ink">
+        <div>
+          <p className="text-body text-ink">
             {saved.brand || 'The ad'} is in your swipe file{saved.verdict !== 'unsure' ? ` as ${saved.verdict}` : ''}.
           </p>
-          {IS_DEMO && <p className="mt-2 text-[15px] text-ink-soft">Demo: saved until you reload.</p>}
+          {IS_DEMO && <p className="mt-2 text-small text-ink-soft">Demo: saved until you reload.</p>}
           {media && (
-            <p role="status" className={`mt-3 text-[15px] leading-relaxed ${media.busy ? 'text-ink-soft' : media.ok ? 'text-emerald-600' : 'text-amber-600'}`}>
+            <p role="status" className={`mt-3 text-ui ${statusTone(media)}`}>
               {media.message}
             </p>
           )}
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Link to={`/ad/${saved.id}`} className={primary}>
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <Button variant="primary" to={`/ad/${saved.id}`}>
               Open ad
-            </Link>
+            </Button>
             <CloseTab />
           </div>
         </div>
       ) : existing ? (
-        <div className="mt-6">
-          <div className="bg-card rounded-xl3 shadow-card px-5 py-4">
-            <p className="text-[16px] font-semibold leading-snug">{existing.brand || 'Unnamed brand'}</p>
-            {existing.hook && <p className="text-[16px] leading-relaxed text-ink-soft mt-1">{existing.hook}</p>}
-            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft mt-2">Verdict: {existing.verdict}</p>
-          </div>
-          <p className="mt-4 text-[15px] leading-relaxed text-ink-soft">
+        <div>
+          <Panel>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <p className="text-title text-ink min-w-0">{existing.brand || 'Unnamed brand'}</p>
+              {existing.verdict && <Badge tone={VERDICT_TONE[existing.verdict] || 'neutral'}>{cap(existing.verdict)}</Badge>}
+            </div>
+            {existing.hook && <p className="text-body text-ink-soft mt-1.5">{existing.hook}</p>}
+          </Panel>
+          <p className="mt-4 text-body text-ink-soft max-w-[60ch]">
             Update running dates copies only whether it runs, since when and on which platforms. Nothing else changes.
           </p>
           {dates && (
-            <p role="status" className={`mt-3 text-[15px] leading-relaxed ${dates.busy ? 'text-ink-soft' : dates.ok ? 'text-emerald-600' : 'text-red-600'}`}>
+            <p role="status" className={`mt-3 text-ui ${dates.busy ? 'text-ink-soft' : dates.ok ? 'text-emerald-300' : 'text-red-300'}`}>
               {dates.message}
             </p>
           )}
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Link to={`/ad/${existing.id}`} className={primary}>
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <Button variant="primary" to={`/ad/${existing.id}`}>
               Open
-            </Link>
-            <button type="button" onClick={updateDates} disabled={dates?.busy || dates?.ok} className={secondary}>
+            </Button>
+            <Button onClick={updateDates} disabled={dates?.busy || dates?.ok}>
               {dates?.busy ? 'Updating...' : 'Update running dates'}
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
-        <form onSubmit={save} className="mt-6 grid gap-5">
+        <form onSubmit={save} className="grid gap-5">
           <MediaPreview capture={capture} />
           <div className="grid sm:grid-cols-2 gap-5">
-            <label className="block">
-              <span className={label}>Brand</span>
-              <input className={field} value={form.brand} onChange={set('brand')} />
-            </label>
-            <label className="block">
-              <span className={label}>Platform</span>
-              <select className={field} value={form.platform} onChange={set('platform')}>
+            <Field label="Brand" htmlFor="cap-brand">
+              <input id="cap-brand" className={inputCls} value={form.brand} onChange={set('brand')} />
+            </Field>
+            <Field label="Platform" htmlFor="cap-platform">
+              <select id="cap-platform" className={selectCls} value={form.platform} onChange={set('platform')}>
                 <option value="Facebook">Facebook</option>
                 <option value="Instagram">Instagram</option>
               </select>
-            </label>
+            </Field>
           </div>
-          <label className="block">
-            <span className={label}>Headline</span>
-            <input className={field} value={form.hook} onChange={set('hook')} />
-          </label>
-          <label className="block">
-            <span className={label}>Primary text</span>
-            <textarea className={`${field} min-h-[140px] leading-relaxed`} value={form.ad_copy} onChange={set('ad_copy')} />
-          </label>
+          <Field label="Headline" htmlFor="cap-hook">
+            <input id="cap-hook" className={inputCls} value={form.hook} onChange={set('hook')} />
+          </Field>
+          <Field label="Primary text" htmlFor="cap-copy">
+            <textarea id="cap-copy" className={textarea} value={form.ad_copy} onChange={set('ad_copy')} />
+          </Field>
           <div className="grid sm:grid-cols-2 gap-5">
-            <label className="block">
-              <span className={label}>Landing page</span>
-              <input className={field} type="url" inputMode="url" value={form.landing_url} onChange={set('landing_url')} />
-            </label>
-            <label className="block">
-              <span className={label}>Call to action</span>
-              <input className={field} value={form.cta} onChange={set('cta')} />
-            </label>
+            <Field label="Landing page" htmlFor="cap-landing">
+              <input id="cap-landing" className={inputCls} type="url" inputMode="url" value={form.landing_url} onChange={set('landing_url')} />
+            </Field>
+            <Field label="Call to action" htmlFor="cap-cta">
+              <input id="cap-cta" className={inputCls} value={form.cta} onChange={set('cta')} />
+            </Field>
           </div>
           <div className="grid sm:grid-cols-2 gap-5">
-            <label className="block">
-              <span className={label}>Verdict</span>
-              <select className={field} value={form.verdict} onChange={set('verdict')}>
+            <Field label="Verdict" htmlFor="cap-verdict">
+              <select id="cap-verdict" className={selectCls} value={form.verdict} onChange={set('verdict')}>
                 {VERDICTS.map((v) => (
                   <option key={v} value={v}>
-                    {v.charAt(0).toUpperCase() + v.slice(1)}
+                    {cap(v)}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="block">
-              <span className={label}>Tags (comma separated)</span>
-              <input className={field} value={form.tags} onChange={set('tags')} placeholder="ugc, offer" />
-            </label>
+            </Field>
+            <Field label="Tags" htmlFor="cap-tags" hint="Comma separated">
+              <input
+                id="cap-tags"
+                className={inputCls}
+                value={form.tags}
+                onChange={set('tags')}
+                placeholder="ugc, offer"
+                aria-describedby="cap-tags-hint"
+              />
+            </Field>
           </div>
           {error && (
-            <p role="alert" className="text-[15px] leading-relaxed text-red-600">
+            <p role="alert" className="text-ui text-red-300">
               {error}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="submit" disabled={busy || existing === undefined} className={primary}>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+            <Button type="submit" variant="primary" disabled={busy || existing === undefined}>
               {busy ? 'Saving...' : existing === undefined ? 'Checking...' : 'Save to swipefile'}
-            </button>
-            {IS_DEMO && <p className="text-[14px] text-ink-soft">Demo: saved until you reload.</p>}
+            </Button>
+            <CloseTab />
+            {IS_DEMO && <p className="basis-full text-small text-ink-soft">Demo: saved until you reload.</p>}
           </div>
         </form>
       )}

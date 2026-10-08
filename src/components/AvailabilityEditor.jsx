@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { X, Trash } from '@phosphor-icons/react';
+import React, { useId, useState } from 'react';
+import { Trash } from '@phosphor-icons/react';
+import { Sheet, Field, Button, IconButton, inputCls, selectedCls } from '@/components/ui';
 
 // Convert between minutes-from-midnight and the "HH:MM" a <input type="time">
 // wants. Wall-clock, no timezone maths.
@@ -10,9 +11,11 @@ const toMin = (t) => {
 };
 
 // Add / edit one availability block. Pure form: it hands values back up and the
-// page talks to the database, so all the data logic lives in one place.
+// page talks to the database, so all the data logic lives in one place. The
+// Sheet closes on Escape and on the scrim.
 export default function AvailabilityEditor({ block, defaultDay, defaultStart, statuses, onSave, onDelete, onClose }) {
   const editing = Boolean(block?.id);
+  const formId = useId();
   const [day, setDay] = useState(block?.day || defaultDay);
   const [status, setStatus] = useState(block?.status || 'in_office');
   const [allDay, setAllDay] = useState(block ? block.start_min === 0 && block.end_min === 1440 : false);
@@ -22,13 +25,6 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
   const [note, setNote] = useState(block?.note || '');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-
-  // Close on Escape.
-  useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -49,105 +45,103 @@ export default function AvailabilityEditor({ block, defaultDay, defaultStart, st
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
-      onClick={onClose}
+    <Sheet
+      open
+      onClose={onClose}
+      sheetId="availability"
+      title={editing ? 'Edit availability' : 'Add availability'}
+      footer={
+        <>
+          {editing && (
+            <IconButton label="Delete" variant="danger" icon={Trash} onClick={() => onDelete(block)} className="mr-auto -ml-3" />
+          )}
+          <Button type="submit" form={formId} variant="primary" disabled={busy} className="min-w-[7rem]">
+            {busy ? 'Saving...' : editing ? 'Save' : 'Add'}
+          </Button>
+        </>
+      }
     >
-      <div
-        className="bg-card w-full sm:max-w-[420px] rounded-t-xl3 sm:rounded-xl3 border border-line shadow-card p-5 sm:p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[18px] font-semibold tracking-tight">
-            {editing ? 'Edit availability' : 'Add availability'}
-          </h2>
-          <button onClick={onClose} aria-label="Close" className="w-11 h-11 rounded-xl flex items-center justify-center text-ink-soft hover:bg-canvas">
-            <X size={18} weight="bold" />
-          </button>
+      <form id={formId} onSubmit={submit} className="flex flex-col gap-5">
+        {/* Status: labelled buttons, never colour alone */}
+        <div role="group" aria-labelledby={`${formId}-status`}>
+          <p id={`${formId}-status`} className="text-small font-medium text-ink mb-2">
+            I am
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {statuses.map((s) => {
+              const on = status === s.key;
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setStatus(s.key)}
+                  className={`press inline-flex items-center justify-center gap-2 min-h-[44px] px-2 rounded-xl text-ui font-medium transition-colors ${
+                    on ? selectedCls : 'bg-white/[0.04] text-ink-soft hover:text-ink'
+                  }`}
+                >
+                  <span aria-hidden="true" className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${s.dot}`} />
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <form onSubmit={submit}>
-          {/* Status: labelled buttons, never colour alone */}
-          <label className="text-[13px] font-semibold text-ink-soft mb-1.5 block">I am</label>
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {statuses.map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => setStatus(s.key)}
-                className={`py-2 px-2 rounded-2xl text-[13px] font-semibold border transition-colors ${
-                  status === s.key ? `${s.solid} border-transparent` : 'bg-card border-line text-ink-soft'
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+        <Field label="Day" htmlFor={`${formId}-day`}>
+          <input id={`${formId}-day`} type="date" value={day} onChange={(e) => setDay(e.target.value)} className={inputCls} />
+        </Field>
 
-          {/* Day */}
-          <label className="text-[13px] font-semibold text-ink-soft mb-1.5 block">Day</label>
-          <input
-            type="date"
-            value={day}
-            onChange={(e) => setDay(e.target.value)}
-            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[15px] mb-4"
-          />
-
-          {/* Time */}
-          <label className="flex items-center gap-2 mb-2 cursor-pointer select-none">
-            <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} className="accent-accent w-4 h-4" />
-            <span className="text-[13px] font-semibold text-ink-soft">All day</span>
+        <div>
+          {/* The whole 44 tall label is the tap target, so the probe skips the box. */}
+          <label className="-ml-1 inline-flex items-center gap-3 min-h-[44px] px-1 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={allDay}
+              onChange={(e) => setAllDay(e.target.checked)}
+              className="accent-accent w-5 h-5"
+              data-probe-skip
+            />
+            <span className="text-ui font-medium text-ink">All day</span>
           </label>
           {!allDay && (
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-3 mt-2">
               <input
                 type="time"
+                aria-label="From"
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
-                className="flex-1 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[15px]"
+                className={`${inputCls} flex-1`}
               />
-              <span className="text-ink-soft text-[13px]">to</span>
+              <span className="text-small text-ink-soft">to</span>
               <input
                 type="time"
+                aria-label="Until"
                 value={end}
                 onChange={(e) => setEnd(e.target.value)}
-                className="flex-1 py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[15px]"
+                className={`${inputCls} flex-1`}
               />
             </div>
           )}
+        </div>
 
-          {/* Note */}
+        <Field label="Note" htmlFor={`${formId}-note`}>
           <input
+            id={`${formId}-note`}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Note (optional) e.g. dentist, half day"
+            placeholder="Optional, e.g. dentist, half day"
             maxLength={120}
-            className="w-full min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[15px] mb-4"
+            className={inputCls}
           />
+        </Field>
 
-          {err && <p className="text-[13px] text-red-500 mb-3">{err}</p>}
-
-          <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              disabled={busy}
-              className="press flex-1 py-2.5 rounded-2xl bg-accent text-black font-semibold disabled:opacity-60"
-            >
-              {busy ? 'Saving...' : editing ? 'Save' : 'Add'}
-            </button>
-            {editing && (
-              <button
-                type="button"
-                onClick={() => onDelete(block)}
-                aria-label="Delete"
-                className="w-11 h-11 rounded-2xl flex items-center justify-center text-red-500 border border-line hover:bg-red-50 flex-shrink-0"
-              >
-                <Trash size={17} weight="bold" />
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
-    </div>
+        {err && (
+          <p role="alert" className="text-small text-red-300">
+            {err}
+          </p>
+        )}
+      </form>
+    </Sheet>
   );
 }

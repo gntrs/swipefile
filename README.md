@@ -76,15 +76,15 @@ Import a CSV at `/ads/import`: the swipe file format (download the template ther
 
 ## Modules
 
-Out of the box Swipefile is a tool for one person: the library, hooks, briefs, competitors and intel. `/` opens the library and `/overview` shows the numbers. Team and ops features are there when you want them: set `VITE_MODULES` in `.env` and restart `npm run dev` (or rebuild).
+Out of the box Swipefile is a tool for one person: the library, hooks, briefs, competitors and intel. `/` opens the dashboard, the numbers that matter at a glance, and the library is one click away. Team and ops features are there when you want them: set `VITE_MODULES` in `.env` and restart `npm run dev` (or rebuild).
 
 | Module | On by default | What it adds |
 |---|---|---|
-| `library` | always | Ads, add an ad, CSV import, compare, the ad page, capture, `/overview`, profile |
+| `library` | always | Ads, add an ad, CSV import, compare, the ad page, capture, the dashboard, profile |
 | `hooks` | yes | Hook bank |
-| `briefs` | yes | Briefs, and the latest brief on the overview |
-| `competitors` | yes | Competitors, and rivals' proven plays on the overview |
-| `intel` | yes | Market intel, and its card on the overview |
+| `briefs` | yes | Briefs, and the latest brief on the dashboard |
+| `competitors` | yes | Competitors, and busy rivals on the dashboard |
+| `intel` | yes | Market intel |
 | `team` | no | Team chat and goals, organic posts, outreach, availability, the welcome popup, the team list on your profile, who added each ad |
 | `ops` | no | Revenue, ad performance, the site funnel, sale celebrations and party mode |
 
@@ -216,7 +216,7 @@ Everything in `scripts/` runs on its own with Node and is safe to schedule.
 | `scrape-creators.mjs` | Creator finder: searches public Instagram profiles through Brave Search |
 | `scrape-emails.mjs` | Finds contact emails for those profiles |
 | `stripe-pull.mjs`, `revenue-alert.mjs`, `failed-payment-alert.mjs` | Sales, revenue and failed payment alerts |
-| `snapshot-kpis.mjs`, `posthog-pull.mjs` | Numbers for the overview |
+| `snapshot-kpis.mjs`, `posthog-pull.mjs` | Numbers for the ops cards |
 | `health-monitor.mjs` | Probes your production endpoints and alerts on failures |
 | `startup-radar.mjs`, `gm-listener.mjs`, `morning-brief.mjs` | Telegram digests and assistant |
 | `add-brief.mjs`, `add-goal.mjs` | Add a brief (`--ads id1,id2` links its source ads) or a goal from the command line |

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowSquareOut, Check, Copy, MagnifyingGlass, Quotes, X } from '@phosphor-icons/react';
+import { ArrowSquareOut, Check, Copy, X } from '@phosphor-icons/react';
 import { fetchAll } from '@/lib/db';
 import PartialNotice from '@/components/PartialNotice';
 import { isOwnBrand } from '@/lib/brand';
@@ -9,8 +8,27 @@ import { hookText, hookAngle, angleCounts } from '@/lib/library/hooks';
 import { shouldIgnoreKey } from '@/lib/library/keys';
 import SelectBox from '@/features/save/SelectBox';
 import { RowsSkeleton } from '@/components/Skeleton';
-import BriefFromSelection from '@/features/ai/BriefFromSelection';
+import BriefFromSelection, { MAX_BRIEF_ADS, MAX_BRIEF_HOOKS } from '@/features/ai/BriefFromSelection';
 import ClassifyHooksButton from '@/features/ai/ClassifyHooksButton';
+import {
+  Page,
+  PageHeader,
+  Panel,
+  List,
+  Badge,
+  Meta,
+  Button,
+  IconButton,
+  Segmented,
+  Chip,
+  Toolbar,
+  SearchField,
+  FilterPanel,
+  FilterGroup,
+  ActiveFilters,
+  EmptyState,
+  useMedia,
+} from '@/components/ui';
 
 const WHO = [
   { id: 'all', label: 'All' },
@@ -29,27 +47,19 @@ const isOurs = (a) => isOwnBrand(a.brand);
 // paying to run it for 30+ days (the auto-verdict threshold).
 const isProven = (a) => a.verdict === 'winner' || (a.metrics?.days_running ?? 0) >= 30;
 
-// A brief takes at most this many hooks and source ads.
-const MAX_BRIEF_HOOKS = 50;
-const MAX_BRIEF_ADS = 20;
-
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
   return (
-    <button
-      type="button"
+    <IconButton
+      label={copied ? 'Copied' : 'Copy hook'}
+      icon={copied ? Check : Copy}
       onClick={() => {
         navigator.clipboard?.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 1200);
       }}
-      aria-label="Copy hook"
-      className={`press w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-        copied ? 'bg-emerald-500/15 text-emerald-300' : 'text-ink-soft hover:text-ink hover:bg-white/[0.06]'
-      }`}
-    >
-      {copied ? <Check size={16} weight="bold" /> : <Copy size={16} weight="bold" />}
-    </button>
+      className={copied ? '!text-emerald-300' : ''}
+    />
   );
 }
 
@@ -64,6 +74,13 @@ export default function HookBank() {
   const [tag, setTag] = useState(null);
   const [angle, setAngle] = useState('all'); // 'all' | 'none' | angle id
   const [picked, setPicked] = useState(() => new Set()); // hook keys
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  // Under 1280 the toolbar has little room (one row from 1024, a sideways
+  // scrolling row on a phone that would push Filters off screen), so the
+  // Everything, Proven, Live now choice moves into Filters there.
+  const roomy = useMedia('(min-width: 1280px)');
+  const showInPanel = !roomy;
+  const wide = useMedia('(min-width: 640px)');
   const searchRef = useRef(null);
 
   const [partial, setPartial] = useState(null);
@@ -173,184 +190,177 @@ export default function HookBank() {
       else next.add(key);
       return next;
     });
-  const chip = (active) =>
-    `press flex-shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3.5 rounded-xl text-[14px] font-medium transition-colors ${
-      active ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
-    }`;
+
+  // Angle and tag live behind Filters; each one that is on shows as a chip.
+  const active = [
+    showInPanel && only !== 'all' && {
+      key: 'only',
+      label: ONLY.find((o) => o.id === only)?.label,
+      onRemove: () => setOnly('all'),
+    },
+    angle !== 'all' && {
+      key: 'angle',
+      label: angle === 'none' ? 'No angle yet' : `Angle: ${angleLabel(angle)}`,
+      onRemove: () => setAngle('all'),
+    },
+    tag && { key: 'tag', label: `Tag: ${tag}`, onRemove: () => setTag(null) },
+  ].filter(Boolean);
+  const clearFilters = () => {
+    if (showInPanel) setOnly('all');
+    setAngle('all');
+    setTag(null);
+  };
+  const hasAngles = angleChips.angles.length > 0 || angle !== 'all';
+  const hasTags = topTags.length > 0 || Boolean(tag);
+  const anyFilter = active.length > 0 || who !== 'all' || only !== 'all' || q.trim();
 
   return (
-    <div data-page="hooks" className={`px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[860px] mx-auto ${picked.size ? 'pb-48' : ''}`}>
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Hook bank</h1>
-          <p className="text-ink-soft text-[15px] leading-relaxed mt-2">
-            {hooks.length} hooks to steal from. Proven ones float to the top.
-          </p>
-        </div>
-        <ClassifyHooksButton onDone={reloadHooks} />
-      </div>
+    <Page id="hooks">
+      <PageHeader
+        title="Hook bank"
+        context={`${hooks.length} hooks to steal from. Proven ones float to the top.`}
+        actions={<ClassifyHooksButton onDone={reloadHooks} />}
+      />
       <PartialNotice rows={partial} noun="ads" onRetry={() => setReload((n) => n + 1)} className="mb-4" />
 
-      {/* Controls */}
-      <div className="flex flex-col gap-2 mb-6">
-        <div className="flex items-center gap-2 bg-card border border-line rounded-xl px-3 focus-within:border-ink-soft transition-colors">
-          <MagnifyingGlass size={18} className="text-ink-soft flex-shrink-0" />
-          <input
+      <Toolbar
+        search={
+          <SearchField
             ref={searchRef}
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={setQ}
             placeholder="Search hooks, brands, tags..."
-            aria-label="Search hooks"
-            className="w-full min-w-0 min-h-[44px] py-2.5 bg-transparent focus:outline-none focus-visible:shadow-none text-[16px] sm:text-[15px] placeholder:text-ink-soft"
+            label="Search hooks"
           />
-        </div>
-        <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 sm:flex-wrap">
-          {WHO.map((w) => (
-            <button
-              key={w.id}
-              onClick={() => setWho(w.id)}
-              className={chip(who === w.id)}
-            >
-              {w.label}
-            </button>
-          ))}
-          <span className="w-px bg-line flex-shrink-0 mx-1.5 my-2.5" />
-          {ONLY.map((o) => (
-            <button
-              key={o.id}
-              onClick={() => setOnly(o.id)}
-              className={chip(only === o.id)}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-        {(angleChips.angles.length > 0 || angle !== 'all') && (
-          <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 sm:flex-wrap" role="group" aria-label="Filter by angle">
-            <button type="button" onClick={() => setAngle('all')} aria-pressed={angle === 'all'} className={chip(angle === 'all')}>
-              All angles
-            </button>
-            <button type="button" onClick={() => setAngle('none')} aria-pressed={angle === 'none'} className={chip(angle === 'none')}>
-              No angle yet <span className="font-mono text-[12px] tabular-nums opacity-60">{angleChips.none}</span>
-            </button>
-            {angleChips.angles.map((a) => (
-              <button key={a.id} type="button" onClick={() => setAngle(a.id)} aria-pressed={angle === a.id} className={chip(angle === a.id)}>
-                {angleLabel(a.id)} <span className="font-mono text-[12px] tabular-nums opacity-60">{a.count}</span>
-              </button>
-            ))}
-          </div>
+        }
+      >
+        <Segmented label="Whose hooks" options={WHO} value={who} onChange={setWho} className="flex-shrink-0" />
+        {!showInPanel && <Segmented label="Show" options={ONLY} value={only} onChange={setOnly} className="flex-shrink-0" />}
+        {(hasAngles || hasTags || showInPanel) && (
+          <FilterPanel count={active.length} open={filtersOpen} onOpenChange={setFiltersOpen} onClear={clearFilters}>
+            {showInPanel && (
+              <FilterGroup label="Show">
+                <Segmented label="Show" options={ONLY} value={only} onChange={setOnly} />
+              </FilterGroup>
+            )}
+            {hasAngles && (
+              <FilterGroup label="Angle">
+                <Chip pressed={angle === 'none'} count={angleChips.none} onClick={() => setAngle(angle === 'none' ? 'all' : 'none')}>
+                  No angle yet
+                </Chip>
+                {angleChips.angles.map((a) => (
+                  <Chip key={a.id} pressed={angle === a.id} count={a.count} onClick={() => setAngle(angle === a.id ? 'all' : a.id)}>
+                    {angleLabel(a.id)}
+                  </Chip>
+                ))}
+              </FilterGroup>
+            )}
+            {hasTags && (
+              <FilterGroup label="Tag">
+                {(topTags.includes(tag) || !tag ? topTags : [tag, ...topTags]).map((t) => (
+                  <Chip key={t} pressed={tag === t} onClick={() => setTag(tag === t ? null : t)}>
+                    {t}
+                  </Chip>
+                ))}
+              </FilterGroup>
+            )}
+          </FilterPanel>
         )}
-        {topTags.length > 0 && (
-          <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 sm:flex-wrap">
-            {topTags.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTag(tag === t ? null : t)}
-                className={`press flex-shrink-0 min-h-[44px] min-w-[44px] px-3 rounded-xl text-[13px] transition-colors ${
-                  tag === t ? 'bg-accent text-black' : 'text-ink-soft hover:text-ink hover:bg-white/[0.06]'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      </Toolbar>
+      <ActiveFilters items={active} onClearAll={clearFilters} />
 
       {loading ? (
         <RowsSkeleton rows={5} />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20 text-ink-soft">
-          <Quotes size={32} weight="bold" className="mx-auto mb-4" />
-          <p className="text-[16px]">No hooks match. Hooks come from the ads in the library.</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {filtered.map((h) => (
-            <div
-              key={h.key}
-              className={`bg-card rounded-xl3 shadow-card pl-1 pr-3 py-3 flex items-start gap-2 transition-colors ${
-                picked.has(h.key) ? 'ring-2 ring-accent bg-card-hi' : ''
-              }`}
-            >
-              <SelectBox checked={picked.has(h.key)} onChange={() => togglePick(h.key)} label={`Select hook: ${h.text.slice(0, 60)}`} />
-              <div className="flex-1 min-w-0 pt-2">
-                <p className="text-[16px] leading-snug font-medium break-words">{h.text}</p>
-                <div className="flex items-center gap-x-3 gap-y-1.5 flex-wrap mt-2.5">
-                  {h.proven && (
-                    <span className="font-mono text-[11px] font-medium uppercase leading-none tracking-[0.08em] px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-300">
-                      proven
-                    </span>
-                  )}
-                  {h.live && (
-                    <span className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-emerald-600">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      live{h.days > 0 && ` · ${h.days}d`}
-                    </span>
-                  )}
-                  {h.angle && (
-                    <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-soft">{angleLabel(h.angle)}</span>
-                  )}
-                  {h.brands.slice(0, 2).map((b) => (
-                    <span
-                      key={b}
-                      className={`text-[13px] font-medium ${isOwnBrand(b) ? 'text-ink' : 'text-ink-soft'}`}
-                    >
-                      {b}
-                    </span>
-                  ))}
-                  {h.ads.length > 1 && (
-                    <span className="font-mono text-[11px] text-ink-soft">seen in {h.ads.length} ads</span>
-                  )}
-                  {h.drivers.slice(0, 3).map((d) => (
-                    <span
-                      key={d}
-                      className="text-[12px] leading-5 px-1.5 rounded bg-white/[0.06] text-ink-soft"
-                    >
-                      {d}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="flex flex-shrink-0 pt-0.5">
-                <CopyButton text={h.text} />
-                <Link
-                  to={`/ad/${h.best.id}`}
-                  aria-label="Open the ad"
-                  className="press w-11 h-11 rounded-xl flex items-center justify-center text-ink-soft hover:text-ink hover:bg-white/[0.06] transition-colors"
+        <Panel>
+          <EmptyState
+            title="No hooks match."
+            text="Hooks come from the ads in the library."
+            action={
+              anyFilter ? (
+                <Button
+                  onClick={() => {
+                    clearFilters();
+                    setWho('all');
+                    setOnly('all');
+                    setQ('');
+                  }}
                 >
-                  <ArrowSquareOut size={16} weight="bold" />
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
+                  Clear filters
+                </Button>
+              ) : (
+                <Button to="/ads/add">Add an ad</Button>
+              )
+            }
+          />
+        </Panel>
+      ) : (
+        <Panel flush>
+          <List>
+            {filtered.map((h) => {
+              const on = picked.has(h.key);
+              return (
+                <li key={h.key} className={on ? 'bg-white/[0.04]' : ''}>
+                  <div className="flex items-start gap-2 lg:gap-3 min-h-[56px] py-1.5 pl-2 pr-3 lg:pl-3 lg:pr-4">
+                    <SelectBox checked={on} onChange={() => togglePick(h.key)} label={`Select hook: ${h.text.slice(0, 60)}`} />
+                    <div className="flex-1 min-w-0 py-2">
+                      <p className="text-body font-medium text-ink break-words">{h.text}</p>
+                      <Meta
+                        as="p"
+                        className="text-small text-ink-soft mt-1"
+                        items={[
+                          h.proven && <Badge tone="good">Proven</Badge>,
+                          h.live && (
+                            <span className="inline-flex items-center gap-1.5 text-ink">
+                              <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-status-live" />
+                              {h.days > 0 ? `Live ${h.days}d` : 'Live'}
+                            </span>
+                          ),
+                          h.angle && angleLabel(h.angle),
+                          ...h.brands.slice(0, 2).map((b) => <span className={isOwnBrand(b) ? 'text-ink whitespace-nowrap' : 'whitespace-nowrap'}>{b}</span>),
+                          h.ads.length > 1 && `seen in ${h.ads.length} ads`,
+                        ]}
+                      />
+                    </div>
+                    <div className="flex flex-shrink-0 items-center">
+                      <CopyButton text={h.text} />
+                      <IconButton to={`/ad/${h.best.id}`} label="Open the ad" icon={ArrowSquareOut} />
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </List>
+        </Panel>
       )}
 
       {picked.size > 0 && (
-        <div className="fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] sm:bottom-0 sm:left-60 z-40 px-3 sm:px-6 pb-2 sm:pb-[calc(1rem+env(safe-area-inset-bottom))] pointer-events-none">
-          <div className="pointer-events-auto max-w-[860px] mx-auto bg-card border border-line rounded-xl3 shadow-cardhover p-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-mono text-[13px] tabular-nums text-ink px-2 min-h-[44px] flex items-center">{picked.size} selected</p>
-              <BriefFromSelection hooks={briefHooks} adIds={briefAdIds} label="Brief from these hooks" className="ml-auto" />
-              <button
-                type="button"
-                onClick={() => setPicked(new Set())}
-                aria-label="Clear selection"
-                className="press inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[14px] font-semibold text-ink transition-colors"
-              >
-                <X size={16} weight="bold" />
-                <span className="hidden sm:inline">Clear</span>
-              </button>
+        <>
+          {/* Room under the last row so the bar never covers it. */}
+          <div aria-hidden="true" className="h-28" />
+          <div className="fixed bottom-[var(--tabbar-h)] left-[var(--nav-left)] right-0 z-40 pointer-events-none">
+            <div className="mx-auto w-full max-w-[var(--maxw)] px-2 sm:px-[var(--gutter)] pb-2 sm:pb-3 lg:pb-[calc(1rem+env(safe-area-inset-bottom))]">
+              <div className="pointer-events-auto bg-card border border-line rounded-xl3 shadow-cardhover p-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-ui font-medium text-ink px-1 sm:px-2 min-h-[44px] flex items-center gap-1">
+                    <span className="num">{picked.size}</span>
+                    <span className="max-[359px]:sr-only">selected</span>
+                  </p>
+                  <BriefFromSelection hooks={briefHooks} adIds={briefAdIds} label={wide ? 'Brief from these hooks' : 'Brief from these'} className="ml-auto" />
+                  <Button onClick={() => setPicked(new Set())} aria-label="Clear selection" icon={X} className="max-sm:px-0 max-sm:w-11">
+                    <span className="hidden sm:inline">Clear</span>
+                  </Button>
+                </div>
+                {capped && (
+                  <p aria-live="polite" className="px-2 pt-1 pb-1 text-small text-ink-soft">
+                    A brief takes the first {MAX_BRIEF_HOOKS} hooks and {MAX_BRIEF_ADS} ads.
+                  </p>
+                )}
+              </div>
             </div>
-            {capped && (
-              <p aria-live="polite" className="px-2 pt-1 pb-1 text-[14px] text-ink-soft">
-                A brief takes the first {MAX_BRIEF_HOOKS} hooks and {MAX_BRIEF_ADS} ads.
-              </p>
-            )}
           </div>
-        </div>
+        </>
       )}
-    </div>
+    </Page>
   );
 }

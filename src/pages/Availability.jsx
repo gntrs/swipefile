@@ -1,19 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CaretLeft, CaretRight, Plus, CalendarBlank } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, Plus } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { isMissingTable } from '@/lib/db';
 import MigrationCard from '@/components/MigrationCard';
 import AvailabilityEditor from '@/components/AvailabilityEditor';
+import { Page, PageHeader, Button, IconButton, Chip } from '@/components/ui';
 
 // The three things a teammate can say about a slot. Always shown WITH a label,
-// never colour alone. `solid` = filled (selected button), `block` = soft fill
+// never colour alone. None of them is good or bad, so none is green: in office
+// is the neutral grey, home the white accent, out the dim track. `solid` = filled (selected button), `block` = soft fill
 // for the block on the grid, `dot` = legend dot.
 const STATUSES = [
-  { key: 'in_office', label: 'In office', solid: 'bg-mint text-emerald-900', block: 'bg-mint/50 border-mint text-emerald-900', dot: 'bg-mint' },
+  { key: 'in_office', label: 'In office', solid: 'bg-status-neutral text-black', block: 'bg-status-neutral/35 border-status-neutral text-ink', dot: 'bg-status-neutral' },
   { key: 'wfh', label: 'Home', full: 'Work from home', solid: 'bg-accent text-black', block: 'bg-accent-wash border-accent text-accent-dim', dot: 'bg-accent' },
-  { key: 'out', label: 'Out', solid: 'bg-ink text-black', block: 'bg-canvas border-line text-ink-soft', dot: 'bg-line' },
+  { key: 'out', label: 'Out', solid: 'bg-ink text-black', block: 'bg-canvas border-line text-ink-soft', dot: 'bg-ink-soft/60' },
 ];
 const META = Object.fromEntries(STATUSES.map((s) => [s.key, s]));
 
@@ -94,7 +96,7 @@ export default function Availability() {
 
   // Open scrolled to the working day, not to midnight.
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = 7 * HOUR_PX;
+    if (scrollRef.current) scrollRef.current.scrollTop = 7 * HOUR_PX - 12;
   }, [missing]);
 
   const byDay = useMemo(() => {
@@ -133,23 +135,42 @@ export default function Availability() {
     setEditor({ day: dayStr, start: snapped });
   };
 
+  const header = (
+    <PageHeader
+      title="Availability"
+      context="When the team is in office, working from home, or out."
+      actions={
+        !missing && (
+          <Button variant="primary" icon={Plus} onClick={() => setEditor({ day: ymd(days[selDay]), start: 540 })}>
+            Add
+          </Button>
+        )
+      }
+    />
+  );
+
   if (missing) {
     return (
-      <div data-page="availability" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1100px] mx-auto">
+      <Page id="availability">
+        {header}
         <MigrationCard title="Team availability" migration="db-setup.sql" />
-      </div>
+      </Page>
     );
   }
 
-  const weekLabel = `${days[0].toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} - ${days[6].toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
+  const shortDay = (d) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  const weekLabel = `${shortDay(days[0])} to ${shortDay(days[6])}`;
 
   // One day column (used both for the phone single-day view and each desktop column).
   const DayColumn = ({ d, i }) => {
     const dayStr = ymd(d);
+    const isToday = dayStr === todayStr;
     return (
       <div
         onClick={(e) => addAt(dayStr, e)}
-        className={`${i === selDay ? 'block' : 'hidden'} sm:block flex-1 min-w-0 sm:min-w-[92px] border-l border-line relative cursor-copy`}
+        className={`${i === selDay ? 'block' : 'hidden'} md:block flex-1 min-w-0 md:min-w-[92px] border-l border-line relative cursor-copy ${
+          isToday ? 'bg-white/[0.02]' : ''
+        }`}
         style={{ height: GRID_H, backgroundImage: GRID_BG }}
       >
         {byDay[dayStr]?.map((b) => {
@@ -164,18 +185,18 @@ export default function Availability() {
             <button
               key={b.id}
               onClick={(e) => { e.stopPropagation(); if (mine) setEditor({ block: b }); }}
-              title={`${displayName(b.email)} · ${meta.full || meta.label} · ${allDay ? 'All day' : `${fmt(b.start_min)}-${fmt(b.end_min)}`}${b.note ? ` · ${b.note}` : ''}`}
-              className={`absolute rounded-lg border px-1.5 py-0.5 text-left overflow-hidden ${meta.block} ${mine ? 'ring-2 ring-offset-1 ring-ink/20 cursor-pointer' : 'cursor-default'}`}
+              title={`${displayName(b.email)} · ${meta.full || meta.label} · ${allDay ? 'All day' : `${fmt(b.start_min)} to ${fmt(b.end_min)}`}${b.note ? ` · ${b.note}` : ''}`}
+              className={`absolute rounded-lg border px-1.5 py-0.5 text-left overflow-hidden text-meta ${meta.block} ${mine ? 'ring-2 ring-ink/30 cursor-pointer' : 'cursor-default'}`}
               style={{ top, height, left: `calc(${b._lane * w}% + 2px)`, width: `calc(${w}% - 4px)` }}
             >
-              <div className={`font-semibold truncate leading-tight ${short ? 'text-[10px]' : 'text-[11px]'}`}>
+              <span className="block font-semibold truncate">
                 {displayName(b.email)}{mine ? ' (you)' : ''}
-              </div>
+              </span>
               {!short && (
-                <div className="text-[10px] opacity-80 truncate leading-tight">
-                  {allDay ? 'All day' : `${fmt(b.start_min)}-${fmt(b.end_min)}`}
+                <span className="block opacity-80 truncate">
+                  {allDay ? 'All day' : `${fmt(b.start_min)} to ${fmt(b.end_min)}`}
                   {b.note ? ` · ${b.note}` : ''}
-                </div>
+                </span>
               )}
             </button>
           );
@@ -185,71 +206,62 @@ export default function Availability() {
   };
 
   return (
-    <div data-page="availability" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1100px] mx-auto">
-      <div className="flex items-center justify-between gap-3 mb-1">
-        <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Availability</h1>
-        <button
-          onClick={() => setEditor({ day: ymd(days[selDay]), start: 540 })}
-          className="press flex items-center gap-1.5 min-h-[44px] px-3.5 py-2 rounded-2xl bg-accent text-black text-[14px] font-semibold"
-        >
-          <Plus size={16} weight="bold" /> Add
-        </button>
-      </div>
-      <p className="text-ink-soft text-[14px] mb-4">When the team is in office, working from home, or out.</p>
+    <Page id="availability">
+      {header}
 
-      {/* Week nav + legend */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-1">
-          <button onClick={() => setWeekStart((w) => addDays(w, -7))} aria-label="Previous week" className="w-11 h-11 rounded-2xl bg-card border border-line flex items-center justify-center text-ink-soft hover:bg-canvas">
-            <CaretLeft size={16} weight="bold" />
-          </button>
-          <button onClick={() => { setWeekStart(mondayOf(new Date())); setSelDay(weekdayIdx(new Date())); }} className="px-3 h-11 rounded-2xl bg-card border border-line text-[13px] font-semibold text-ink-soft hover:bg-canvas">
+      {/* Week nav on the left, legend on the right */}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 mb-4">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <IconButton label="Previous week" variant="secondary" icon={CaretLeft} onClick={() => setWeekStart((w) => addDays(w, -7))} />
+          <Button
+            variant="secondary"
+            onClick={() => { setWeekStart(mondayOf(new Date())); setSelDay(weekdayIdx(new Date())); }}
+          >
             Today
-          </button>
-          <button onClick={() => setWeekStart((w) => addDays(w, 7))} aria-label="Next week" className="w-11 h-11 rounded-2xl bg-card border border-line flex items-center justify-center text-ink-soft hover:bg-canvas">
-            <CaretRight size={16} weight="bold" />
-          </button>
-          <span className="ml-2 text-[14px] font-semibold tabular-nums">{weekLabel}</span>
+          </Button>
+          <IconButton label="Next week" variant="secondary" icon={CaretRight} onClick={() => setWeekStart((w) => addDays(w, 7))} />
+          <span className="sm:ml-2 text-ui font-semibold text-ink whitespace-nowrap">{weekLabel}</span>
         </div>
-        <div className="flex items-center gap-x-4 gap-y-1 flex-wrap">
+        <ul className="flex flex-wrap items-center gap-x-4 gap-y-1">
           {STATUSES.map((s) => (
-            <span key={s.key} className="flex items-center gap-1.5 text-[13px] text-ink-soft">
-              <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`} /> {s.full || s.label}
-            </span>
+            <li key={s.key} className="flex items-center gap-2 text-small text-ink-soft">
+              <span aria-hidden="true" className={`w-2.5 h-2.5 rounded-full ${s.dot}`} /> {s.full || s.label}
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
 
       {/* Phone: a day picker. One day at a time, full width, vertical scroll only. */}
-      <div className="sm:hidden flex gap-1.5 mb-3 overflow-x-auto -mx-5 px-5">
+      <div role="group" aria-label="Day" className="md:hidden scroll-x flex gap-2 mb-4 -mx-[var(--gutter)] px-[var(--gutter)]">
         {days.map((d, i) => {
           const isToday = ymd(d) === todayStr;
           return (
-            <button
-              key={ymd(d)}
-              onClick={() => setSelDay(i)}
-              className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold tabular-nums transition-colors ${
-                i === selDay ? 'bg-accent text-black' : isToday ? 'bg-accent-wash text-accent-dim' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
-              }`}
-            >
+            <Chip key={ymd(d)} pressed={i === selDay} onClick={() => setSelDay(i)} aria-current={isToday ? 'date' : undefined}>
               {d.toLocaleDateString(undefined, { weekday: 'short' })} {d.getDate()}
-            </button>
+              {isToday && <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-ink" />}
+            </Chip>
           );
         })}
       </div>
 
-      {/* The grid. Phone = 1 day full width; desktop = the whole week. Vertical scroll through the day. */}
-      <div ref={scrollRef} className="overflow-auto overscroll-contain max-h-[64vh] border border-line rounded-xl3 bg-card shadow-card">
-        <div className="min-w-0 sm:min-w-[680px]">
-          {/* Day headers (desktop only - phone uses the picker above) */}
-          <div className="hidden sm:flex sticky top-0 z-20 bg-card border-b border-line">
-            <div className="w-12 flex-shrink-0 sticky left-0 z-10 bg-card/95" />
+      {/* The grid. Phone = 1 day full width; from md the whole week. Vertical scroll through the day. */}
+      <div ref={scrollRef} className="overflow-auto overscroll-contain max-h-[64vh] rounded-xl3 bg-card">
+        <div className="min-w-0 md:min-w-[680px]">
+          {/* Day headers (from md; the phone uses the picker above) */}
+          <div className="hidden md:flex sticky top-0 z-20 bg-card border-b border-line">
+            <div className="w-14 flex-shrink-0 sticky left-0 z-10 bg-card" />
             {days.map((d) => {
               const isToday = ymd(d) === todayStr;
               return (
-                <div key={ymd(d)} className={`flex-1 min-w-[92px] text-center py-2 border-l border-line ${isToday ? 'bg-accent-wash' : ''}`}>
-                  <div className="text-[11px] uppercase tracking-wide text-ink-soft">{d.toLocaleDateString(undefined, { weekday: 'short' })}</div>
-                  <div className={`text-[15px] font-semibold tabular-nums ${isToday ? 'text-accent-dim' : ''}`}>{d.getDate()}</div>
+                <div
+                  key={ymd(d)}
+                  aria-current={isToday ? 'date' : undefined}
+                  className={`flex-1 min-w-[92px] text-center py-2.5 border-l border-line ${isToday ? 'bg-white/[0.06]' : ''}`}
+                >
+                  <div className={`text-meta font-medium ${isToday ? 'text-ink' : 'text-ink-soft'}`}>
+                    {d.toLocaleDateString(undefined, { weekday: 'short' })}
+                  </div>
+                  <div className={`num text-ui ${isToday ? 'text-ink' : 'text-ink-soft'}`}>{d.getDate()}</div>
                 </div>
               );
             })}
@@ -257,9 +269,9 @@ export default function Availability() {
 
           {/* Body: hour gutter + day column(s) */}
           <div className="flex">
-            <div className="w-12 flex-shrink-0 sticky left-0 z-10 bg-card relative" style={{ height: GRID_H }}>
+            <div className="w-14 flex-shrink-0 sticky left-0 z-10 bg-card relative" style={{ height: GRID_H }}>
               {Array.from({ length: 24 }, (_, h) => (
-                <div key={h} className="absolute right-1.5 -translate-y-1/2 text-[10px] text-ink-soft tabular-nums" style={{ top: h * HOUR_PX }}>
+                <div key={h} className="absolute right-2 -translate-y-1/2 num text-meta text-ink-soft" style={{ top: h * HOUR_PX }}>
                   {h === 0 ? '' : `${h}:00`}
                 </div>
               ))}
@@ -271,8 +283,7 @@ export default function Availability() {
         </div>
       </div>
 
-      <p className="text-[12px] text-ink-soft mt-2 flex items-center gap-1.5">
-        <CalendarBlank size={13} weight="bold" />
+      <p className="text-small text-ink-soft mt-3">
         {loading ? 'Loading...' : 'Tap the grid to add. You can only edit your own blocks (they show a ring).'}
       </p>
 
@@ -287,6 +298,6 @@ export default function Availability() {
           onClose={() => setEditor(null)}
         />
       )}
-    </div>
+    </Page>
   );
 }

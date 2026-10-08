@@ -1,54 +1,28 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Images, Megaphone, Trophy, ChatCircleText, Star, Broadcast } from '@phosphor-icons/react';
+import { Plus } from '@phosphor-icons/react';
 import { db, fetchAll } from '@/lib/db';
 import PartialNotice from '@/components/PartialNotice';
-import StatCard from '@/components/StatCard';
-import { Skeleton, StatSkeleton } from '@/components/Skeleton';
+import { Skeleton } from '@/components/Skeleton';
+import { Page, PageHeader, Button, Section, GRID_HALVES } from '@/components/ui';
 import TeamChat from '@/components/TeamChat';
 import Goals from '@/components/Goals';
-import LatestBrief from '@/components/LatestBrief';
-import AdAnalytics from '@/components/AdAnalytics';
-import ProvenPlays from '@/components/ProvenPlays';
-import FunnelCard from '@/components/FunnelCard';
 import RevenueCard from '@/components/RevenueCard';
-import IntelCard from '@/components/IntelCard';
-import Fold from '@/components/Fold';
+import KeyNumbers from '@/components/dashboard/KeyNumbers';
+import InsightsBlock from '@/components/dashboard/InsightsBlock';
+import CompetitorsBlock from '@/components/dashboard/CompetitorsBlock';
+import DeepLinks from '@/components/dashboard/DeepLinks';
 import { useTeam } from '@/contexts/TeamContext';
-import { isOn, TEAM_MODE } from '@/lib/modules';
-import { isProven, isStarred } from '@/lib/ads';
+import { isOn, MODULES } from '@/lib/modules';
+import { isOwnBrand, OWN_BRAND } from '@/lib/brand';
+import { dashboardSummary, topMetrics, nextActions, deepLinks } from '@/lib/dashboard';
+import { ownAdsSummary } from '@/lib/insights';
+import { rivalAds, rivalBoard, newPlays, provenPlays, angleMix } from '@/lib/rivals';
+import { shortDate } from '@/features/ai/dates';
 
-// Verdict = status colors, ALWAYS shown with a label (never color alone).
-const VERDICTS = [
-  { key: 'winner', label: 'Winners', bar: 'bg-emerald-400' },
-  { key: 'testing', label: 'Testing', bar: 'bg-amber-300' },
-  { key: 'unsure', label: 'Unsure', bar: 'bg-line' },
-  { key: 'loser', label: 'Losers', bar: 'bg-red-300' },
-];
-
-// A rising cumulative curve of how a collection grew over its own lifetime,
-// sampled into a handful of points for a stat-tile sparkline.
-function sparkOf(items, buckets = 12) {
-  const ts = items
-    .map((i) => new Date(i.created_at).getTime())
-    .filter((n) => !Number.isNaN(n))
-    .sort((a, b) => a - b);
-  if (ts.length < 2) return null;
-  const start = ts[0];
-  const span = Date.now() - start || 1;
-  const out = [];
-  for (let k = 1; k <= buckets; k++) {
-    const t = start + (span * k) / buckets;
-    out.push(ts.filter((x) => x <= t).length);
-  }
-  return out;
-}
-
-// How many landed in the last `days` - drives the "+N" delta pill.
-function newWithin(items, days = 7) {
-  const cut = Date.now() - days * 86400000;
-  return items.filter((i) => new Date(i.created_at).getTime() >= cut).length;
-}
+// The home screen as an info panel: the key numbers on top, then your
+// insights and the competitors as the two main areas, then links one tap
+// deeper. Revenue and team follow only when those modules are on.
 
 function greetingFor() {
   const h = new Date().getHours();
@@ -57,238 +31,196 @@ function greetingFor() {
   return 'Good evening';
 }
 
+// Newest brief as one line under the greeting. Nothing when there is none or
+// the briefs module is off.
+function useLatestBrief() {
+  const [brief, setBrief] = useState(null);
+  useEffect(() => {
+    if (!isOn('briefs')) return undefined;
+    let mounted = true;
+    db
+      .from('briefs')
+      .select('id,title,created_at')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        if (mounted && data?.[0]) setBrief(data[0]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  return brief;
+}
+
+// Ops cards only earn a place once their data exists: a count per table, null
+// while loading or when the table is missing.
+function useOpsData(on) {
+  const [counts, setCounts] = useState({ sales: 0, snapshots: 0 });
+  useEffect(() => {
+    if (!on) return undefined;
+    let mounted = true;
+    const count = (table) =>
+      db
+        .from(table)
+        .select('*', { count: 'exact', head: true })
+        .then(({ count: n, error }) => (error ? 0 : n || 0), () => 0);
+    Promise.all([count('sales'), count('kpi_snapshots')]).then(([sales, snapshots]) => {
+      if (mounted) setCounts({ sales, snapshots });
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [on]);
+  return counts;
+}
+
+function LoadingGrid() {
+  return (
+    <div aria-busy="true">
+      <span className="sr-only">Loading...</span>
+      <KeyNumbers loading />
+      <div className={`${GRID_HALVES} mt-4 lg:mt-6`}>
+        {[0, 1].map((k) => (
+          <div key={k} className="bg-card rounded-xl3 p-5 lg:p-6 space-y-4">
+            <Skeleton className="w-32 h-4" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="w-full h-10" />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [ads, setAds] = useState([]);
-  const [posts, setPosts] = useState([]);
-  const [notes, setNotes] = useState(0);
   const [loading, setLoading] = useState(true);
   const [partial, setPartial] = useState(null);
   const [reload, setReload] = useState(0);
-  const { displayName, me } = useTeam();
+  const { me } = useTeam();
+  const brief = useLatestBrief();
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
-      // Posts and team notes belong to the team module: skip the fetches
-      // when it is off.
-      const team = isOn('team');
-      const none = Promise.resolve(null);
-      const [a, fetchedPosts, c] = await Promise.all([
-        fetchAll((q) => q.order('created_at', { ascending: false }), 'ads'),
-        team ? fetchAll((q) => q.order('created_at', { ascending: false }), 'posts') : none,
-        TEAM_MODE ? db.from('comments').select('id', { count: 'exact', head: true }) : none,
-      ]);
-      const p = fetchedPosts || [];
+    fetchAll((q) => q.order('created_at', { ascending: false }), 'ads').then((rows) => {
       if (!mounted) return;
-      setAds(a);
-      setPosts(p);
-      setPartial([a, p].find((rows) => rows.error) || null);
-      setNotes(c?.count || 0);
+      setAds(rows);
+      setPartial(rows.error ? rows : null);
       setLoading(false);
-    })();
+    });
     return () => {
       mounted = false;
     };
   }, [reload]);
 
-  const winnerAds = ads.filter((a) => a.verdict === 'winner');
-  const winners = winnerAds.length;
-  const provenAds = ads.filter(isProven);
-  const starredAds = ads.filter(isStarred);
-  const runningNow = ads.filter((a) => a.metrics?.live === true).length;
-
-  // Verdict counts across ads for the labeled breakdown bar.
-  const verdictCounts = useMemo(() => {
-    const m = Object.fromEntries(VERDICTS.map((v) => [v.key, 0]));
-    ads.forEach((a) => {
-      m[a.verdict] = (m[a.verdict] || 0) + 1;
-    });
-    return m;
-  }, [ads]);
-  const totalAds = ads.length || 1;
-
-  // Recent activity: newest 6 items across ads + posts.
-  const recent = useMemo(() => {
-    const items = [
-      ...ads.map((a) => ({ kind: 'ad', id: a.id, label: a.brand || 'Untitled ad', by: a.added_by_email, at: a.created_at, to: `/ad/${a.id}` })),
-      ...posts.map((p) => ({ kind: 'post', id: p.id, label: p.title || p.platform || 'Post', by: p.added_by_email, at: p.created_at, to: `/post/${p.id}` })),
-    ];
-    return items.sort((x, y) => new Date(y.at) - new Date(x.at)).slice(0, 6);
-  }, [ads, posts]);
-
-  // Top tags across everything.
-  const topTags = useMemo(() => {
-    const m = new Map();
-    [...ads, ...posts].forEach((x) => (x.tags || []).forEach((t) => m.set(t, (m.get(t) || 0) + 1)));
-    return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  }, [ads, posts]);
-
+  const competitors = isOn('competitors');
+  const ownBrandSet = Boolean(OWN_BRAND);
+  const panel = useMemo(() => {
+    const now = Date.now();
+    const isOwn = isOwnBrand;
+    return {
+      summary: dashboardSummary(ads, { isOwn, now, top: 3 }),
+      metrics: topMetrics({ ads, isOwn, ownBrandSet, now, competitorsOn: competitors }),
+      actions: nextActions({ ads, isOwn, now, limit: 2 }),
+      own: ownBrandSet ? ownAdsSummary(ads, { isOwn }) : null,
+      rivalCount: competitors ? rivalAds(ads, isOwn).length : 0,
+      board: competitors ? rivalBoard(ads, { isOwn, now }) : null,
+      fresh: competitors ? newPlays(ads, { isOwn, now, liveOnly: true, limit: 3 }) : [],
+      proven: competitors ? provenPlays(ads, { isOwn, now, limit: 3 }) : [],
+      mix: competitors ? angleMix(ads, { isOwn, now, set: 'running' }) : null,
+    };
+  }, [ads, competitors, ownBrandSet]);
+  const links = useMemo(
+    () => deepLinks({ ads, isOwn: isOwnBrand, modules: MODULES, latestBrief: brief, now: Date.now() }),
+    [ads, brief],
+  );
   const dateLabel = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
   const myName = me?.nickname || '';
+  const team = isOn('team');
+  const ops = isOn('ops');
+  const opsData = useOpsData(ops);
+  const showRevenue = ops && (opsData.sales > 0 || opsData.snapshots > 0);
 
-  if (loading)
-    return (
-      <div className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
-        <Skeleton className="w-40 h-3.5 mb-2" />
-        <Skeleton className="w-52 h-8 mb-6" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <StatSkeleton key={i} />
-          ))}
-        </div>
-      </div>
-    );
+  const briefDate = brief ? shortDate(brief.created_at) : '';
 
   return (
-    <div data-page="dashboard" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1100px] mx-auto">
-      {/* Reference-style header: quiet dated eyebrow, then a big greeting. */}
-      <header className="mb-6">
-        <p className="kicker">{dateLabel}</p>
-        <h1 className="text-[28px] sm:text-[32px] font-semibold tracking-[-0.02em] leading-[1.1] mt-3">
-          {greetingFor()}{myName ? `, ${myName}` : ''}
-        </h1>
-        <p className="text-ink-soft text-[15px] leading-relaxed mt-2">
-          {TEAM_MODE ? 'Ads, posts and what the team thinks of them.' : 'Your swipe file at a glance.'}
-        </p>
-      </header>
-      <PartialNotice rows={partial} onRetry={() => setReload((n) => n + 1)} className="mb-5" />
-
-      {/* The money counter: lifetime revenue + MRR + live confetti per sale */}
-      {isOn('ops') && (
-        <Fold id="revenue" title="Revenue">
-          <RevenueCard />
-        </Fold>
-      )}
-
-      {/* KPI tiles */}
-      <Fold id="kpis" title="Key numbers">
-        {TEAM_MODE ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <StatCard icon={Images} label="Ads saved" value={ads.length} accent="base" to="/ads"
-              trend={sparkOf(ads)} delta={newWithin(ads) ? `+${newWithin(ads)}` : null} />
-            <StatCard icon={Trophy} label="Winning ads" value={winners} accent="emerald" to="/ads?proven=1"
-              trend={sparkOf(winnerAds)} delta={newWithin(winnerAds) ? `+${newWithin(winnerAds)}` : null} />
-            <StatCard icon={Megaphone} label="Organic posts" value={posts.length} accent="violet" to="/posts"
-              trend={sparkOf(posts)} delta={newWithin(posts) ? `+${newWithin(posts)}` : null} />
-            <StatCard icon={ChatCircleText} label="Team notes" value={notes} accent="blue" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <StatCard icon={Images} label="Ads saved" value={ads.length} accent="base" to="/ads"
-              trend={sparkOf(ads)} delta={newWithin(ads) ? `+${newWithin(ads)}` : null} />
-            <StatCard icon={Trophy} label="Proven" value={provenAds.length} accent="emerald" to="/ads?proven=1"
-              trend={sparkOf(provenAds)} delta={newWithin(provenAds) ? `+${newWithin(provenAds)}` : null} />
-            <StatCard icon={Star} label="Starred" value={starredAds.length} accent="amber" to="/ads?starred=1" />
-            <StatCard icon={Broadcast} label="Running now" value={runningNow} accent="blue" to="/competitors" />
-          </div>
-        )}
-      </Fold>
-
-      {/* Performance layer: our ad numbers + competitor pressure, the rivals'
-          battle-tested plays to beat, then our own funnel */}
-      {isOn('ops') && (
-        <Fold id="performance" title="Ad performance">
-          <AdAnalytics ads={ads} />
-        </Fold>
-      )}
-      {isOn('competitors') && (
-        <Fold id="proven" title="Rivals' proven plays">
-          <ProvenPlays ads={ads} />
-        </Fold>
-      )}
-      {isOn('ops') && (
-        <Fold id="funnel" title="Site funnel">
-          <FunnelCard />
-        </Fold>
-      )}
-
-      {/* SEO rank + EU ad geography headlines, links through to /intel */}
-      {isOn('intel') && <IntelCard ads={ads} />}
-
-      {/* Newest analysis brief from Claude (renders only when one exists) */}
-      {isOn('briefs') && <LatestBrief />}
-
-      {/* Team board: quick chat + goals */}
-      {isOn('team') && (
-        <Fold id="team" title="Team board">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            <TeamChat />
-            <Goals />
-          </div>
-        </Fold>
-      )}
-
-      <Fold id="breakdown" title="Verdicts and tags">
-      <div className="grid lg:grid-cols-2 gap-4">
-        {/* Verdict breakdown - labeled segmented bar (status colors + labels) */}
-        <div className="bg-card rounded-xl3 shadow-card p-5">
-          <h2 className="font-semibold text-[15px] mb-3">Ad verdicts</h2>
-          {ads.length === 0 ? (
-            <p className="text-ink-soft text-[13px]">No ads yet. <Link to="/ads/add" className="text-accent-dim font-medium">Add the first one</Link>.</p>
-          ) : (
-            <>
-              <div className="flex h-3 rounded-full overflow-hidden gap-[2px] bg-canvas mb-3">
-                {VERDICTS.filter((v) => verdictCounts[v.key] > 0).map((v) => (
-                  <div
-                    key={v.key}
-                    className={`${v.bar} h-full`}
-                    style={{ width: `${(verdictCounts[v.key] / totalAds) * 100}%` }}
-                  />
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                {VERDICTS.map((v) => (
-                  <span key={v.key} className="flex items-center gap-1.5 text-[13px] text-ink-soft">
-                    <span className={`w-2.5 h-2.5 rounded-full ${v.bar}`} />
-                    {v.label} <span className="font-semibold text-ink tabular-nums">{verdictCounts[v.key]}</span>
+    <Page id="dashboard">
+      <PageHeader
+        eyebrow={dateLabel}
+        title={`${greetingFor()}${myName ? `, ${myName}` : ''}`}
+        context={
+          brief && (
+            <Link
+              to={`/briefs?open=${encodeURIComponent(brief.id)}`}
+              className="group -my-2.5 flex items-center gap-2 min-h-[44px] max-w-full text-body text-ink-soft hover:text-ink transition-colors"
+            >
+              <span className="flex-shrink-0">Latest brief:</span>
+              <span className="text-ink truncate group-hover:underline underline-offset-4 decoration-ink-soft">{brief.title}</span>
+              {briefDate && (
+                <span className="hidden sm:inline flex-shrink-0 -ml-1">
+                  <span aria-hidden="true" className="text-ink-soft/50">
+                    {'· '}
                   </span>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Top tags */}
-        <div className="bg-card rounded-xl3 shadow-card p-5">
-          <h2 className="font-semibold text-[15px] mb-3">Top tags</h2>
-          {topTags.length === 0 ? (
-            <p className="text-ink-soft text-[13px]">Tags will show up here as the library grows.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {topTags.map(([tag, n]) => (
-                <span key={tag} className="text-[13px] px-3 py-1.5 rounded-full bg-canvas text-ink-soft">
-                  {tag} <span className="font-semibold text-ink tabular-nums">{n}</span>
+                  {briefDate}
                 </span>
-              ))}
+              )}
+            </Link>
+          )
+        }
+        actions={
+          <Button variant="primary" icon={Plus} to="/ads/add">
+            Add ad
+          </Button>
+        }
+      />
+
+      <PartialNotice rows={partial} noun="ads" onRetry={() => setReload((n) => n + 1)} className="mb-6" />
+
+      {loading ? (
+        <LoadingGrid />
+      ) : (
+        <>
+          {panel.summary.total > 0 && <KeyNumbers metrics={panel.metrics} />}
+
+          <div className={`${GRID_HALVES} ${panel.summary.total > 0 ? 'mt-4 lg:mt-6' : ''}`}>
+            <InsightsBlock
+              actions={panel.actions}
+              own={panel.own}
+              ownBrandSet={ownBrandSet}
+              summary={panel.summary}
+              wide={!competitors}
+            />
+            {competitors && (
+              <CompetitorsBlock
+                rivalCount={panel.rivalCount}
+                board={panel.board}
+                fresh={panel.fresh}
+                proven={panel.proven}
+                mix={panel.mix}
+              />
+            )}
+          </div>
+
+          {showRevenue && (
+            <div className="mt-4 lg:mt-6 min-w-0">
+              <RevenueCard />
             </div>
           )}
-        </div>
-      </div>
-      </Fold>
 
-      {/* Recent activity */}
-      <Fold id="recent" title="Recent activity" defaultOpen={false}>
-      <div className="bg-card rounded-xl3 shadow-card p-5 mt-4">
-        <h2 className="font-semibold text-[15px] mb-3">Recent activity</h2>
-        {recent.length === 0 ? (
-          <p className="text-ink-soft text-[13px]">{TEAM_MODE ? 'Nothing yet. Add an ad or a post to get rolling.' : 'Nothing yet. Add an ad to get rolling.'}</p>
-        ) : (
-          <div className="divide-y divide-line">
-            {recent.map((r) => (
-              <Link key={`${r.kind}-${r.id}`} to={r.to} className="flex items-center gap-3 min-h-[44px] py-2.5 group">
-                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${r.kind === 'ad' ? 'bg-accent-wash text-accent-dim' : 'bg-amber-100 text-amber-700'}`}>
-                  {r.kind}
-                </span>
-                <span className="flex-1 min-w-0 truncate text-[14px] font-medium group-hover:text-accent-dim transition-colors">{r.label}</span>
-                <span className="text-[12px] text-ink-soft flex-shrink-0">
-                  {TEAM_MODE && r.by ? `by ${displayName(r.by)} · ` : ''}{new Date(r.at).toLocaleDateString()}
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-      </Fold>
-    </div>
+          <DeepLinks links={links} />
+
+          {team && (
+            <Section title="Team">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 items-start min-w-0">
+                <TeamChat />
+                <Goals />
+              </div>
+            </Section>
+          )}
+        </>
+      )}
+    </Page>
   );
 }

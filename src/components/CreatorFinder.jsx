@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { isMissingTable } from '@/lib/db';
 import MigrationCard from '@/components/MigrationCard';
+import { Section, Panel, Button, IconButton, Segmented, List, Row, Meta, EmptyState } from '@/components/ui';
 
 // The four follower bands the outreach plan works in. Null tier = the search
 // snippet had no follower count, worth a manual look before writing them off.
@@ -113,93 +114,100 @@ export default function CreatorFinder({ onOutreachAdded }) {
 
   if (missing) {
     return (
-      <div className="mt-8">
+      <Section title="Find creators">
         <MigrationCard title="Creator finder" migration="db-setup.sql" />
-      </div>
+      </Section>
     );
   }
 
   const shown = byTier[tier];
 
   return (
-    <div className="mt-8">
-      <div className="flex items-center justify-between gap-3 mb-1">
-        <h2 className="text-[17px] font-semibold tracking-tight">Find creators</h2>
-        <button
-          onClick={findCreators}
-          disabled={active}
-          className="press flex items-center gap-1.5 min-h-[44px] py-2 px-3.5 rounded-2xl bg-accent text-black text-[13px] font-semibold disabled:opacity-40 disabled:shadow-none"
-        >
-          <MagnifyingGlass size={15} weight="bold" />
+    <Section
+      title="Find creators"
+      action={
+        <Button variant="secondary" icon={MagnifyingGlass} onClick={findCreators} disabled={active}>
           {active ? 'Searching...' : tier === 'unknown' ? 'Find creators' : `Find ${TIERS.find((t) => t.key === tier).label}`}
-        </button>
-      </div>
-      <p className="text-ink-soft text-[13px] mb-4">
+        </Button>
+      }
+    >
+      <p className="text-body text-ink-soft max-w-[68ch] mb-4">
         {job?.status === 'pending' && 'Queued. The scraper picks this up within a couple of minutes.'}
         {job?.status === 'running' && 'Searching the web for Instagram profiles, results appear below as they land.'}
         {job?.status === 'error' && `Last run failed: ${job.note || 'unknown error'}`}
         {job?.status === 'done' && `Last run: ${job.note || 'done'}`}
-        {!job && 'Pick an audience size and search. It finds public Instagram profiles through Brave Search using your CREATOR_QUERIES.'}
+        {!job && (
+          <>
+            Pick an audience size and search. It finds public Instagram profiles through Brave Search using your{' '}
+            <code className="font-mono text-small text-ink">CREATOR_QUERIES</code>.
+          </>
+        )}
       </p>
 
-      <div className="flex gap-1.5 scroll-x -mx-5 px-5 sm:mx-0 sm:px-0 mb-4">
-        {TIERS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTier(t.key)}
-            className={`flex-shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
-              tier === t.key ? 'bg-accent text-black' : 'bg-white/[0.06] text-ink-soft hover:text-ink'
-            }`}
-          >
-            {t.label} {byTier[t.key].length > 0 && `(${byTier[t.key].length})`}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        label="Audience size"
+        options={TIERS.map((t) => ({ id: t.key, label: t.label.charAt(0).toUpperCase() + t.label.slice(1), count: byTier[t.key].length || undefined }))}
+        value={tier}
+        onChange={setTier}
+        className="mb-4"
+      />
 
       {shown.length === 0 ? (
-        <p className="text-ink-soft text-[13px] py-6 text-center">
-          {leads.length === 0 ? 'No leads yet. Hit Find creators to run a search.' : 'Nothing in this band right now.'}
-        </p>
+        <Panel>
+          <EmptyState
+            text={leads.length === 0 ? 'No leads yet. Hit Find creators to run a search.' : 'Nothing in this band right now.'}
+          />
+        </Panel>
       ) : (
-        <div className="bg-card rounded-xl3 shadow-card divide-y divide-line">
-          {shown.map((l) => (
-            <div key={l.id} className="flex items-center gap-3 px-4 py-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-semibold truncate flex items-center gap-1.5">
-                  {l.name || `@${l.handle}`}
-                  <a href={l.url} target="_blank" rel="noreferrer" aria-label={`Open @${l.handle} on Instagram`} className="text-accent-dim flex-shrink-0">
-                    <ArrowSquareOut size={14} weight="bold" />
-                  </a>
-                </p>
-                <p className="text-[12px] text-ink-soft truncate">
-                  @{l.handle} · {fmtFollowers(l.followers)}
-                  {l.email && (
-                    <>
-                      {' · '}
-                      <a href={`mailto:${l.email}`} className="text-accent-dim font-medium">{l.email}</a>
-                    </>
-                  )}
-                </p>
-                {l.bio && <p className="text-[12px] text-ink-soft/80 truncate">{l.bio}</p>}
-              </div>
-              <button
-                onClick={() => addToOutreach(l)}
-                aria-label={`Add @${l.handle} to outreach`}
-                className="press flex items-center gap-1 py-1.5 px-2.5 rounded-xl bg-emerald-500/15 text-emerald-300 text-[12px] font-semibold flex-shrink-0"
-              >
-                <Plus size={13} weight="bold" /> Outreach
-              </button>
-              <button
-                onClick={() => dismiss(l)}
-                aria-label={`Dismiss @${l.handle}`}
-                className="w-11 h-11 rounded-xl flex items-center justify-center text-ink-soft hover:bg-canvas flex-shrink-0"
-              >
-                <X size={14} weight="bold" />
-              </button>
-            </div>
-          ))}
-        </div>
+        <Panel flush>
+          <List>
+            {shown.map((l) => (
+              <Row
+                key={l.id}
+                title={l.name || `@${l.handle}`}
+                meta={
+                  <>
+                    <Meta
+                      items={[
+                        `@${l.handle}`,
+                        <span key="f" className="whitespace-nowrap">{fmtFollowers(l.followers)}</span>,
+                        l.email && (
+                          <a key="e" href={`mailto:${l.email}`} className="text-ink underline decoration-line underline-offset-2 hover:decoration-ink break-all">
+                            {l.email}
+                          </a>
+                        ),
+                      ]}
+                    />
+                    {l.bio && <span className="block truncate mt-0.5">{l.bio}</span>}
+                  </>
+                }
+                trailing={
+                  <>
+                    <IconButton label={`Open @${l.handle} on Instagram`} href={l.url} target="_blank" rel="noreferrer" icon={ArrowSquareOut} />
+                    <Button
+                      variant="secondary"
+                      icon={Plus}
+                      onClick={() => addToOutreach(l)}
+                      aria-label={`Add @${l.handle} to outreach`}
+                      className="hidden sm:inline-flex"
+                    >
+                      Outreach
+                    </Button>
+                    <IconButton
+                      label={`Add @${l.handle} to outreach`}
+                      variant="secondary"
+                      icon={Plus}
+                      onClick={() => addToOutreach(l)}
+                      className="sm:hidden"
+                    />
+                    <IconButton label={`Dismiss @${l.handle}`} icon={X} onClick={() => dismiss(l)} />
+                  </>
+                }
+              />
+            ))}
+          </List>
+        </Panel>
       )}
-    </div>
+    </Section>
   );
 }

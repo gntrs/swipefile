@@ -211,7 +211,8 @@ const SAMPLE_AI = {
   },
 };
 
-const COUNTRY_WEIGHT = 1800;
+const EU_SHARE_BASE = 0.3;
+const EU_SHARE_PER_COUNTRY = 0.12;
 
 export function buildSeed(now = Date.now()) {
   const iso = (msAgo) => new Date(now - msAgo).toISOString();
@@ -240,19 +241,23 @@ export function buildSeed(now = Date.now()) {
     if (!own && spec.run) {
       const { live, days, endedAgo = 5 } = spec.run;
       const startedAgo = (live ? days : days + endedAgo) * DAY;
-      const reach = 1500 + ((n * 7919) % 90) * 450;
+      // Reach grows with the days an ad ran, at a steady daily rate that
+      // differs per ad, so a two day test never out reaches a four month run.
+      const perDay = 180 + ((n * 37) % 11) * 40;
+      const reach = days * perDay;
       metrics.ad_library_id = `99990000${String(n).padStart(7, '0')}`;
       metrics.days_running = days;
       metrics.live = live;
       metrics.started_running = iso(startedAgo);
       metrics.last_synced = iso(DAY + n * 3600000);
       metrics.reach = reach;
-      metrics.reach_per_day = Math.round(reach / Math.max(1, days));
+      metrics.reach_per_day = perDay;
       status = live ? 'running' : 'dead';
       if (Array.isArray(spec.geo)) {
         geoStatus = 'eu';
         countries = [...spec.geo];
-        euReachValue = Math.round(reach * 0.6) + countries.length * COUNTRY_WEIGHT;
+        // The EU part of the reach: never more than the whole.
+        euReachValue = Math.round(reach * Math.min(0.9, EU_SHARE_BASE + countries.length * EU_SHARE_PER_COUNTRY));
       } else if (spec.geo === 'none') {
         geoStatus = 'none';
       }

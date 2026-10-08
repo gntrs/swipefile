@@ -1,14 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchAll, isMissingTable } from '@/lib/db';
 import PartialNotice from '@/components/PartialNotice';
-import { parseFunnelStages, DEFAULT_FUNNEL_STAGES } from '@/lib/funnel';
+import { parseFunnelStages, DEFAULT_FUNNEL_STAGES, funnelSummary, windowStart, visitsWindow } from '@/lib/funnel';
+import { dailySeries } from '@/lib/charts';
 import { RowsSkeleton } from '@/components/Skeleton';
+import { Panel, Notice, Delta } from '@/components/ui';
+import BarList from '@/components/charts/BarList';
+import LineChart from '@/components/charts/LineChart';
 
 // Site funnel + traffic, read from kpi_snapshots (one row per day, written by
 // scripts/snapshot-kpis.mjs from the daily PostHog pull; the browser can't
-// reach PostHog directly). Sums the last N days for the funnel bars and plots
-// visitors/day as a sparkline. Degrades to a quiet setup note when the table
-// is empty (migration 16 not applied yet, or the cron hasn't run).
+// reach PostHog directly). Sums the last WINDOW days for the funnel bars and
+// draws visitors per day on a zero based line. Degrades to a quiet setup note
+// when the table is empty (migration 16 not applied yet, or the cron hasn't
+// run).
+//
+// The funnel numbers are event counts, not unique people: one person can fire
+// a step twice, so a step can pass 100 percent of the one above it. Summed
+// daily visitors count a returning person once per day they came back.
 
 const WINDOW = 30;
 
@@ -18,120 +27,96 @@ const WINDOW = 30;
 const env = (typeof import.meta !== 'undefined' && import.meta.env) || {};
 const STAGES = parseFunnelStages(env.VITE_FUNNEL_STAGES || DEFAULT_FUNNEL_STAGES);
 
-const cutoff = () => {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - WINDOW);
-  return d.toISOString().slice(0, 10);
-};
+const pct = (v) => (v >= 10 ? v.toFixed(0) : v.toFixed(1));
 
 export default function FunnelCard() {
   const [rows, setRows] = useState(null); // null = loading, [] = empty/no table
   const [reload, setReload] = useState(0);
+  const from = windowStart(WINDOW);
+  // Two windows are read, so the visits line can compare this one with the
+  // one before. The funnel and the line use the current window only.
+  const fetchFrom = windowStart(2 * WINDOW);
 
   useEffect(() => {
     let mounted = true;
-    fetchAll((q) => q.gte('day', cutoff()).order('day', { ascending: true }), 'kpi_snapshots')
+    fetchAll((q) => q.gte('day', fetchFrom).order('day', { ascending: true }), 'kpi_snapshots')
       .then((data) => mounted && setRows(data))
       .catch(() => mounted && setRows([]));
     return () => {
       mounted = false;
     };
-  }, [reload]);
+  }, [reload, fetchFrom]);
 
   // A missing table is the setup note below, not a load failure.
   const partial = rows?.error && !isMissingTable(rows.error) ? rows : null;
 
-  const { funnel, spark, visitors, days } = useMemo(() => {
-    const list = rows || [];
-    const funnelTotals = Object.fromEntries(STAGES.map((s) => [s.key, 0]));
-    let visitorsTotal = 0;
-    const daily = [];
-    for (const r of list) {
-      const m = r.metrics || {};
-      for (const s of STAGES) funnelTotals[s.key] += m.funnel?.[s.key] || 0;
-      const v = m.traffic?.visitors || 0;
-      visitorsTotal += v;
-      daily.push(v);
-    }
-    const top = funnelTotals[STAGES[0].key] || Math.max(1, ...Object.values(funnelTotals));
-    const funnelRows = STAGES.map((s, i) => {
-      const value = funnelTotals[s.key];
-      const prev = i === 0 ? null : funnelTotals[STAGES[i - 1].key];
-      return {
-        ...s,
-        value,
-        width: top ? (value / top) * 100 : 0,
-        conv: prev ? (prev ? (value / prev) * 100 : 0) : null,
-      };
-    });
-    return { funnel: funnelRows, spark: daily, visitors: visitorsTotal, days: list.length };
-  }, [rows]);
-
-  // Sparkline path over visitors/day.
-  const sparkPath = useMemo(() => {
-    if (spark.length < 2) return null;
-    const w = 100;
-    const h = 28;
-    const max = Math.max(1, ...spark);
-    const step = w / (spark.length - 1);
-    const pts = spark.map((v, i) => `${(i * step).toFixed(2)},${(h - (v / max) * h).toFixed(2)}`);
-    return { line: `M${pts.join(' L')}`, area: `M0,${h} L${pts.join(' L')} L${w},${h} Z` };
-  }, [spark]);
+  const current = useMemo(() => (Array.isArray(rows) ? rows.filter((r) => String(r?.day || '') >= from) : []), [rows, from]);
+  const funnel = useMemo(() => funnelSummary(current, STAGES), [current]);
+  const visitors = useMemo(
+    () => dailySeries(current, { from, to: new Date(), value: (r) => r.metrics?.traffic?.visitors }),
+    [current, from],
+  );
+  const visits = useMemo(() => visitsWindow(rows || [], { days: WINDOW }), [rows]);
+  const visitorDays = visitors.reduce((s, p) => s + (p.value || 0), 0);
 
   return (
-    <div className="bg-card rounded-xl3 shadow-card p-5 mb-4">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="font-semibold text-[15px]">Site funnel</h2>
-          <p className="text-ink-soft text-[12px]">
-            Last {days || WINDOW} days{visitors ? ` · ${visitors.toLocaleString()} visitors` : ''}
-          </p>
-        </div>
-        {sparkPath && (
-          <svg viewBox="0 0 100 28" preserveAspectRatio="none" className="w-28 h-8" aria-hidden="true">
-            <path d={sparkPath.area} fill="rgba(255,255,255,0.08)" />
-            <path d={sparkPath.line} fill="none" stroke="#FFFFFF" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-          </svg>
-        )}
-      </div>
+    <Panel title="Site funnel">
+      <p className="text-small text-ink-soft -mt-3 mb-5">
+        Last {WINDOW} days, {funnel.days} {funnel.days === 1 ? 'day' : 'days'} with a snapshot
+      </p>
 
-      <PartialNotice rows={partial} noun="days" onRetry={() => setReload((n) => n + 1)} className="mb-3" />
+      <PartialNotice rows={partial} noun="days" onRetry={() => setReload((n) => n + 1)} className="mb-4" />
       {rows === null ? (
-        <RowsSkeleton rows={2} />
-      ) : rows.length === 0 ? (
-        <div className="text-[13px] text-ink-soft bg-canvas/60 rounded-2xl px-4 py-3">
-          No snapshots yet. Apply <span className="font-mono text-[12px]">db-setup.sql</span>,
-          then the daily cron (or <span className="font-mono text-[12px]">node scripts/snapshot-kpis.mjs</span>)
-          fills this in.
-        </div>
+        <RowsSkeleton rows={2} className="!bg-transparent" />
+      ) : current.length === 0 ? (
+        <Notice tone="info">
+          {rows.length > 0 ? `No snapshot in the last ${WINDOW} days. ` : 'No snapshots yet. '}Apply <code className="font-mono text-small">db-setup.sql</code>, then the daily cron (or{' '}
+          <code className="font-mono text-small">node scripts/snapshot-kpis.mjs</code>) fills this in.
+        </Notice>
       ) : (
-        <div className="flex flex-col gap-2">
-          {funnel.map((s) => (
-            <div key={s.key}>
-              <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                <span className="text-[13px] font-medium">{s.label}</span>
-                <span className="font-mono text-[12px] text-ink-soft tabular-nums flex-shrink-0">
-                  {s.value.toLocaleString()}
-                  {s.conv != null && (
-                    <span className={`ml-1.5 font-semibold ${s.conv < 40 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                      {s.conv.toFixed(0)}%
-                    </span>
-                  )}
-                </span>
-              </div>
-              <div className="h-2.5 rounded-full bg-card overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-accent"
-                  style={{ width: `${Math.max(2, s.width)}%` }}
-                />
-              </div>
-            </div>
-          ))}
-          <p className="text-[11px] text-ink-soft mt-1">
-            % = conversion from the stage above. Red flags a leak under 40%.
+        <>
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-6 text-body text-ink">
+            <span>
+              <span className="num">{visits.cur.toLocaleString()}</span> visits in the last {WINDOW} days
+            </span>
+            {visits.delta ? (
+              <Delta delta={visits.delta} format={(n) => n.toLocaleString()} period={`vs the ${WINDOW} days before`} showPeriod />
+            ) : (
+              <span className="text-small text-ink-soft">not enough days before to compare</span>
+            )}
           </p>
-        </div>
+          <div className="grid gap-8 lg:grid-cols-2">
+            <div className="min-w-0">
+              <BarList
+                caption={`Events per step, summed over the last ${WINDOW} days`}
+                rows={funnel.stages.map((s) => ({
+                  key: s.key,
+                  label: s.label,
+                  value: s.value,
+                  display: s.value.toLocaleString(),
+                  aside: s.ofPrev == null ? null : `${pct(s.ofPrev)}% of above`,
+                  tip: s.ofPrev == null ? 'events, the first step' : `events, ${pct(s.ofPrev)}% of the step above`,
+                }))}
+              />
+              <p className="text-small text-ink-soft mt-3">
+                Counts events, not people, so a step can pass 100% of the one above.
+              </p>
+            </div>
+            <div className="min-w-0">
+              <LineChart
+                series={visitors}
+                unit="visitors"
+                label={`Visitors per day, last ${WINDOW} days`}
+              />
+              {visitorDays > 0 && (
+                <p className="text-small text-ink-soft mt-3">
+                  {visitorDays.toLocaleString()} visits in total, a returning visitor counted once per day.
+                </p>
+              )}
+            </div>
+          </div>
+        </>
       )}
-    </div>
+    </Panel>
   );
 }

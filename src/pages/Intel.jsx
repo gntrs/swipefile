@@ -1,13 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  MagnifyingGlass,
-  GlobeHemisphereWest,
-  TrendUp,
-  CaretRight,
-} from '@phosphor-icons/react';
+import { CaretRight } from '@phosphor-icons/react';
 import { db, fetchAll } from '@/lib/db';
 import { Skeleton } from '@/components/Skeleton';
+import { Page, PageHeader, Panel, Section, Button, Badge, Meta, EmptyState } from '@/components/ui';
 import {
   geoStatus,
   countryOptions,
@@ -17,6 +13,8 @@ import {
   compareMarkets,
   countryName,
 } from '@/lib/ads';
+import { rankHistory, rankChange, rankChangeText, latestTrends, timeframeText } from '@/lib/intel';
+import BarList from '@/components/charts/BarList';
 
 // Markets read in this order: your focus countries (VITE_FOCUS_COUNTRIES)
 // first, then the rest alphabetically. Labels come from countryName.
@@ -43,80 +41,47 @@ const fmtDay = (d) => {
   return Number.isNaN(t.getTime()) ? String(d) : t.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 };
 
-// Lower rank is better, so a rising line means we climbed. Guards on <2 points.
-function RankSpark({ points, width = 56, height = 18 }) {
-  if (!points || points.length < 2) return null;
-  // position 1 = best. Missing (null) = off the bottom (worst seen + 1).
-  const worst = Math.max(...points.map((p) => p ?? 0), 1);
-  const vals = points.map((p) => (p == null ? worst + 1 : p));
-  const max = Math.max(...vals);
-  const min = Math.min(...vals);
-  const span = max - min || 1;
-  const step = width / (vals.length - 1);
-  // Invert: best rank (min value) sits at the top of the box.
-  const d = vals
-    .map((v, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(((v - min) / span) * (height - 2) + 1).toFixed(1)}`)
-    .join(' ');
-  return (
-    <svg width={width} height={height} className="overflow-visible flex-shrink-0" aria-hidden="true">
-      <path d={d} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-// One section header: icon, title, and a right-aligned status that says in a
-// glance whether this block is live and how fresh it is. Keeping the header
-// identical across the three sections is what makes the page scan as a page
-// rather than as three unrelated widgets.
-function SectionHead({ icon: Icon, title, status, live }) {
-  return (
-    <div className="flex items-center gap-2.5 mb-3">
-      <Icon size={17} weight="bold" className={live ? 'text-ink' : 'text-ink-soft'} />
-      <h2 className="font-semibold text-[15px] tracking-tight">{title}</h2>
-      <span className="flex-1 h-px bg-line" />
-      <span className={`text-[11px] tabular-nums ${live ? 'text-ink-soft' : 'text-ink-soft/60'}`}>{status}</span>
-    </div>
-  );
-}
-
-// The empty state. The old version shouted three shell commands at whoever
-// opened the page; two of the three sections being unconfigured turned the
-// screen into a to-do list. Now the section states its condition in one quiet
-// line and folds the setup steps one level deeper, for the one person who
-// needs them.
+// The empty state for a block that is not set up yet: one quiet line, and the
+// setup steps one level deeper behind "Set up", for the one person who needs
+// them.
 function NotSetUp({ summary, steps }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
   return (
-    <details className="group rounded-xl3 bg-card overflow-hidden">
-      <summary className="flex items-center gap-2 min-h-[44px] px-4 py-3 cursor-pointer list-none select-none text-[13px] text-ink-soft transition-colors duration-150 ease-swift hover:text-ink [&::-webkit-details-marker]:hidden">
-        <span className="flex-1 min-w-0">{summary}</span>
-        <span className="flex items-center gap-1 text-[12px] flex-shrink-0">
+    <Panel>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className="text-body text-ink-soft min-w-0">{summary}</p>
+        <Button
+          variant="ghost"
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={() => setOpen(!open)}
+          className="-my-1 -mr-3"
+        >
           Set up
           <CaretRight
-            size={12}
+            size={14}
             weight="bold"
-            className="transition-transform duration-200 ease-swift group-open:rotate-90"
+            aria-hidden="true"
+            className={`transition-transform ${open ? 'rotate-90' : ''}`}
           />
-        </span>
-      </summary>
-      <ol className="px-4 pb-4 pt-1 space-y-1.5 text-[12px] text-ink-soft border-t border-line/60 mt-0">
-        {steps.map((s, i) => (
-          <li key={i} className="flex gap-2.5 pt-1.5">
-            <span className="tabular-nums text-ink-soft/60 flex-shrink-0">{i + 1}</span>
-            <span className="min-w-0">{s}</span>
-          </li>
-        ))}
-      </ol>
-    </details>
+        </Button>
+      </div>
+      {open && (
+        <ol id={id} className="mt-4 pt-4 border-t border-line space-y-3 text-body text-ink-soft">
+          {steps.map((s, i) => (
+            <li key={i} className="flex gap-3">
+              <span className="num text-ui text-ink-soft/60 flex-shrink-0 w-4">{i + 1}</span>
+              <span className="min-w-0">{s}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </Panel>
   );
 }
 
-const Cmd = ({ children }) => (
-  <code className="text-[11.5px] font-mono text-ink break-all">{children}</code>
-);
-
-const Card = ({ children }) => (
-  <div className="bg-card rounded-xl3 shadow-card p-5">{children}</div>
-);
+const Cmd = ({ children }) => <code className="font-mono text-small text-ink break-all">{children}</code>;
 
 export default function Intel() {
   const [ads, setAds] = useState([]);
@@ -157,7 +122,8 @@ export default function Intel() {
     const topEu = ads
       .filter((a) => euReach(a))
       .sort((x, y) => euReach(y) - euReach(x))[0] || null;
-    return { counts, ready, countries, totalEuReach, topEu };
+    const euAds = ads.filter((a) => euReach(a)).length;
+    return { counts, ready, countries, totalEuReach, topEu, euAds };
   }, [ads]);
 
   /* ---- SEO (seo_ranks, migration 19) ---- */
@@ -178,12 +144,10 @@ export default function Intel() {
             .filter((r) => !r.is_ours && r.position != null)
             .sort((a, b) => a.position - b.position)
             .slice(0, 3);
-          // Our position over the tracked history, oldest -> newest.
-          const history = mine
-            .filter((r) => r.term === term && r.is_ours)
-            .sort((a, b) => (a.day < b.day ? -1 : 1))
-            .map((r) => r.position);
-          return { term, ours, scanned, rivals, history };
+          // Our first and latest check, as words: a rank is never drawn for
+          // a day we were not found.
+          const change = rankChange(rankHistory(mine, { market, term }));
+          return { term, ours, scanned, rivals, change };
         });
         // Terms we actually rank for float to the top, best first: the card
         // opens with the news rather than with a column of "not in top 20".
@@ -200,59 +164,41 @@ export default function Intel() {
   );
 
   /* ---- Trends (trends_interest, migration 19) ---- */
-  const trendsByGeo = useMemo(() => {
-    const rows = trends.rows;
-    if (!rows.length) return [];
-    const geos = [...new Set(rows.map((r) => r.geo))];
-    return geos
-      .map((g) => {
-        const mine = rows.filter((r) => r.geo === g);
-        // Latest point per term.
-        const byTerm = new Map();
-        for (const r of mine) {
-          const cur = byTerm.get(r.term);
-          if (!cur || r.point_date > cur.point_date) byTerm.set(r.term, r);
-        }
-        const terms = [...byTerm.values()]
-          .map((r) => ({ term: r.term, value: Number(r.value) || 0, hasData: r.has_data !== false }))
-          .sort((a, b) => b.value - a.value);
-        return { geo: g, terms };
-      })
-      .sort((a, b) => compareMarkets(a.geo, b.geo));
-  }, [trends.rows]);
+  // The latest complete week per request group: values only compare inside
+  // the group Google scaled them in.
+  const trendsByGeo = useMemo(
+    () => latestTrends(trends.rows).sort((a, b) => compareMarkets(a.geo, b.geo)),
+    [trends.rows],
+  );
+  const trendsLatest = useMemo(
+    () => trendsByGeo.flatMap((g) => g.groups.map((x) => x.date)).reduce((mx, d) => (!mx || d > mx ? d : mx), null),
+    [trendsByGeo],
+  );
 
   const seoLive = !seo.missing && seoByMarket.length > 0;
   const trendsLive = !trends.missing && trendsByGeo.length > 0;
 
   if (loading)
     return (
-      <div className="px-5 sm:px-8 py-6 max-w-[1100px] mx-auto">
-        <Skeleton className="w-40 h-3.5 mb-2" />
-        <Skeleton className="w-52 h-8 mb-6" />
-        <div className="grid gap-4">
+      <Page id="intel">
+        <Skeleton className="w-52 h-8 mb-3" />
+        <Skeleton className="w-80 max-w-full h-4 mb-8" />
+        <div className="grid gap-4 lg:gap-6">
           <Skeleton className="w-full h-40 rounded-xl3" />
           <Skeleton className="w-full h-40 rounded-xl3" />
         </div>
-      </div>
+      </Page>
     );
 
   return (
-    <div data-page="intel" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1100px] mx-auto">
-      <header className="mb-7">
-        <p className="kicker">Market intel</p>
-        <h1 className="text-[28px] sm:text-[32px] font-semibold tracking-[-0.02em] leading-[1.1] mt-3">Where we stand</h1>
-        <p className="text-ink-soft text-[15px] leading-relaxed mt-2">Search rank, EU ad geography and demand trends for the markets we chase.</p>
-      </header>
+    <Page id="intel">
+      <PageHeader
+        title="Where we stand"
+        context="Search rank, EU ad geography and demand trends for the markets we chase."
+      />
 
       {/* ============ SEO ============ */}
-      <section className="mb-7">
-        <SectionHead
-          icon={MagnifyingGlass}
-          title="Search rank"
-          live={seoLive}
-          status={seoLive ? fmtDay(seoLatestDay) : 'Not set up'}
-        />
-
+      <Section first title="Search rank" meta={seoLive ? `Updated ${fmtDay(seoLatestDay)}` : 'Not set up'}>
         {!seoLive ? (
           <NotSetUp
             summary="No search rank data yet."
@@ -264,67 +210,56 @@ export default function Intel() {
             ]}
           />
         ) : (
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 lg:gap-6 md:grid-cols-3">
             {seoByMarket.map(({ market, terms, ranked }) => (
-              <Card key={market}>
-                <div className="flex items-baseline justify-between mb-4">
-                  <h3 className="font-semibold text-[15px] tracking-tight">{countryName(market)}</h3>
-                  <span className="text-[11px] text-ink-soft tabular-nums">
-                    {ranked}/{terms.length} ranking
+              <Panel
+                key={market}
+                title={countryName(market)}
+                action={
+                  <span className="text-small text-ink-soft">
+                    {ranked} of {terms.length} ranking
                   </span>
-                </div>
-                <div className="space-y-3">
-                  {terms.map(({ term, ours, scanned, rivals, history }) => {
+                }
+              >
+                <ul className="divide-y divide-line">
+                  {terms.map(({ term, ours, scanned, rivals, change }) => {
                     const placed = ours && ours.position != null;
                     return (
-                      <div key={term}>
+                      <li key={term} className="py-3 first:pt-0 last:pb-0">
                         <div className="flex items-baseline justify-between gap-3">
-                          <p className={`text-[13px] leading-snug min-w-0 ${placed ? 'text-ink font-medium' : 'text-ink-soft'}`}>
-                            {term}
-                          </p>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-accent-dim/60">
-                              <RankSpark points={history} />
+                          <p className={`text-ui min-w-0 ${placed ? 'text-ink font-medium' : 'text-ink-soft'}`}>{term}</p>
+                          {placed ? (
+                            <span className="num text-ui text-ink flex-shrink-0">#{ours.position}</span>
+                          ) : (
+                            <span className="text-small text-ink-soft flex-shrink-0 whitespace-nowrap">
+                              not in top <span className="num">{scanned || 20}</span>
                             </span>
-                            {placed ? (
-                              <span className="text-[12px] font-semibold tabular-nums text-emerald-500 bg-emerald-50 rounded px-1.5 py-0.5">
-                                #{ours.position}
-                              </span>
-                            ) : (
-                              <span className="text-[11px] tabular-nums text-ink-soft/60">
-                                &gt;{scanned || 20}
-                              </span>
-                            )}
-                          </div>
+                          )}
                         </div>
+                        {change && <p className="text-small text-ink-soft mt-0.5">{rankChangeText(change, fmtDay)}</p>}
                         {rivals.length > 0 && (
-                          <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 mt-1">
-                            {rivals.map((r) => (
-                              <span key={r.domain} className="text-[11px] text-ink-soft/70 tabular-nums">
-                                <span className="text-ink-soft">#{r.position}</span> {r.domain.replace(/^www\./, '')}
+                          <Meta
+                            as="p"
+                            className="text-small text-ink-soft mt-1"
+                            items={rivals.map((r) => (
+                              <span key={r.domain}>
+                                #{r.position} {r.domain.replace(/^www\./, '')}
                               </span>
                             ))}
-                          </div>
+                          />
                         )}
-                      </div>
+                      </li>
                     );
                   })}
-                </div>
-              </Card>
+                </ul>
+              </Panel>
             ))}
           </div>
         )}
-      </section>
+      </Section>
 
       {/* ============ GEO / EU reach ============ */}
-      <section className="mb-7">
-        <SectionHead
-          icon={GlobeHemisphereWest}
-          title="EU ad geography"
-          live={geo.ready}
-          status={geo.ready ? `${geo.counts.eu} EU ads` : 'Not set up'}
-        />
-
+      <Section title="EU ad geography" meta={geo.ready ? `${geo.counts.eu} EU ads` : 'Not set up'}>
         {!geo.ready ? (
           <NotSetUp
             summary="No ads carry EU transparency data yet."
@@ -335,70 +270,63 @@ export default function Intel() {
             ]}
           />
         ) : (
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* Flag distribution */}
-            <Card>
-              <h3 className="font-semibold text-[15px] tracking-tight mb-4">Transparency flags</h3>
-              <div className="space-y-2.5">
-                <FlagRow label="Ran in EU" value={geo.counts.eu} tone="emerald" />
-                <FlagRow label="Confirmed not EU" value={geo.counts.none} tone="line" />
-                <FlagRow label="Unchecked" value={geo.counts.unknown} tone="soft" />
-              </div>
-            </Card>
+          <div className="grid gap-4 lg:gap-6 md:grid-cols-3">
+            <Panel title="Transparency flags">
+              <ul className="divide-y divide-line">
+                <FlagRow label="Ran in the EU" value={geo.counts.eu} />
+                <FlagRow label="Checked, not in the EU" value={geo.counts.none} />
+                <FlagRow label="Not checked yet" value={geo.counts.unknown} />
+              </ul>
+            </Panel>
 
-            {/* Country leaderboard */}
-            <Card>
-              <h3 className="font-semibold text-[15px] tracking-tight mb-4">Ads by country</h3>
+            <Panel title="Saved ads that ran per country">
               {geo.countries.length === 0 ? (
-                <p className="text-ink-soft text-[13px]">No per-country data resolved yet.</p>
+                <EmptyState text="No per-country data resolved yet." />
               ) : (
-                <div>
+                <ul className="divide-y divide-line -my-1">
                   {geo.countries.slice(0, 6).map(({ code, label, count }) => (
-                    <Link
-                      key={code}
-                      to={`/ads?country=${code}`}
-                      className="flex items-center justify-between min-h-[44px] group -mx-1 px-1 rounded transition-colors duration-150 ease-swift hover:bg-canvas/60 active:bg-canvas"
-                    >
-                      <span className="text-[13px] transition-colors duration-150 group-hover:text-accent-dim">
-                        {label}
-                        {FOCUS_COUNTRIES.includes(code) && (
-                          <span className="ml-1.5 text-[10px] font-bold uppercase text-accent-dim">focus</span>
-                        )}
-                      </span>
-                      <span className="text-[13px] font-semibold tabular-nums">{count}</span>
-                    </Link>
+                    <li key={code}>
+                      <Link
+                        to={`/ads?country=${code}`}
+                        className="group flex items-center justify-between gap-3 min-h-[44px] -mx-2 px-2 rounded-xl hover:bg-white/[0.03] transition-colors"
+                      >
+                        <span className="flex items-center gap-2 min-w-0 text-ui text-ink">
+                          <span className="truncate">{label}</span>
+                          {FOCUS_COUNTRIES.includes(code) && <Badge>Focus</Badge>}
+                        </span>
+                        <span className="num text-num text-ink">{count}</span>
+                      </Link>
+                    </li>
                   ))}
-                </div>
+                  {geo.countries.length > 6 && (
+                    <li className="pt-3 text-small text-ink-soft">
+                      {geo.countries.length - 6} more {geo.countries.length - 6 === 1 ? 'country' : 'countries'} in the library filter
+                    </li>
+                  )}
+                </ul>
               )}
-            </Card>
+            </Panel>
 
-            {/* Reach */}
-            <Card>
-              <h3 className="font-semibold text-[15px] tracking-tight mb-4">EU reach seen</h3>
-              <p className="text-[28px] font-semibold tabular-nums leading-none tracking-tight">
+            <Panel title="EU reach, summed">
+              <p className="num text-num-lg text-ink">
                 {geo.totalEuReach >= 1000 ? `${(geo.totalEuReach / 1000).toFixed(1)}k` : geo.totalEuReach}
               </p>
-              <p className="text-[12px] text-ink-soft mt-1.5">people reached across flagged ads</p>
+              <p className="text-small text-ink-soft mt-2">
+                reach added up over {geo.euAds} {geo.euAds === 1 ? 'ad' : 'ads'} with EU data; one person seen by two ads counts twice
+              </p>
               {geo.topEu && (
-                <p className="text-[12px] text-ink-soft mt-3 pt-3 border-t border-line">
+                <p className="text-small text-ink-soft mt-4 pt-4 border-t border-line">
                   Biggest: <span className="font-medium text-ink">{geo.topEu.brand || 'an ad'}</span> at{' '}
                   <span className="font-semibold text-ink">{fmtEuReach(geo.topEu)}</span>
                 </p>
               )}
-            </Card>
+            </Panel>
           </div>
         )}
-      </section>
+      </Section>
 
       {/* ============ TRENDS ============ */}
-      <section className="mb-7">
-        <SectionHead
-          icon={TrendUp}
-          title="Demand trends"
-          live={trendsLive}
-          status={trendsLive ? 'live' : 'Not set up'}
-        />
-
+      <Section title="Demand trends" meta={trendsLive ? `Week of ${fmtDay(trendsLatest)}` : 'Not set up'}>
         {!trendsLive ? (
           <NotSetUp
             summary="No Google Trends data yet."
@@ -407,51 +335,48 @@ export default function Intel() {
                 ? [<>Apply <Cmd>db-setup.sql</Cmd> in your database provider's SQL editor.</>]
                 : []),
               <>Run <Cmd>node scripts/trends-pull.mjs</Cmd> for search interest on parent-intent terms. Google rate-limits this hard, so a run that returns nothing usually just needs retrying later.</>,
-              <>Values only compare within one geo, never across geos.</>,
+              <>Values are 0 to 100 against the busiest week of the terms pulled together, so they only compare inside one pull.</>,
             ]}
           />
         ) : (
-          <div className="grid gap-4 md:grid-cols-3">
-            {trendsByGeo.map(({ geo: g, terms }) => (
-              <Card key={g}>
-                <h3 className="font-semibold text-[15px] tracking-tight mb-4">{countryName(g)}</h3>
-                <div className="space-y-2.5">
-                  {terms.slice(0, 6).map(({ term, value, hasData }) => (
-                    <div key={term}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[12px] text-ink-soft truncate pr-2">{term}</span>
-                        <span className="text-[12px] font-semibold tabular-nums">{hasData ? value : '-'}</span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-canvas overflow-hidden">
-                        <div className="h-full bg-accent rounded-full" style={{ width: `${Math.max(value, hasData ? 2 : 0)}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[11px] text-ink-soft/60 mt-3.5">relative interest, 0 to 100 within {countryName(g)}</p>
-              </Card>
-            ))}
+          <div className="grid gap-4 lg:gap-6 md:grid-cols-3">
+            {trendsByGeo.flatMap(({ geo: g, groups }) =>
+              groups.map((grp) => (
+                <Panel key={`${g}-${grp.key}`} title={countryName(g)}>
+                  <BarList
+                    caption={`Search interest, week of ${fmtDay(grp.date)}${grp.partial ? ' (week not finished)' : ''}. 100 is the busiest week for these terms over the ${timeframeText(grp.timeframe)}.`}
+                    max={100}
+                    rows={grp.terms.slice(0, 6).map(({ term, value }) => ({
+                      key: term,
+                      label: term,
+                      value: value ?? 0,
+                      display: value == null ? 'too low to measure' : String(value),
+                      muted: value == null,
+                      tip: value == null ? null : 'of 100, relative interest',
+                    }))}
+                  />
+                  {groups.length > 1 && (
+                    <p className="text-small text-ink-soft mt-3">Pulled in its own group, so not comparable with the other {countryName(g)} card.</p>
+                  )}
+                </Panel>
+              )),
+            )}
           </div>
         )}
-      </section>
+      </Section>
 
-      <p className="text-[11.5px] text-ink-soft/60">
+      <p className="text-small text-ink-soft mt-10 lg:mt-12">
         Refreshed daily by <Cmd>scripts/seo-cron.sh</Cmd>.
       </p>
-    </div>
+    </Page>
   );
 }
 
-function FlagRow({ label, value, tone }) {
-  const dot =
-    tone === 'emerald' ? 'bg-emerald-400' : tone === 'line' ? 'bg-red-300' : 'bg-line';
+function FlagRow({ label, value }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="flex items-center gap-2 text-[13px] text-ink-soft">
-        <span className={`w-2.5 h-2.5 rounded-full ${dot}`} />
-        {label}
-      </span>
-      <span className="text-[13px] font-semibold tabular-nums">{value}</span>
-    </div>
+    <li className="flex items-center justify-between gap-3 min-h-[44px]">
+      <span className="text-ui text-ink">{label}</span>
+      <span className={`num text-num ${value ? 'text-ink' : 'text-ink-soft'}`}>{value}</span>
+    </li>
   );
 }

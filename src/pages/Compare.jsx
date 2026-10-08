@@ -1,43 +1,52 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Star } from '@phosphor-icons/react';
+import { Star } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
 import { setStarred, isStarred } from '@/lib/ads';
-import { parseCompareIds, MAX_COMPARE } from '@/lib/compare';
+import { parseCompareIds, bestIndex, MAX_COMPARE } from '@/lib/compare';
+import { compactNum, formatMoney } from '@/lib/format';
 import { RowsSkeleton } from '@/components/Skeleton';
+import { Page, PageHeader, Panel, Button, IconButton, EmptyState, Notice } from '@/components/ui';
 
 const num = (a, k) => {
   const v = Number(a?.metrics?.[k]);
   return Number.isFinite(v) && v > 0 ? v : null;
 };
-const fmtEur = (v) => (v == null ? '-' : `€${v.toFixed(2)}`);
-const fmtPct = (v) => (v == null ? '-' : `${v.toFixed(2)}%`);
-const fmtNum = (v) => (v == null ? '-' : v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${v}`);
+const fmtEur = (v) => (v == null ? null : formatMoney(v));
+const fmtPct = (v) => (v == null ? null : `${v.toFixed(2)}%`);
+const fmtNum = (v) => (v == null ? null : compactNum(v));
 
-// Metric rows. `best` = 'max' (higher wins) or 'min' (lower wins); the winning
-// cell in each row gets highlighted so the pattern jumps out.
+// Metric rows. `best` = 'max' (higher wins) or 'min' (lower wins); the best
+// cell in a row is marked only when at least two ads have that number and one
+// is strictly ahead. Reach and impressions are different measures (people
+// against views), so each gets its own row and they are never compared.
 const ROWS = [
   { key: 'ctr', label: 'CTR', get: (a) => num(a, 'ctr'), fmt: fmtPct, best: 'max' },
   { key: 'cpc', label: 'CPC', get: (a) => num(a, 'cpc'), fmt: fmtEur, best: 'min' },
   { key: 'spend', label: 'Spend', get: (a) => num(a, 'spend'), fmt: fmtEur, best: null },
-  { key: 'roas', label: 'ROAS', get: (a) => num(a, 'roas'), fmt: (v) => (v == null ? '-' : v.toFixed(2)), best: 'max' },
-  { key: 'reach', label: 'Reach / impressions', get: (a) => num(a, 'impressions') ?? num(a, 'reach'), fmt: fmtNum, best: 'max' },
-  { key: 'days', label: 'Days running', get: (a) => (typeof a?.metrics?.days_running === 'number' ? a.metrics.days_running : null), fmt: (v) => (v == null ? '-' : `${v}d`), best: 'max' },
+  { key: 'roas', label: 'ROAS', get: (a) => num(a, 'roas'), fmt: (v) => (v == null ? null : v.toFixed(2)), best: 'max' },
+  { key: 'impressions', label: 'Impressions', get: (a) => num(a, 'impressions'), fmt: fmtNum, best: 'max' },
+  { key: 'reach', label: 'Reach', get: (a) => num(a, 'reach'), fmt: fmtNum, best: 'max' },
+  { key: 'days', label: 'Days running', get: (a) => (typeof a?.metrics?.days_running === 'number' ? a.metrics.days_running : null), fmt: (v) => (v == null ? null : `${v}d`), best: 'max' },
 ];
+
+// The label column stays put while the ads scroll sideways under it.
+const labelCell = 'sticky left-0 z-10 bg-card pl-4 pr-2 lg:px-6 py-3 text-left align-top text-small font-medium text-ink-soft';
+const cell = 'px-4 py-3 text-left align-top';
 
 function AdThumb({ ad }) {
   const src = useMediaUrl(ad.media_path);
   return (
-    <div className="aspect-[4/5] w-full bg-canvas rounded-xl overflow-hidden flex items-center justify-center">
+    <div className="aspect-[4/5] max-h-56 w-full bg-canvas rounded-xl overflow-hidden flex items-center justify-center">
       {src ? (
         ad.format === 'video' ? (
-          <video src={src} muted loop playsInline className="w-full h-full object-cover" />
+          <video src={src} muted loop playsInline className="w-full h-full object-contain" />
         ) : (
-          <img src={src} alt={ad.brand || 'ad'} className="w-full h-full object-cover" />
+          <img src={src} alt={ad.brand || 'ad'} className="w-full h-full object-contain" />
         )
       ) : (
-        <span className="text-ink-soft text-[12px]">No media</span>
+        <span className="text-small text-ink-soft">No media</span>
       )}
     </div>
   );
@@ -98,137 +107,141 @@ export default function Compare() {
     if (!ok) swap(!next);
   };
 
-  // Best cell index per row, for highlighting.
-  const bestIndex = (row) => {
-    if (!row.best) return -1;
-    let idx = -1;
-    let val = row.best === 'max' ? -Infinity : Infinity;
-    ads.forEach((a, i) => {
-      const v = row.get(a);
-      if (v == null) return;
-      if ((row.best === 'max' && v > val) || (row.best === 'min' && v < val)) {
-        val = v;
-        idx = i;
-      }
-    });
-    return idx;
-  };
+  // Best cell index per row, or -1 when there is no single best.
+  const bestOf = (row) => bestIndex(ads.map((a) => row.get(a)), row.best);
+
+  const showTable = !loading && !error && ads.length >= 2;
 
   return (
-    <div data-page="compare" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[1200px] mx-auto">
-      <div className="flex items-center gap-3 mb-5">
-        <Link to="/ads" aria-label="Back to the library" className="press w-11 h-11 flex-shrink-0 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] flex items-center justify-center text-ink-soft">
-          <ArrowLeft size={18} weight="bold" />
-        </Link>
-        <div>
-          <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">Compare</h1>
-          <p className="text-ink-soft text-[14px]">{ads.length} ads side by side · best in each row highlighted</p>
-        </div>
-      </div>
+    <Page id="compare">
+      <PageHeader
+        back={{ to: '/ads', label: 'Library' }}
+        title="Compare"
+        context={showTable ? `${ads.length} ads side by side. The best number in a row is marked best.` : null}
+      />
 
-      {!loading && !error && missing > 0 && (
-        <p className="text-[14px] text-amber-600 mb-4">
-          {missing} of {requested} ads were not found.
-        </p>
-      )}
-      {dropped > 0 && (
-        <p className="text-[14px] text-ink-soft mb-4">
-          Compare shows up to {MAX_COMPARE} ads. {dropped} more {dropped === 1 ? 'was' : 'were'} left out.
-        </p>
-      )}
+      {(!loading && !error && missing > 0) || dropped > 0 ? (
+        <div className="flex flex-col gap-2 mb-4 lg:mb-6">
+          {!loading && !error && missing > 0 && (
+            <Notice tone="warn">
+              {missing} of {requested} ads were not found.
+            </Notice>
+          )}
+          {dropped > 0 && (
+            <Notice tone="info">
+              Compare shows up to {MAX_COMPARE} ads. {dropped} more {dropped === 1 ? 'was' : 'were'} left out.
+            </Notice>
+          )}
+        </div>
+      ) : null}
 
       {loading ? (
         <RowsSkeleton rows={3} />
       ) : error ? (
-        <div role="alert" className="text-center py-16">
-          <p className="text-[15px] text-ink mb-1">Could not load these ads.</p>
-          <p className="text-[14px] text-ink-soft mb-4">{error}</p>
-          <button
-            type="button"
-            onClick={() => setReload((n) => n + 1)}
-            className="press inline-flex items-center justify-center min-h-[44px] px-5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] font-semibold"
-          >
-            Retry
-          </button>
-        </div>
+        <Notice tone="bad" action={<Button onClick={() => setReload((n) => n + 1)}>Retry</Button>}>
+          <p className="font-semibold">Could not load these ads.</p>
+          <p className="text-ink-soft mt-0.5">{error}</p>
+        </Notice>
       ) : ads.length < 2 ? (
-        <div className="text-center py-20 text-ink-soft">
-          <p className="mb-3">Pick at least 2 ads to compare.</p>
-          <Link to="/ads" className="inline-flex items-center min-h-[44px] text-accent-dim font-semibold">Back to the library</Link>
-        </div>
+        <EmptyState
+          page
+          title="Pick at least 2 ads to compare."
+          text="Select ads in the library, then press Compare."
+          action={<Button to="/ads">Back to the library</Button>}
+        />
       ) : (
-        <div className="overflow-x-auto -mx-5 px-5 sm:mx-0 sm:px-0">
-          <table className="border-collapse min-w-full">
-            <thead>
-              <tr>
-                <th className="sticky left-0 bg-canvas z-10 w-28" />
+        <Panel flush className="overflow-hidden">
+          <div className="relative overflow-x-auto">
+            <table className="w-full table-fixed border-collapse" style={{ minWidth: `${7 + ads.length * 11}rem` }}>
+              <colgroup>
+                <col className="w-28 lg:w-40" />
                 {ads.map((a) => (
-                  <th key={a.id} className="p-2 align-top min-w-[160px]">
-                    <div className="bg-card rounded-xl3 shadow-card p-2">
-                      <div className="relative">
-                        <AdThumb ad={a} />
-                        <button
-                          onClick={() => toggleStar(a)}
-                          aria-label="Star"
-                          className={`absolute top-1 right-1 w-11 h-11 rounded-full flex items-center justify-center ${
-                            isStarred(a) ? 'bg-amber-400 text-black' : 'bg-canvas/90 text-ink-soft hover:text-ink'
-                          }`}
-                        >
-                          <Star size={14} weight={isStarred(a) ? 'fill' : 'bold'} />
-                        </button>
-                      </div>
-                      <Link to={`/ad/${a.id}`} className="block min-h-[44px] leading-[44px] font-semibold text-[13px] truncate hover:text-accent-dim">
-                        {a.brand || 'Untitled'}
-                      </Link>
-                      <p className="text-[11px] text-ink-soft truncate">{a.platform}</p>
-                    </div>
+                  <col key={a.id} />
+                ))}
+              </colgroup>
+              <thead>
+                <tr>
+                  <th className={`${labelCell} pt-5 lg:pt-6`}>
+                    <span className="sr-only">Metric</span>
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {ROWS.map((row) => {
-                const best = bestIndex(row);
-                return (
-                  <tr key={row.key} className="border-t border-line">
-                    <td className="sticky left-0 bg-canvas z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-middle">
-                      {row.label}
+                  {ads.map((a) => {
+                    const starred = isStarred(a);
+                    return (
+                      <th key={a.id} scope="col" className={`${cell} pt-5 lg:pt-6 pb-4 font-normal`}>
+                        <AdThumb ad={a} />
+                        <div className="flex items-center gap-1 mt-3 -mr-2">
+                          <Link
+                            to={`/ad/${a.id}`}
+                            className="flex-1 min-w-0 flex items-center min-h-[44px] text-title text-ink truncate hover:underline underline-offset-4"
+                          >
+                            <span className="truncate">{a.brand || 'Untitled'}</span>
+                          </Link>
+                          <IconButton
+                            label={starred ? 'Remove star' : 'Star'}
+                            pressed={starred}
+                            onClick={() => toggleStar(a)}
+                            icon={<Star size={18} weight={starred ? 'fill' : 'bold'} aria-hidden="true" className={starred ? 'text-ink' : ''} />}
+                          />
+                        </div>
+                        <p className="text-small text-ink-soft truncate">{a.platform || '-'}</p>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line border-t border-line">
+                {ROWS.map((row) => {
+                  const best = bestOf(row);
+                  return (
+                    <tr key={row.key}>
+                      <th scope="row" className={labelCell}>
+                        {row.label}
+                      </th>
+                      {ads.map((a, i) => {
+                        const value = row.fmt(row.get(a));
+                        return (
+                          <td key={a.id} className={cell}>
+                            {value == null ? (
+                              <span className="num text-num text-ink-soft">-</span>
+                            ) : i === best ? (
+                              <span className="inline-flex items-baseline gap-2 text-ink">
+                                <span className="num text-num font-semibold">{value}</span>
+                                <span className="text-meta text-ink-soft">best</span>
+                              </span>
+                            ) : (
+                              <span className="num text-num text-ink">{value}</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+                <tr>
+                  <th scope="row" className={labelCell}>
+                    Hook
+                  </th>
+                  {ads.map((a) => (
+                    <td key={a.id} className={`${cell} text-body text-ink`}>
+                      {a.hook || <span className="text-ink-soft">-</span>}
                     </td>
-                    {ads.map((a, i) => (
-                      <td key={a.id} className="px-2 py-2 text-center align-middle">
-                        <span
-                          className={`font-mono text-[14px] tabular-nums ${
-                            i === best
-                              ? 'font-bold text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded-lg'
-                              : 'text-ink'
-                          }`}
-                        >
-                          {row.fmt(row.get(a))}
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-              {/* Hook + copy rows, left-aligned text */}
-              <tr className="border-t border-line">
-                <td className="sticky left-0 bg-canvas z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-top">Hook</td>
-                {ads.map((a) => (
-                  <td key={a.id} className="px-2 py-2 text-[13px] align-top">{a.hook || '-'}</td>
-                ))}
-              </tr>
-              <tr className="border-t border-line">
-                <td className="sticky left-0 bg-canvas z-10 text-[12px] font-medium text-ink-soft pr-3 py-2 align-top">Copy</td>
-                {ads.map((a) => (
-                  <td key={a.id} className="px-2 py-2 text-[12px] text-ink-soft align-top whitespace-pre-wrap max-w-[240px]">
-                    {a.ad_copy ? (a.ad_copy.length > 280 ? `${a.ad_copy.slice(0, 280)}...` : a.ad_copy) : '-'}
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                  ))}
+                </tr>
+                <tr>
+                  <th scope="row" className={`${labelCell} pb-5 lg:pb-6`}>
+                    Copy
+                  </th>
+                  {ads.map((a) => (
+                    <td key={a.id} className={`${cell} pb-5 lg:pb-6 text-small text-ink-soft whitespace-pre-line`}>
+                      {a.ad_copy ? (a.ad_copy.length > 280 ? `${a.ad_copy.slice(0, 280)}...` : a.ad_copy) : '-'}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Panel>
       )}
-    </div>
+    </Page>
   );
 }

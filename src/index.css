@@ -4,6 +4,74 @@
 
 :root {
   color-scheme: dark;
+  /* One container for every page, gutters included. */
+  --maxw: 1220px;
+  /* A phone on its side puts the notch on the left or right: the gutter grows
+     to clear it. */
+  --gutter: max(clamp(20px, 4vw, 48px), env(safe-area-inset-left), env(safe-area-inset-right));
+  /* The sidebar: 240px at a 16px root, 262.5 at 17.5. */
+  --nav-w: 15rem;
+  /* The phone tab bar. Fixed bottom bars sit on top of it. */
+  --tabbar-h: calc(3.5rem + env(safe-area-inset-bottom));
+  /* Where fixed bars start on the left: 0 on a phone, the sidebar from lg. */
+  --nav-left: 0px;
+
+  /* Colour that means something, mirrored from tailwind.config.js for SVG
+     charts, which cannot take a utility class on every attribute. Status
+     marks always ride with a word. The viz ramp is the one magnitude colour:
+     bar, its track, the plot's hairline grid, and axis text (ink soft). */
+  --status-good: #36a980;
+  --status-warn: #c18434;
+  --status-bad: #c13140;
+  --status-neutral: #8b8b8b;
+  --status-live: #f4f4f5;
+  --viz-bar: #d4d4d4;
+  --viz-bar-hi: #ffffff;
+  --viz-track: #262626;
+  --viz-grid: #262626;
+  --viz-axis: #8b8b8b;
+  --viz-surface: #161616;
+  /* A change between two periods, and the heat ramp (tailwind delta, heat). */
+  --delta-good: #80e2b9;
+  --delta-bad: #ffadac;
+  --delta-flat: #8b8b8b;
+  --heat-0: #262626;
+  --heat-1: #4a4a4a;
+  --heat-2: #6a6a6a;
+  --heat-3: #8c8c8c;
+  --heat-4: #afafaf;
+  --heat-5: #d4d4d4;
+}
+@media (min-width: 1024px) {
+  :root {
+    --tabbar-h: 0px;
+    --nav-left: var(--nav-w);
+  }
+}
+@media (min-width: 1800px) {
+  :root {
+    --maxw: 1440px;
+  }
+}
+
+/* The root size moves the whole scale: type tokens and spacing are rem.
+   Phones and tablets stay at 16. Arbitrary px targets (min-h-[44px]) do not
+   move, so touch targets never shrink. */
+html {
+  font-size: 16px;
+  /* Turning a phone sideways must not blow the text up. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+@media (min-width: 1200px) {
+  html {
+    font-size: 17.5px;
+  }
+}
+@media (min-width: 1600px) {
+  html {
+    font-size: 18.5px;
+  }
 }
 
 html,
@@ -41,10 +109,12 @@ body {
      lit top edge and shadows, not a page wash. */
   background: #0a0a0a;
   color: #f4f4f5;
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: Figtree, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* No lone word on the last line of a wrapped paragraph or label. */
+  text-wrap: pretty;
 }
 
 /* Body text is never tracked. Headings track a little tight. */
@@ -55,11 +125,23 @@ h3 {
 }
 
 @layer components {
-  /* The section label: mono, small, uppercase, wide, muted. Every kicker and
-     field label in the app uses this one class. */
-  .kicker {
-    @apply font-mono text-[11px] font-normal uppercase leading-4 tracking-[0.12em] text-ink-soft;
+  /* Mono is for standalone numbers: stat values, table values, counts,
+     prices, percentages. A number inside a sentence stays Figtree. */
+  .num {
+    @apply font-mono font-medium tabular-nums;
+    letter-spacing: -0.01em;
   }
+  /* The one eyebrow a page may carry above its h1 (the dashboard date). Never
+     a field label, a panel title or a badge. */
+  .label-mono,
+  .kicker {
+    @apply font-mono font-medium uppercase text-ink-soft;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    letter-spacing: 0.1em;
+  }
+  /* .kicker is the old name for .label-mono, kept so nothing breaks while
+     pages move over. */
 }
 
 /* Long URLs and unbroken strings must wrap, not stretch the layout. */

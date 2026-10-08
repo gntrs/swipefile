@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { aiStatus, classifyAds, countUnclassified } from '@/lib/ai';
+import { Button } from '@/components/ui';
 import AiNotice, { useAiStatus, statusProblem } from './AiNotice';
 
 // The label and the line under it, from what is known. Pure, for the tests.
@@ -70,15 +71,10 @@ export default function ClassifyHooksButton({ onDone }) {
 
   return (
     <div className="inline-flex flex-col min-w-0 max-w-full">
-      <button
-        type="button"
-        onClick={run}
-        disabled={running || nothingLeft}
-        className="press self-start inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-4 rounded-xl bg-white/[0.06] text-[14px] font-semibold text-ink whitespace-nowrap hover:bg-white/[0.1] transition-colors disabled:opacity-60"
-      >
+      <Button onClick={run} disabled={running || nothingLeft} className="self-start">
         {running ? 'Tagging...' : label}
-      </button>
-      {note && <p className="mt-1 font-mono text-[12px] leading-snug text-ink-soft">{note}</p>}
+      </Button>
+      {note && <p className="mt-1 text-small text-ink-soft">{note}</p>}
       <AiNotice
         problem={problem}
         checking={checking}

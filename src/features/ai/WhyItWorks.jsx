@@ -1,22 +1,18 @@
 import React, { useState } from 'react';
 import { aiStatus, analyzeAd } from '@/lib/ai';
 import { angleLabel } from '@/lib/angles';
+import { Panel, Button } from '@/components/ui';
 import AiNotice, { useAiStatus, statusProblem } from './AiNotice';
 import { shortDate } from './dates';
 
-function Field({ label, children }) {
+function Item({ label, children }) {
   return (
     <div>
-      <p className="kicker mb-1">{label}</p>
-      <div className="text-[16px] leading-relaxed whitespace-pre-wrap">{children}</div>
+      <p className="text-small font-medium text-ink-soft mb-1">{label}</p>
+      <div className="text-body text-ink whitespace-pre-line max-w-[68ch]">{children}</div>
     </div>
   );
 }
-
-const primary =
-  'press inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-accent text-black text-[14px] font-semibold hover:bg-accent-dim transition-colors disabled:opacity-60';
-const secondary =
-  'press inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-white/[0.06] text-[14px] font-semibold text-ink hover:bg-white/[0.1] transition-colors disabled:opacity-60';
 
 // "Why it works" on the ad page: the AI read of one ad, or a button to get it.
 // When AI is not ready the button stays and pressing it shows the fix.
@@ -55,46 +51,42 @@ export default function WhyItWorks({ ad, onAdChange }) {
     : null;
 
   return (
-    <section aria-labelledby="why-it-works" className="pt-6 mt-1 border-t border-line">
-      <h2 id="why-it-works" className="text-[20px] font-semibold tracking-[-0.02em] leading-tight mb-5">
-        Why it works
-      </h2>
-
+    <Panel title="Why it works" aria-label="Why it works">
       {ai ? (
-        <div className="flex flex-col gap-4">
-          {ai.hook && <Field label="Hook">{ai.hook}</Field>}
-          {ai.angle && <Field label="Angle">{angleLabel(ai.angle) || ai.angle}</Field>}
-          {ai.format && <Field label="Format">{ai.format}</Field>}
-          {ai.audience && <Field label="Audience">{ai.audience}</Field>}
-          {ai.why_it_works && <Field label="Why it works">{ai.why_it_works}</Field>}
-          {ai.weaknesses && <Field label="Weak spots">{ai.weaknesses}</Field>}
+        <div className="flex flex-col gap-5">
+          {ai.hook && <Item label="Hook">{ai.hook}</Item>}
+          {ai.angle && <Item label="Angle">{angleLabel(ai.angle) || ai.angle}</Item>}
+          {ai.format && <Item label="Format">{ai.format}</Item>}
+          {ai.audience && <Item label="Audience">{ai.audience}</Item>}
+          {ai.why_it_works && <Item label="Why it works">{ai.why_it_works}</Item>}
+          {ai.weaknesses && <Item label="Weak spots">{ai.weaknesses}</Item>}
           {ideas.length > 0 && (
-            <Field label="Remix ideas">
+            <Item label="Remix ideas">
               <ol className="flex flex-col gap-1.5">
                 {ideas.map((idea, i) => (
                   <li key={i} className="flex gap-2">
-                    <span className="font-mono text-[13px] text-ink-soft tabular-nums pt-[3px]">{i + 1}.</span>
+                    <span className="text-ink-soft flex-shrink-0">{i + 1}.</span>
                     <span className="min-w-0">{idea}</span>
                   </li>
                 ))}
               </ol>
-            </Field>
+            </Item>
           )}
-          {byLine && <p className="font-mono text-[12px] text-ink-soft pt-1">{byLine}</p>}
-          <div>
-            <button type="button" onClick={run} disabled={running} className={secondary}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Button onClick={run} disabled={running}>
               {running ? 'Analyzing...' : 'Analyze again'}
-            </button>
+            </Button>
+            {byLine && <p className="text-small text-ink-soft">{byLine}</p>}
           </div>
         </div>
       ) : (
         <div>
-          <p className="text-[16px] leading-relaxed text-ink-soft mb-4">
+          <p className="text-body text-ink-soft max-w-[60ch] mb-4">
             Get a plain read of this ad: its hook, angle, audience, why it could work, where it is weak, and ideas to remix it.
           </p>
-          <button type="button" onClick={run} disabled={running} className={primary}>
+          <Button onClick={run} disabled={running}>
             {running ? 'Analyzing...' : 'Analyze'}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -105,6 +97,6 @@ export default function WhyItWorks({ ad, onAdChange }) {
         onRetry={problem && !problem.fromStatus ? run : undefined}
         onDismiss={() => setProblem(null)}
       />
-    </section>
+    </Panel>
   );
 }

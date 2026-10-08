@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { CaretDown, CheckCircle, PlusCircle, Warning } from '@phosphor-icons/react';
+import { CaretDown, Plus } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
+import { Badge, Button, Field, inputCls } from '@/components/ui';
 
 // Which brands the Ad Library importer auto-tracks (competitors table,
 // migration 15). Adding a brand that already exists updates its row, so
@@ -73,96 +74,122 @@ export default function TrackCompetitors() {
     load();
   }
 
-  const field =
-    'w-full px-3 py-2 rounded-xl border border-line bg-canvas/50 text-[14px] focus:outline-none focus:border-accent';
-
   return (
-    <div className="bg-card rounded-xl3 shadow-card px-4 py-3.5 mb-6">
-      <button onClick={() => setOpenForm(!openForm)} className="w-full min-h-[44px] flex items-center gap-3 text-left">
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-[15px]">Auto-tracked competitors</p>
-          <p className="text-[12px] text-ink-soft">
+    <section className="bg-card rounded-xl3">
+      <button
+        type="button"
+        aria-expanded={openForm}
+        onClick={() => setOpenForm(!openForm)}
+        className="w-full min-h-[44px] flex items-start gap-4 px-5 lg:px-6 py-5 lg:py-6 text-left rounded-xl3 hover:bg-white/[0.02] transition-colors focus-visible:!outline-offset-[-2px]"
+      >
+        <span className="flex-1 min-w-0">
+          <span className="flex items-center min-h-[28px] text-title text-ink">Auto tracked</span>
+          <span className="block text-small text-ink-soft mt-0.5">
             {rows.length
               ? `${rows.filter((r) => r.active).length} of ${rows.length} scraped daily from the Meta Ad Library`
               : 'Add brands to pull their ads daily from the Meta Ad Library'}
-          </p>
-        </div>
+          </span>
+        </span>
         <CaretDown
           size={16}
           weight="bold"
-          className={`text-ink-soft flex-shrink-0 transition-transform ${openForm ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+          className={`text-ink-soft flex-shrink-0 mt-1.5 transition-transform ${openForm ? 'rotate-180' : ''}`}
         />
       </button>
 
       {openForm && (
-        <div className="mt-3 pt-3 border-t border-line">
+        <div className="px-5 lg:px-6 pb-5 lg:pb-6">
           {rows.length > 0 && (
-            <div className="flex flex-col gap-1.5 mb-3">
+            <ul className="divide-y divide-line border-y border-line mb-5">
               {rows.map((r) => (
-                <div key={r.id} className="flex items-center gap-2 text-[13px]">
+                <li key={r.id} className="flex items-center gap-3 min-h-[52px] py-1">
                   <button
+                    type="button"
+                    role="switch"
+                    aria-checked={Boolean(r.active)}
+                    aria-label={`Track ${r.brand}`}
                     onClick={() => toggle(r)}
-                    title={r.active ? 'Tracking - tap to pause' : 'Paused - tap to resume'}
-                    className={`flex-shrink-0 w-9 h-5 rounded-full transition-colors relative ${
-                      r.active ? 'bg-mint' : 'bg-line'
-                    }`}
+                    title={r.active ? 'Tracking: tap to pause' : 'Paused: tap to resume'}
+                    className="press flex-shrink-0 -ml-1.5 w-11 h-11 flex items-center justify-center rounded-xl"
                   >
                     <span
-                      className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-all ${
-                        r.active ? 'left-[18px]' : 'left-0.5'
-                      }`}
-                    />
+                      aria-hidden="true"
+                      className={`relative w-9 h-5 rounded-full transition-colors ${r.active ? 'bg-mint' : 'bg-line'}`}
+                    >
+                      <span
+                        className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-all ${
+                          r.active ? 'left-[18px]' : 'left-0.5'
+                        }`}
+                      />
+                    </span>
                   </button>
-                  <span className={`font-semibold truncate ${r.active ? '' : 'text-ink-soft line-through'}`}>
+                  <span
+                    className={`flex-1 min-w-0 text-body font-medium truncate ${
+                      r.active ? 'text-ink' : 'text-ink-soft line-through'
+                    }`}
+                  >
                     {r.brand}
+                    {r.ig_handle && <span className="ml-2 text-small font-normal text-ink-soft">@{r.ig_handle}</span>}
                   </span>
                   {r.page_id ? (
-                    <span className="flex items-center gap-1 text-emerald-700 text-[11px] flex-shrink-0">
-                      <CheckCircle size={13} weight="fill" /> ads
-                    </span>
+                    <Badge tone="good" className="flex-shrink-0">
+                      Page linked
+                    </Badge>
                   ) : (
-                    <span className="flex items-center gap-1 text-amber-600 text-[11px] flex-shrink-0" title="No page id yet - the importer tries to find it, or re-add the brand with its Ad Library link">
-                      <Warning size={13} weight="fill" /> page id pending
-                    </span>
+                    <Badge
+                      tone="warn"
+                      className="flex-shrink-0"
+                      title="No page id yet. The importer tries to find it, or re-add the brand with its Ad Library link."
+                    >
+                      Page id pending
+                    </Badge>
                   )}
-                  {r.ig_handle && <span className="text-ink-soft text-[11px] truncate">@{r.ig_handle}</span>}
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
 
-          <form onSubmit={add} className="flex flex-col gap-2">
-            <div className="grid sm:grid-cols-3 gap-2">
-              <input className={field} placeholder="Brand name" value={brand} onChange={(e) => setBrand(e.target.value)} />
-              <input
-                className={field}
-                placeholder="Ad Library link or page id (optional)"
-                value={page}
-                onChange={(e) => setPage(e.target.value)}
-              />
-              <input
-                className={field}
-                placeholder="Instagram handle (optional)"
-                value={handle}
-                onChange={(e) => setHandle(e.target.value)}
-              />
+          <form onSubmit={add}>
+            <div className="grid md:grid-cols-3 gap-4">
+              <Field label="Brand" htmlFor="track-brand">
+                <input id="track-brand" className={inputCls} placeholder="Brand name" value={brand} onChange={(e) => setBrand(e.target.value)} />
+              </Field>
+              <Field label="Ad Library link or page id" htmlFor="track-page">
+                <input
+                  id="track-page"
+                  className={inputCls}
+                  placeholder="Optional"
+                  value={page}
+                  onChange={(e) => setPage(e.target.value)}
+                />
+              </Field>
+              <Field label="Instagram handle" htmlFor="track-handle">
+                <input
+                  id="track-handle"
+                  className={inputCls}
+                  placeholder="Optional"
+                  value={handle}
+                  onChange={(e) => setHandle(e.target.value)}
+                />
+              </Field>
             </div>
-            {error && <p className="text-[12px] text-accent-dim">{error}</p>}
-            <div className="flex items-center gap-3">
-              <button
-                type="submit"
-                disabled={saving || !brand.trim()}
-                className="press flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent text-black text-[13px] font-semibold disabled:opacity-50"
-              >
-                <PlusCircle size={16} weight="bold" /> Track brand
-              </button>
-              <p className="text-[11px] text-ink-soft">
-                Re-adding an existing brand updates it. Handle feeds the weekly posts scrape.
+            {error && (
+              <p role="alert" className="text-small text-red-300 mt-3">
+                {error}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4">
+              <Button type="submit" variant="secondary" icon={Plus} disabled={saving || !brand.trim()}>
+                Track brand
+              </Button>
+              <p className="text-small text-ink-soft min-w-0 flex-1 basis-60">
+                Re-adding an existing brand updates it. The handle feeds the weekly posts scrape.
               </p>
             </div>
           </form>
         </div>
       )}
-    </div>
+    </section>
   );
 }

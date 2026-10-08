@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle, Info, Warning } from '@phosphor-icons/react';
 import { aiStatus, AI_FIX_TEXT, AI_FIX_COMMAND } from '@/lib/ai';
+import { Badge } from '@/components/ui';
 import { CopyCommand } from './AiNotice';
 
 const LEVELS = {
-  ok: { icon: CheckCircle, label: 'OK', tone: 'text-emerald-600' },
-  info: { icon: Info, label: 'Info', tone: 'text-ink-soft' },
-  warn: { icon: Warning, label: 'Warning', tone: 'text-amber-600' },
+  ok: { icon: CheckCircle, label: 'OK', tone: 'text-emerald-400', badge: 'good' },
+  info: { icon: Info, label: 'Info', tone: 'text-ink-soft', badge: 'neutral' },
+  warn: { icon: Warning, label: 'Warning', tone: 'text-amber-400', badge: 'warn' },
 };
 
 // The setup row for a given AI status. Pure, for the tests.
@@ -65,16 +66,18 @@ export default function AiSetupRow() {
   const level = LEVELS[check.level] || LEVELS.info;
   const Icon = level.icon;
   return (
-    <li className="py-5 border-b border-line last:border-b-0" data-check="ai">
+    <li className="px-5 lg:px-6 py-5" data-check="ai">
       <div className="flex items-start gap-3">
-        <Icon size={22} weight="bold" className={`${level.tone} flex-shrink-0 mt-0.5`} aria-hidden="true" />
+        <Icon size={20} weight="bold" className={`${level.tone} flex-shrink-0 mt-0.5`} aria-hidden="true" />
         <div className="min-w-0 flex-1">
-          <p className="text-[16px] font-semibold leading-snug">{check.title}</p>
-          <p className={`font-mono text-[11px] uppercase tracking-[0.12em] mt-1.5 ${level.tone}`}>{level.label}</p>
-          {check.detail && <p className="text-[15px] text-ink-soft leading-relaxed mt-2">{check.detail}</p>}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <p className="text-title text-ink min-w-0">{check.title}</p>
+            <Badge tone={level.badge}>{level.label}</Badge>
+          </div>
+          {check.detail && <p className="text-body text-ink-soft mt-2 max-w-[68ch]">{check.detail}</p>}
           {check.fix && (
-            <div className="mt-3 flex items-start gap-2">
-              <code className="flex-1 min-w-0 block bg-canvas rounded-lg px-3 py-2.5 font-mono text-[13px] leading-relaxed text-ink whitespace-pre-wrap break-all">
+            <div className="mt-3 flex flex-col sm:flex-row sm:items-start gap-2">
+              <code className="flex-1 min-w-0 block bg-canvas rounded-xl p-3 font-mono text-small text-ink whitespace-pre-wrap break-words">
                 {check.fix}
               </code>
               <CopyCommand text={check.fix} />

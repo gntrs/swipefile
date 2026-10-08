@@ -1,14 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CaretLeft, Trash, PaperPlaneRight, ArrowSquareOut } from '@phosphor-icons/react';
+import { Trash, PaperPlaneRight, ArrowSquareOut } from '@phosphor-icons/react';
 import { db } from '@/lib/db';
 import { useMediaUrl } from '@/lib/media';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeam } from '@/contexts/TeamContext';
 import { RowsSkeleton } from '@/components/Skeleton';
+import { compactNum } from '@/lib/format';
+import { shortDate } from '@/features/ai/dates';
+import {
+  Page,
+  PageHeader,
+  Panel,
+  Button,
+  IconButton,
+  Metrics,
+  Meta,
+  Badge,
+  Field,
+  EmptyState,
+  GRID_SPLIT,
+  inputCls,
+  selectCls,
+} from '@/components/ui';
 
 const VERDICTS = ['unsure', 'winner', 'testing', 'loser'];
 const METRIC_KEYS = ['views', 'likes', 'comments', 'shares', 'saves', 'clicks', 'signups'];
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -67,130 +85,145 @@ export default function PostDetail() {
 
   if (loading) {
     return (
-      <div className="px-5 sm:px-8 pt-6 sm:pt-8 max-w-[720px] mx-auto">
+      <Page id="post-detail">
         <RowsSkeleton rows={2} />
-      </div>
+      </Page>
     );
   }
-  if (!post) return <div data-page="post-detail" className="p-8 text-ink-soft">Post not found.</div>;
+  if (!post) {
+    return (
+      <Page id="post-detail">
+        <PageHeader back={{ to: '/posts', label: 'Posts' }} title="Post not found" />
+        <EmptyState text="It may have been deleted, or the link is wrong." />
+      </Page>
+    );
+  }
 
-  
   const metrics = post.metrics || {};
-  const hasMetrics = METRIC_KEYS.some((k) => metrics[k] != null);
+  const metricItems = METRIC_KEYS.filter((k) => metrics[k] != null).map((k) => ({
+    key: k,
+    label: cap(k),
+    value: compactNum(metrics[k]),
+  }));
+  const tags = Array.isArray(post.tags) ? post.tags : [];
 
   return (
-    <div data-page="post-detail" className="px-5 sm:px-8 pt-6 sm:pt-8 pb-10 max-w-[860px] mx-auto">
-      <div className="flex items-center justify-between mb-4">
-        <button onClick={() => navigate('/posts')} className="flex items-center gap-1 min-h-[44px] text-ink-soft text-[14px] font-medium">
-          <CaretLeft size={16} weight="bold" /> Posts
-        </button>
-        <button onClick={remove} className="flex items-center gap-1 min-h-[44px] text-red-500 text-[14px] font-medium">
-          <Trash size={16} weight="bold" /> Delete
-        </button>
-      </div>
-
-      <div className="bg-card rounded-xl3 shadow-card p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1]">{post.title || 'Untitled post'}</h1>
-            <p className="text-ink-soft text-[14px] mt-0.5">
-              {[post.brand && `by ${post.brand} (competitor)`, post.platform, post.post_type, post.posted_at]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
-            {post.added_by_email && (
-              <p className="text-ink-soft text-[13px] mt-0.5">Added by {displayName(post.added_by_email)}</p>
+    <Page id="post-detail">
+      <PageHeader
+        back={{ to: '/posts', label: 'Posts' }}
+        title={post.title || 'Untitled post'}
+        context={
+          <Meta
+            items={[
+              post.brand && <span key="b" className="text-ink">{post.brand} (competitor)</span>,
+              post.platform,
+              post.post_type,
+              shortDate(post.posted_at),
+              post.added_by_email && `added by ${displayName(post.added_by_email)}`,
+            ]}
+          />
+        }
+        actions={
+          <>
+            {post.url && (
+              <>
+                <Button variant="ghost" href={post.url} target="_blank" rel="noreferrer" icon={ArrowSquareOut} className="hidden sm:inline-flex">
+                  Open
+                </Button>
+                <IconButton label="Open" href={post.url} target="_blank" rel="noreferrer" icon={ArrowSquareOut} className="sm:hidden" />
+              </>
             )}
-          </div>
-          {post.url && (
-            <a
-              href={post.url}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 min-h-[44px] text-accent-dim text-[14px] font-semibold flex-shrink-0"
-            >
-              Open <ArrowSquareOut size={16} weight="bold" />
-            </a>
+            <Button variant="danger" onClick={remove} icon={Trash} className="hidden sm:inline-flex">
+              Delete
+            </Button>
+            <IconButton label="Delete" variant="danger" onClick={remove} icon={Trash} className="sm:hidden" />
+          </>
+        }
+      />
+
+      <div className={GRID_SPLIT}>
+        {/* Under lg both columns dissolve (contents) so the panels read in one
+          order: results, verdict, copy, screenshot, notes. */}
+        <div className="contents lg:flex lg:col-span-8 lg:flex-col lg:gap-6 min-w-0">
+          {metricItems.length > 0 && (
+            <Panel title="Results" className="order-1 lg:order-none">
+              <Metrics items={metricItems} cols={3} className="sm:grid-cols-4 xl:grid-cols-5" />
+            </Panel>
+          )}
+
+          {(post.copy || post.notes || tags.length > 0) && (
+            <Panel title="Copy" className="order-3 lg:order-none">
+              {post.copy && <p className="text-body text-ink whitespace-pre-wrap max-w-[68ch]">{post.copy}</p>}
+              {post.notes && (
+                <div className={post.copy ? 'mt-5' : ''}>
+                  <p className="text-small font-medium text-ink-soft mb-1">Notes</p>
+                  <p className="text-body text-ink whitespace-pre-wrap max-w-[68ch]">{post.notes}</p>
+                </div>
+              )}
+              {tags.length > 0 && (
+                <div className={`flex flex-wrap gap-1.5 ${post.copy || post.notes ? 'mt-5' : ''}`}>
+                  {tags.map((t) => (
+                    <Badge key={t}>{t}</Badge>
+                  ))}
+                </div>
+              )}
+            </Panel>
+          )}
+
+          {src && (
+            <Panel title="Screenshot" className="order-4 lg:order-none">
+              <img src={src} alt="post screenshot" className="rounded-xl max-h-[32rem] max-w-full" />
+            </Panel>
           )}
         </div>
 
-        <div className="flex gap-3 mt-4 max-w-xs">
-          <label className="flex-1">
-            <span className="text-[12px] font-semibold text-ink-soft uppercase tracking-wide block mb-1">Verdict</span>
-            <select
-              value={post.verdict}
-              onChange={(e) => patch({ verdict: e.target.value })}
-              className="w-full min-h-[44px] py-2 px-3 rounded-2xl border border-line bg-card focus:outline-none focus:border-accent text-[14px] capitalize"
-            >
-              {VERDICTS.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-          </label>
-        </div>
+        <div className="contents lg:flex lg:col-span-4 lg:flex-col lg:gap-6 min-w-0">
+          <Panel className="order-2 lg:order-none">
+            <Field label="Verdict" htmlFor="post-verdict">
+              <select
+                id="post-verdict"
+                value={post.verdict}
+                onChange={(e) => patch({ verdict: e.target.value })}
+                className={selectCls}
+              >
+                {VERDICTS.map((v) => (
+                  <option key={v} value={v}>
+                    {cap(v)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </Panel>
 
-        {hasMetrics && (
-          <div className="grid grid-cols-3 sm:grid-cols-7 gap-2 mt-5">
-            {METRIC_KEYS.map((k) =>
-              metrics[k] != null ? (
-                <div key={k} className="bg-canvas rounded-2xl px-2 py-2.5 text-center">
-                  <p className="text-[17px] font-semibold tabular-nums leading-none">{metrics[k]}</p>
-                  <p className="text-[11px] text-ink-soft mt-1 capitalize">{k}</p>
-                </div>
-              ) : null
+          <Panel title="Team notes" flush className="order-5 lg:order-none">
+            {comments.length === 0 ? (
+              <p className="px-5 lg:px-6 text-body text-ink-soft">No notes yet.</p>
+            ) : (
+              <ul className="divide-y divide-line border-y border-line">
+                {comments.map((c) => (
+                  <li key={c.id} className="px-5 lg:px-6 py-3">
+                    <p className="text-small font-semibold text-ink">{displayName(c.author_email)}</p>
+                    <p className="text-body text-ink mt-0.5 whitespace-pre-wrap">{c.body}</p>
+                  </li>
+                ))}
+              </ul>
             )}
-          </div>
-        )}
-
-        {post.copy && (
-          <div className="mt-5">
-            <p className="text-[12px] font-semibold text-ink-soft uppercase tracking-wide mb-1">Copy</p>
-            <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{post.copy}</p>
-          </div>
-        )}
-
-        {post.notes && (
-          <div className="mt-4">
-            <p className="text-[12px] font-semibold text-ink-soft uppercase tracking-wide mb-1">Notes</p>
-            <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{post.notes}</p>
-          </div>
-        )}
-
-        {Array.isArray(post.tags) && post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-4">
-            {post.tags.map((t) => (
-              <span key={t} className="text-[12px] px-2.5 py-1 rounded-full bg-canvas text-ink-soft">{t}</span>
-            ))}
-          </div>
-        )}
-
-        {src && (
-          <img src={src} alt="post screenshot" className="mt-5 rounded-2xl border border-line max-h-96" />
-        )}
-      </div>
-
-      {/* Team notes */}
-      <div className="mt-4 bg-card rounded-xl3 shadow-card p-4">
-        <h3 className="font-semibold text-[15px] mb-3">Team notes</h3>
-        <div className="flex flex-col gap-3 mb-3">
-          {comments.length === 0 && <p className="text-ink-soft text-[13px]">No notes yet.</p>}
-          {comments.map((c) => (
-            <div key={c.id} className="bg-canvas rounded-2xl px-3.5 py-2.5">
-              <p className="text-[14px]">{c.body}</p>
-              <p className="text-[11px] text-ink-soft mt-1">{displayName(c.author_email)}</p>
-            </div>
-          ))}
+            <form onSubmit={addComment} className="flex gap-2 p-5 lg:p-6 pt-4 lg:pt-4">
+              <label htmlFor="post-note" className="sr-only">
+                Add a note for the team
+              </label>
+              <input
+                id="post-note"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Add a note for the team..."
+                className={`${inputCls} flex-1 min-w-0`}
+              />
+              <IconButton type="submit" label="Add note" variant="secondary" icon={<PaperPlaneRight size={18} weight="fill" aria-hidden="true" />} />
+            </form>
+          </Panel>
         </div>
-        <form onSubmit={addComment} className="flex gap-2">
-          <input
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Add a note for the team..."
-            className="flex-1 min-w-0 min-h-[44px] py-2.5 px-3.5 rounded-2xl border border-line focus:outline-none focus:border-accent bg-canvas text-[14px]"
-          />
-          <button aria-label="Add note" className="press w-11 h-11 rounded-2xl bg-accent text-black flex items-center justify-center flex-shrink-0">
-            <PaperPlaneRight size={18} weight="fill" />
-          </button>
-        </form>
       </div>
-    </div>
+    </Page>
   );
 }
